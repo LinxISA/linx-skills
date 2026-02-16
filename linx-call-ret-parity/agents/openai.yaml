@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Call/Ret Parity"
+  short_description: "Close call/ret conformance across LLVM, QEMU, Linux, and tests"
+  default_prompt: "Use $linx-call-ret-parity to enforce Linx call/ret contract behavior end-to-end (compiler, emulator, Linux cross-check, and runtime gates)."
