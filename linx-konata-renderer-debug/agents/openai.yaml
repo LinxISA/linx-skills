@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx Konata Renderer Debug"
-  short_description: "Debug Konata renderer/UI issues for Linx traces"
-  default_prompt: "Use $linx-konata-renderer-debug to triage Konata rendering issues (labels, rows, visibility, stale file behavior) for Linx traces."

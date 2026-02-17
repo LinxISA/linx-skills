@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx LLVM Backend"
-  short_description: "Build and debug the Linx LLVM backend"
-  default_prompt: "Use $linx-llvm-backend to add a new Linx instruction end-to-end (TableGen, isel, MC, asm/disasm, and LLVM tests)."

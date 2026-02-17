@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx Architecture Bring-up"
-  short_description: "Architecture guidance for Linx ISA bring-up"
-  default_prompt: "Use $linx-arch-bringup to review Linx CPU microarchitecture decisions (pipeline, CSRs, interrupts, memory) and derive bring-up checks."

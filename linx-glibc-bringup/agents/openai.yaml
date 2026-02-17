@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx glibc Bring-up"
-  short_description: "glibc porting gates for Linx64 GNU runtime"
-  default_prompt: "Use $linx-glibc-bringup to advance Linx glibc bring-up from configure/csu to shared libc runtime readiness."
