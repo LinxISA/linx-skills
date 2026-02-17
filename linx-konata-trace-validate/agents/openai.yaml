@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Konata Trace Validation"
+  short_description: "Validate Konata trace structure, stages, and counts"
+  default_prompt: "Use $linx-konata-trace-validate to check Linx Konata traces for stage coverage, record integrity, and commit-window consistency."

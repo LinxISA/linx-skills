@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Linux Bring-up"
+  short_description: "Linux arch bring-up, boot triage, and runtime stabilization"
+  default_prompt: "Use $linx-linux-bringup to debug Linx Linux boot/runtime failures, symbolicate traps, and close smoke/full-boot gates."

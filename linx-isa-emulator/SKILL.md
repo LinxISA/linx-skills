@@ -54,6 +54,16 @@ When you need the concrete “why”, open `references/evidence.md` and cite the
   - Header TB ends by internally jumping to `B.TEXT`’s body TPC (without applying the safety rule)
   - Body TB ends by returning to the header continuation (with the safety rule re-enabled). (Evidence: EMU-04)
 
+## Superproject gate integration
+
+When changing emulator behavior, validate in the same lane used for status reporting:
+
+- `bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh`
+- `bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 20`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_tests.py --suite callret --timeout 20`
+
+If `run_tests.sh --all` fails before suites execute, triage repo-root/include path resolution first, then instruction semantics.
+
 ## Differential testing tips
 
 - Prefer comparing commit traces (architectural state changes) over raw signal dumps.

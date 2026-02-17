@@ -1,6 +1,6 @@
 ---
 name: linx-call-ret-parity
-description: Close Linx call/ret conformance gaps across LLVM, QEMU, Linux cross-checks, and runtime gates.
+description: Call/ret contract closure across Linx compiler, emulator, kernel, and libc/runtime gates. Use when debugging return-path control flow, enforcing call-header adjacency, validating setc.tgt requirements, or triaging runtime traps caused by call/ret contract drift.
 ---
 
 # Linx Call/Ret Parity
@@ -38,9 +38,19 @@ Reference:
 
 - `python3 /Users/zhoubot/linx-isa/avs/qemu/run_tests.py --suite callret`
 - `python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py`
-- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --link both --sample callret`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample callret`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared --sample callret`
 - `bash /Users/zhoubot/linx-isa/tools/ci/check_linx_callret_crossstack.sh`
 - `bash /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/run.sh`
+- `python3 /Users/zhoubot/linux/tools/linxisa/initramfs/smoke.py`
+- `python3 /Users/zhoubot/linux/tools/linxisa/initramfs/full_boot.py`
+
+## Runtime-first policy
+
+- Treat freestanding call/ret pass as necessary but not sufficient.
+- Keep static and shared Linux+musl call/ret runtime as separate required outcomes.
+- If one mode fails, keep global call/ret runtime status red and preserve mode-specific logs.
+- For repeated block-trap loops, symbolicate Linux PC and cross-check QEMU target legality enforcement.
 
 ## References
 
