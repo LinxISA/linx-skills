@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Lib"
+  short_description: "glibc/musl bring-up and runtime gate policy"
+  default_prompt: "Use $linx-lib to run and triage Linx libc bring-up (glibc and musl) with explicit static/shared runtime policy."

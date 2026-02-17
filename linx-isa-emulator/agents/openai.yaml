@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx ISA Emulator"
-  short_description: "Implement and validate a Linx emulator"
-  default_prompt: "Use $linx-isa-emulator to implement or debug Linx instruction semantics, exceptions, and device behavior in an emulator."

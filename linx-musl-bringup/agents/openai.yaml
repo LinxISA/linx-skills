@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx musl Bring-up"
-  short_description: "musl build/runtime gates with static+shared tracking"
-  default_prompt: "Use $linx-musl-bringup to run Linx musl build and runtime smoke gates with explicit static/shared outcomes."

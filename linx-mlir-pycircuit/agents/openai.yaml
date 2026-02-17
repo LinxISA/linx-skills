@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx pyCircuit MLIR"
-  short_description: "Extend pyCircuit MLIR for Linx CPU bring-up"
-  default_prompt: "Use $linx-mlir-pycircuit to add/modify PYC dialect ops/passes and regenerate Linx CPU golden outputs in this repo."

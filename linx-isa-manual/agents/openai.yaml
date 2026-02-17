@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx ISA Manual"
-  short_description: "Write precise Linx ISA specifications"
-  default_prompt: "Use $linx-isa-manual to draft or revise a Linx ISA instruction entry with exact encoding, semantics, and exceptions."

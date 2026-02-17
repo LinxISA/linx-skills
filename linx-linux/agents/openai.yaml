@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Linux"
+  short_description: "Linux boot/runtime stabilization for Linx"
+  default_prompt: "Use $linx-linux to debug Linx Linux boot/runtime failures and close smoke/full-boot gates."

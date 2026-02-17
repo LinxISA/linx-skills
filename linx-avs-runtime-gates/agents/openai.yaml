@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx AVS Runtime Gates"
-  short_description: "Run and triage AVS compile/runtime/system gates"
-  default_prompt: "Use $linx-avs-runtime-gates to execute Linx AVS compile/runtime suites, track gate evidence, and triage regressions."

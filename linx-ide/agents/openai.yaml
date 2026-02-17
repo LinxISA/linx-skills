@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx IDE"
+  short_description: "Tooling and observability for Linx development"
+  default_prompt: "Use $linx-ide to debug Linx emulator/model/RTL behavior and run Konata trace generation, validation, and renderer triage workflows."

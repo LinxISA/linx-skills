@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linx RTL Development"
-  short_description: "RTL + verification workflow for Linx cores"
-  default_prompt: "Use $linx-rtl-development to design RTL modules and build a simulation+formal regression plan aligned with the Linx ISA spec."
