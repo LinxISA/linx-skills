@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Konata Trace Generation"
+  short_description: "Generate LinxCore Konata traces and artifacts"
+  default_prompt: "Use $linx-konata-trace-gen to generate Konata v0005 traces and companion commit/raw-event artifacts from LinxCore runs."

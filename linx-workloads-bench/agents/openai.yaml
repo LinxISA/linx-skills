@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Workloads Bench"
+  short_description: "Benchmark and TSVC workload execution on QEMU"
+  default_prompt: "Use $linx-workloads-bench to compile/run Linx workloads (including TSVC) on QEMU and summarize results."

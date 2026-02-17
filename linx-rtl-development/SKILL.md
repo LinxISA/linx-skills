@@ -59,6 +59,14 @@ When you need the concrete “why”, open `references/evidence.md` and cite the
 - Program images: `examples/linx_cpu/programs/*.memh`
 - Verilog flow doc: `docs/VERILOG_FLOW.md`
 
+## Konata observability handoff
+
+Use the Konata skill bundle when debugging visualization and trace quality:
+
+- `linx-konata-trace-gen`: generate trace bundles from LinxCore runs.
+- `linx-konata-trace-validate`: verify stage/record/UID integrity before UI triage.
+- `linx-konata-renderer-debug`: isolate parser/renderer/theme issues after trace validation passes.
+
 ## References
 
 - `references/rtl_checklist.md`

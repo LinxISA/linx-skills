@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Superproject Governance"
+  short_description: "Submodule topology, dual-lane sync, and gate governance"
+  default_prompt: "Use $linx-superproject-governance to normalize LinxISA submodule topology, manage pin/external lanes, and keep gate status reproducible."

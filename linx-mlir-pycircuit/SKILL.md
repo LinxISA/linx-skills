@@ -63,6 +63,17 @@ Key docs:
 - Golden outputs: `examples/generated/linx_cpu_pyc/`
 - Regression helper: `bash tools/run_linx_cpu_pyc_cpp.sh`
 
+## Superproject alignment checkpoints
+
+- Keep pyCircuit integration aligned with the LinxISA canonical submodule path:
+  - `/Users/zhoubot/linx-isa/tools/pyCircuit`
+- Keep benchmark fallback compatibility aligned with LinxCore superproject integration:
+  - preferred fallback root: `/Users/zhoubot/linx-isa/tools/pyCircuit/janus/generated/benchmarks`
+  - optional override via `PYC_BENCH_FALLBACK_DIR`
+- When runtime behavior changes, pair pyCircuit model checks with:
+  - `bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh`
+  - `bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all`
+
 ### Alignment tasks (when the ISA contract changes)
 
 When the Linx ISA “contract” changes (Block forms, templates, MMU/IOMMU), treat these as required updates for the pyCircuit/Janus models:
