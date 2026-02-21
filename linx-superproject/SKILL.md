@@ -58,3 +58,6 @@ This consolidated skill owns:
 ## References
 
 - `references/runbook.md`
+- `../linx-isa/references/v0.3_contracts_and_asm.md` (ISA v0.3 stable contracts)
+- `../linx-compiler/references/v0.3_codegen_and_asm_contracts.md` (LLVM parity focus)
+- `../linx-ide/references/v0.3_qemu_trap_contracts.md` (QEMU parity focus)

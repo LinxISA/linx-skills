@@ -40,3 +40,4 @@ This consolidated skill absorbs prior `isa-emulator`, `mlir-pycircuit`, `rtl-dev
 ## References
 
 - `references/tooling_matrix.md`
+- `references/v0.3_qemu_trap_contracts.md` (v0.3 TRAPNO/E_BLOCK encoding + reporting contracts for QEMU)

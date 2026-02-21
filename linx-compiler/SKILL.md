@@ -43,3 +43,4 @@ This consolidated skill absorbs prior `llvm-backend` and compiler-side `call-ret
 ## References
 
 - `references/compiler_checks.md`
+- `references/v0.3_codegen_and_asm_contracts.md` (v0.3 codegen/asm encodings; TEPL/TOPS contract)
