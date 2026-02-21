@@ -36,3 +36,4 @@ This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.
 ## References
 
 - `references/spec_alignment.md`
+- `references/v0.3_contracts_and_asm.md` (v0.3 stable contracts + assembler-visible encodings; LLVM/QEMU parity checklist)
