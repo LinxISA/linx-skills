@@ -13,6 +13,8 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
 
 - Keep LinxISA links in root `.gitmodules` only.
 - Keep no inter-leaf LinxISA submodule links.
+- Keep a single in-repo source of truth; do not route work to external trees
+  such as `/Users/zhoubot/qemu` or `/Users/zhoubot/linux`.
 - Keep required submodules in sync:
   - `compiler/llvm`
   - `emulator/qemu`
@@ -34,7 +36,21 @@ bash tools/ci/check_repo_layout.sh
 
 - Pin lane: superproject submodule SHAs.
 - External lane: active external trees.
+- For pin-lane bring-up, prefer in-repo toolchain binaries from
+  `compiler/llvm/build-linxisa-clang/bin`.
 - Run same gate matrix on both lanes and publish side-by-side outcomes.
+
+## Transcript lessons (2026-02-23)
+
+- Treat `ebreak` as architectural breakpoint by default; semihost behavior must
+  be explicit opt-in (`LINX_SEMIHOST=1`).
+- Do not run `avs/qemu` suites in parallel against the same `avs/qemu/out`
+  directory; shared build outputs can produce false undefined-symbol failures.
+- Keep Linux timer diagnostics separate from parser failures: if `ctx_tq` fails
+  with `irq0_delta=0`, capture `/proc/interrupts` and `/proc/stat` evidence
+  before changing checklist status.
+- Checklist status must be run-id backed, absolute-date stamped, and path-clean
+  (no external tree evidence links).
 
 ## Gate truth contract
 
