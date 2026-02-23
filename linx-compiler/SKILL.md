@@ -22,6 +22,15 @@ bash /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/run.sh
 python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --fail-under 100
 ```
 
+## Toolchain lane policy
+
+- Pin lane defaults to in-repo binaries:
+  - `CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang`
+  - `LLD=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/ld.lld`
+- Use external toolchain paths only in external lane or explicit override.
+- In reports, include lane + compiler path provenance so gate outcomes are
+  reproducible.
+
 ## Call/ret compile contract
 
 - enforce call-header adjacency,

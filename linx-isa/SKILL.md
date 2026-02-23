@@ -21,6 +21,10 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - Safety rule on control-flow targets is enforced.
 - Template and decoupled block semantics are unambiguous.
 - Trap/privilege and memory-model behavior is precise.
+- `EBREAK` default behavior is architectural breakpoint trap; semihost handling
+  is opt-in (`LINX_SEMIHOST=1`) and must not be implicit.
+- `BI=1` trap return contract explicitly restores second-layer block state
+  (`EBARG/BSTATE`, including `TQ/UQ` queues and continuation PCs).
 
 ## Workflow
 
