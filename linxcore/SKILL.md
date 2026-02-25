@@ -189,9 +189,21 @@ Useful XiangShan source references:
   - `LoadForwardQueryIO`: forwardMask/forwardData + `dataInvalid`
 
 For LinxCore, the equivalent behavior is:
+- E2 completes STQ forwarding query (addr CAM + older-range mask + per-byte youngest selection).
 - E3 selects cache vs store-forward data and performs merge by byte mask.
 - E4 registers the final data and triggers wakeup/ready-table update (hit).
 - If store-forward selected but store-data not ready, treat as miss_kind=STORE_DATA_NOT_READY and repick after STQ data-ready.
+
+### STQ data array implementation decisions (strict)
+
+Confirmed in #linx-core (2026-02-25):
+
+- STQ data array is **banked** and **2-cycle write**:
+  - default `stq_data_banks = 2` (parameterized).
+  - write ordering: **mask first, then data** (2 cycles).
+  - `stq_data_ready(sid)` is asserted only after **mask+data** are both written.
+- With 2 banks, split the 64B cacheline window by byte lanes:
+  - bank0 covers bytes 0..31, bank1 covers bytes 32..63.
 
 ## Load/store conflict → nuke flush (strict)
 
