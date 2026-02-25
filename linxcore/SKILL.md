@@ -97,6 +97,93 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
 
 - Keep a top-level `CoreCfg` hook for an alternative implementation that delays miss visibility to E5 (would require extending `ld_gen_vec` to 5 bits). Default is the E4 scheme above.
 
+## Pipeline + wakeup timing (strict)
+
+- Pipeline stages used in discussions: `P1 → I1 → I2 → E1 → W1`.
+- Latency-to-wakeup mapping (initial):
+  - `lat=1 → wakeup@P1`
+  - `lat=2 → wakeup@I2`
+  - `lat=3 → wakeup@E1`
+  - `lat=4 → wakeup@W1`
+- Timing constraint: wakeup at cycle N can only affect pick at cycle N+1 (no same-cycle wake→pick loops).
+
+## IQ naming + physical layout (strict)
+
+- External naming must follow golden `uop_kind` mapping (`issq_alu/bru/agu/std/fsu/sys/cmd/...`).
+- Physical IQs may be merged/split, but must preserve original `uop_kind` for trace/perf.
+- Current physical split decision:
+  - `alu_iq0` (ALU-only)
+  - `shared_iq1` (ALU + SYS + FSU)
+- Enqueue ports are parameterized. Default: **each physical IQ has 2 enq ports**.
+- ALU uops may be dynamically distributed between `alu_iq0` and `shared_iq1`:
+  - prefer filling `alu_iq0` first, then spill to `shared_iq1`.
+
+## Regfile ports + arbitration (strict)
+
+- Read ports may contend (area saving):
+  - default `int_rf_rports = 3` (parameterized).
+  - I1 does global read-port arbitration; failure cancels the in-flight attempt (entry remains valid; `inflight` clears).
+  - Arbitration policy: **oldest-first**.
+  - Oldest key uses ROB age (`rid + wrap`), compared relative to ROB head.
+- Write ports must not contend (performance):
+  - each IQ picker/issue port corresponds to a pipeline and a dedicated RF write port.
+  - **STD has read ports but no write port**.
+
+## T/U point-to-point wakeup (strict)
+
+- P-ptags: global broadcast wakeup.
+- T/U queue semantics: point-to-point wakeup via `qtag = (phys_issq_id, entry_id)`.
+  - `phys_issq_id` is a physical IQ enum (`IQ_ALU0/IQ_SHARED1/IQ_BRU/IQ_AGU/IQ_STD/IQ_CMD/...`) derived via `spec` templates at JIT.
+  - `entry_id` width is derived per IQ (`clog2(entries)`); packed to a uniform max width for the qtag wire.
+
+## Load spec-ready + forward (strict)
+
+- `ready_table` is used to **initialize** src readiness at enqueue.
+- After enqueue, src readiness is maintained in the issq entry; E4 hit must use the wakeup path to update existing entries.
+- Merge rule: `src_ready = src_ready_nonspec || src_ready_spec`.
+  - nonspec once set never clears.
+  - spec may be suppressed by miss_pending gating.
+- Load behavior:
+  - spec-wakeup at **LD_E1** (no data).
+  - data only at **LD_E4**; consumer receives it via **E4→consumer-I2 forward**, reusing bypass (match by P-ptag).
+  - For load-spec srcs, I1 must not request RF read ports.
+
+## LIQ/LHQ + load/store ids (strict)
+
+- Decode allocates mem-order ids with D1 apply / D2 grant, in slot order (slot0→slot3) to define same-cycle ordering.
+- Replace `ldq` naming with:
+  - `LIQ` (Load Inflight Queue) — load pipeline + miss/restart/repick.
+  - `LHQ` (Load Hit Queue) — stores resolved load info for load/store address conflict checks.
+- Default LIQ depth: 32 (parameterized).
+- LHQ stores byte-granular overlap metadata:
+  - 64B cacheline window + 64-bit byte mask.
+  - LHQ updates on load **E4 hit**.
+- Separate id domains:
+  - `LID` (load_id) is LIQ slot+wrap.
+  - `SID` (store_id / stq_id) is STQ slot+wrap.
+- Cross-domain ordering snapshots:
+  - each load(LID) records `youngest_sid_at_alloc` (SID+wrap).
+  - each store(SID) records `youngest_lid_at_alloc` (LID+wrap).
+- Store split: STA(AGU) + STD share the same SID.
+
+## Store→load forwarding (strict)
+
+- Forwarding compares address + 64B byte mask.
+- For a load(LID), only consider older stores with `SID <= youngest_sid_at_alloc(LID)`.
+- If multiple overlap, select the **nearest older** store (most recent SID within that range).
+
+## Load/store conflict → nuke flush (strict)
+
+- Address conflict triggers a **nuke** attributed to the load.
+- LSU reports the load RID; ROB sets `entry.nuke=1` on that ROB entry.
+- Nuke triggers only when the nuke-marked load becomes ROB head:
+  - do not retire that entry;
+  - redirect PC = that load's PC.
+- `nuke_pending` freezes IFU (stop fetching new younger uops), but commit_redirect (older BRU flush) still applies.
+  - BRU flush may clear younger ROB entries (and their nuke marks).
+- Implementation: ROB maintains an `oldest_nuke` record (not full-table OR scan) and validates nuke reports only for still-valid RIDs.
+- For block domain: on nuke flush, compute `flush_bid = rob_head.block_bid` and flush younger blocks by BID (`bid > flush_bid`).
+
 ## When merging LinxCore PRs
 
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
