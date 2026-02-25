@@ -170,7 +170,28 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
 
 - Forwarding compares address + 64B byte mask.
 - For a load(LID), only consider older stores with `SID <= youngest_sid_at_alloc(LID)`.
-- If multiple overlap, select the **nearest older** store (most recent SID within that range).
+- If multiple overlap, select the **nearest older per byte** store (most recent SID for each byte within that range).
+
+### Reference implementation to benchmark against (XiangShan)
+
+We explicitly benchmarked these rules against XiangShan's LSQ forwarding design (2026-02-25) and the approach matches:
+
+- Byte-granular forwarding implemented as per-byte data+valid arrays.
+- Address CAM produces per-entry hit masks.
+- Ring-buffer wrap handled by splitting the candidate range into two masks (same-flag / different-flag), i.e. `needForward(0/1)`.
+- If addr matches but data is not valid, raise a replay-style condition (`dataInvalid` in XiangShan).
+
+Useful XiangShan source references:
+- `XiangShan/src/main/scala/xiangshan/mem/lsqueue/StoreQueueData.scala`
+  - `SQAddrModule`: addr CAM + mask-aware hit
+  - `SQData8Module/SQDataModule`: per-byte youngest-store selection + forward mask/data generation
+- `XiangShan/src/main/scala/xiangshan/mem/Bundles.scala`
+  - `LoadForwardQueryIO`: forwardMask/forwardData + `dataInvalid`
+
+For LinxCore, the equivalent behavior is:
+- E3 selects cache vs store-forward data and performs merge by byte mask.
+- E4 registers the final data and triggers wakeup/ready-table update (hit).
+- If store-forward selected but store-data not ready, treat as miss_kind=STORE_DATA_NOT_READY and repick after STQ data-ready.
 
 ## Load/store conflict → nuke flush (strict)
 
