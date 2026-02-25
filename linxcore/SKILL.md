@@ -51,6 +51,52 @@ These are confirmed in #linx-core (2026-02-24) and must be preserved by future c
 - [ ] Confirm BROB keeps `bid <= flush_bid` (including current block) and handles wrap via uniq bits.
 - [ ] Update docs/skills when new edge cases are discovered.
 
+## Issue Queue + speculative ready + load-miss cancel (strict)
+
+Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid forgetting.
+
+### Ready table vs speculative ready
+
+- `ready_table[P-ptag]` is **1-bit per P-ptag** and is **non-spec ready**:
+  - must only be set when the value is guaranteed **not** to be cancelled.
+  - used by uops after enqueue to query readiness.
+- `issq` must track **speculative readiness** per operand, with an `is_spec` marker.
+
+### Pick/issue/commit model
+
+- Wakeup must **not** affect pick in the same cycle (timing constraint):
+  - wakeup @ cycle N → pick can only observe it at cycle N+1.
+- `issq` entries must not be deallocated while cancellable.
+  - Implement an `inflight` lock bit:
+    - P1: `pick` sets `inflight=1` (entry remains valid).
+    - Cancel: clears `inflight=0` (entry stays valid).
+    - **Dealloc point is I2**: only clear `valid` when the uop is confirmed non-cancellable.
+- Age/oldest-ready ordering must be preserved across `inflight`:
+  - inflight entries are simply ineligible; their age does not change.
+
+### Load speculative wakeup + forward + miss
+
+- Load produces **spec-wakeup at LD_E1** (no data).
+- Load returns **data only at LD_E4**.
+- Consumers that become ready only via load spec-wakeup:
+  - must not request RF read ports in I1 for that src;
+  - must obtain data via **E4→consumer-I2 forward**, reusing the bypass network (match by P-ptag).
+
+### ld_gen_vec
+
+- `ld_gen_vec` is a **bitset** (not onehot), representing load pipeline stages E1–E4.
+- It must propagate along dependency chains.
+- Load pipeline advances `ld_gen_vec` via bit-shift as it moves through stages.
+
+### Miss-pending suppression
+
+- LSU provides `miss_pending` (derived from E4 miss detection) that stays asserted until LIQ restarts the load after refill and the load returns via the hit path.
+- While `miss_pending==1`, issue queues must suppress picking entries whose `src.ld_gen_vec` contains `LD_E4`.
+
+### Config hook (optional)
+
+- Keep a top-level `CoreCfg` hook for an alternative implementation that delays miss visibility to E5 (would require extending `ld_gen_vec` to 5 bits). Default is the E4 scheme above.
+
 ## When merging LinxCore PRs
 
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
