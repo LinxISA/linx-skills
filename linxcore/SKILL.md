@@ -166,6 +166,31 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
   - each store(SID) records `youngest_lid_at_alloc` (LID+wrap).
 - Store split: STA(AGU) + STD share the same SID.
 
+## SCB (Store Coalescing Buffer) → DCache / CHI (strict)
+
+Confirmed in #linx-core (2026-02-25).
+
+- STQ may contain flushable (speculative) stores.
+- SCB must only contain stores guaranteed **not** to be flushed.
+  - This is controlled by a **non-flush pointer** (strong: excludes branch flush + exceptions/interrupts/traps).
+- SCB coalesces by **physical cacheline** (paddr line base).
+- Memory model: **TSO**
+  - store drain must preserve program order.
+
+### CHI completion
+
+- Fence/store-drain completion is defined by receiving **WriteResp** (not just request acceptance).
+- Use **CHI TxnID** to match WriteResp to SCB entries.
+- Default parameters (parameterized):
+  - `scb_entries = 16`
+  - `scb_outstanding = 8` (TxnID width = 3)
+
+### Coalescing + ordering constraints
+
+- Do not merge additional writes into an SCB entry that has already issued a CHI request and is awaiting WriteResp.
+- If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
+- Drain arbitration: **oldest SID first**.
+
 ## Store→load forwarding (strict)
 
 - Forwarding compares address + 64B byte mask.
