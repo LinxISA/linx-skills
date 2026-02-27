@@ -1,0 +1,4 @@
+interface:
+  display_name: "LinxCore"
+  short_description: "RTL bring-up and block/BID semantics"
+  default_prompt: "Use $linxcore to guide LinxCore RTL development, block-structure semantics, and BID/flush contracts."

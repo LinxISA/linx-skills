@@ -7,7 +7,7 @@ description: LinxCore (rtl/LinxCore) development workflow + block/BID/BROB/BISQ 
 
 Canonical repo location (superproject checkout):
 
-- `/home/zhoubot/linx-isa/rtl/LinxCore`
+- `rtl/LinxCore` (submodule)
 
 ## Block/BID design decisions (strict)
 
@@ -246,4 +246,4 @@ Confirmed in #linx-core (2026-02-25):
 
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
 
-- `/home/zhoubot/linx-isa` → update `rtl/LinxCore` submodule pointer on `main`, PR + merge.
+- In the LinxISA superproject checkout, update the `rtl/LinxCore` submodule pointer on `main`, PR + merge.
