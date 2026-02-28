@@ -48,6 +48,18 @@ python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py
 4. Confirm no cross-stack call/ret regressions.
 5. Handoff gate evidence to integration owner before repin.
 
+## Skill evolve loop (mandatory closeout)
+
+- At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
+- Update this skill only for material reusable findings:
+  - new backend contract/call-ret rule tied to v0.3 closure,
+  - new mandatory compile gate/repro command/env,
+  - new recurring compiler triage pattern that changed debug order.
+- Skip updates for minor optimization, wording cleanup, or one-off local workaround.
+- If update is needed, validate with:
+  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-compiler`
+  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`
+
 ## Included scope
 
 This consolidated skill absorbs prior `llvm-backend` and compiler-side `call-ret-parity` workflows.

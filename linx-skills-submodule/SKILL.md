@@ -13,10 +13,11 @@ Use this skill for controlled, incremental evolution of skills during superproje
 
 1. Pull latest `skills/linx-skills` from `origin/main`.
 2. Install canonical skills to `$CODEX_HOME/skills`.
-3. Update only the skills touched by current bring-up work.
-4. Validate touched skills and run scope guard.
-5. Summarize what changed and why.
-6. Commit to `linx-skills` and repin in `linx-isa`.
+3. Run the evolve decision gate (`update` vs `no-update`).
+4. Update only the skills touched by current bring-up work when decision is `update`.
+5. Validate touched skills and run scope guard.
+6. Summarize what changed and why.
+7. Commit to `linx-skills` and repin in `linx-isa`.
 
 ## Commands
 
@@ -41,6 +42,23 @@ python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validat
 - Summarize changed skill folders, rationale, and impacted bring-up gates.
 - Include pre/post validation output in bring-up notes.
 - Record the final `linx-skills` SHA used for superproject repin.
+
+## Skill evolve decision gate (mandatory)
+
+- Decision is `update` only when at least one material item exists:
+  - new contract/invariant/gate absent from current skill docs,
+  - new recurring failure pattern that changed the triage workflow,
+  - new mandatory reproducibility command/env/artifact path.
+- Decision is `no-update` for:
+  - formatting/wording cleanup only,
+  - minor optimization without new policy,
+  - one-off workaround not reusable by future agents.
+- To avoid update loops/churn:
+  - at most one skill-evolve commit per agent run unless a second material finding appears,
+  - do not create follow-up skill-only churn PRs for style-only edits.
+- Always record one explicit closeout line in evidence:
+  - `skill-evolve: update <skills...> (<reason>)` or
+  - `skill-evolve: no-update (<reason>)`.
 
 ## References
 

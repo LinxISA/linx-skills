@@ -277,3 +277,15 @@ Confirmed in #linx-core (2026-02-25):
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
 
 - In the LinxISA superproject checkout, update the `rtl/LinxCore` submodule pointer on `main`, PR + merge.
+
+## Skill evolve loop (mandatory closeout)
+
+- At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
+- Update this skill only if the run produced material reusable findings:
+  - new block/BID/ROB/flush invariant,
+  - new mandatory LinxCore gate/evidence requirement,
+  - new recurring debug path that changes triage order.
+- Do not update this skill for minor tuning, wording cleanup, or one-off local fixes.
+- If updating, keep scope narrow and validate with:
+  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-core`
+  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`

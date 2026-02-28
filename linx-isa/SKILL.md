@@ -50,6 +50,18 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/
 4. Coordinate with `linx-core`, `linx-qemu`, and `linx-pycircuit` before promoting architecture-visible changes.
 5. Capture evidence links for changed semantics.
 
+## Skill evolve loop (mandatory closeout)
+
+- At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
+- Update this skill only for material reusable findings:
+  - new architecture contract/invariant needed by downstream modules,
+  - new mandatory docs/gate mapping requirement,
+  - new recurring ambiguity pattern with a repeatable resolution workflow.
+- Do not update for wording cleanup, minor optimization, or one-off editorial fixes.
+- If update is needed, limit to touched docs and validate with:
+  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-isa`
+  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`
+
 ## Included scope
 
 This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.

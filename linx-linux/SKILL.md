@@ -44,6 +44,18 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check_linx_virt_defconfig_spec.py 
 - Do not mark timer PASS if the only evidence is `mismatch==0` with
   `irq0_delta==0`; that is a non-covered path.
 
+## Skill evolve loop (mandatory closeout)
+
+- At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
+- Update this skill only for material reusable findings:
+  - new kernel/runtime contract needed for stable closure,
+  - new mandatory runtime gate/repro command/env,
+  - new recurring trap/timer triage sequence.
+- Skip updates for minor optimization, wording cleanup, or one-off local workaround.
+- If update is needed, validate with:
+  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-linux`
+  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`
+
 ## Included scope
 
 This consolidated skill absorbs prior `linux-bringup` and Linux-facing call/ret parity checks.

@@ -72,6 +72,18 @@ python3 skills/linx-skills/scripts/check_skill_change_scope.py --repo-root skill
 - Summarize skill deltas after bring-up and repin `skills/linx-skills` SHA.
 - Use `$linx-skills-submodule` for safe, non-destructive skill maintenance.
 
+## Skill evolve loop (mandatory closeout)
+
+- Every module agent must run an explicit `update`/`no-update` decision at run closeout.
+- Update skills only for material reusable findings:
+  - new cross-module contract/invariant/gate,
+  - new recurring triage workflow,
+  - new mandatory reproducibility command/env/artifact.
+- Skip skill updates for minor optimizations, wording, or one-off local workarounds.
+- Require one evidence line per module in integration notes:
+  - `skill-evolve: update ...` or `skill-evolve: no-update ...`.
+- To avoid loops/churn, bundle material findings from a run into one skills update.
+
 ## Canonical gate commands
 
 PR tier strict closure:
