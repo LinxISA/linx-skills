@@ -9,6 +9,36 @@ Canonical repo location (superproject checkout):
 
 - `rtl/LinxCore` (submodule)
 
+## Cross-gate closure (mandatory)
+
+Run these before declaring LinxCore closure:
+
+```bash
+cmake -S /Users/zhoubot/linx-isa/rtl/LinxCore -B /Users/zhoubot/linx-isa/rtl/LinxCore/build
+cmake --build /Users/zhoubot/linx-isa/rtl/LinxCore/build -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_stage_connectivity.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_runner_protocol.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_cosim_smoke.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_opcode_parity.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_trace_schema_and_mem.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_rob_bookkeeping.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_block_struct_pyc_flow.sh
+```
+
+Nightly escalation gates:
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_coremark_crosscheck_1000.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_cbstop_inflation_guard.sh
+```
+
+Coordination requirements:
+
+- Architecture-visible changes must coordinate with `linx-isa`.
+- pyCircuit interface-visible changes must coordinate with `linx-ide`.
+- Trace-visible changes must coordinate with `linx-ide` and pass SemVer checks.
+- Publish evidence under `docs/bringup/gates/logs/<run-id>/<lane>/`.
+
 ## Block/BID design decisions (strict)
 
 These are confirmed in #linx-core (2026-02-24) and must be preserved by future changes:

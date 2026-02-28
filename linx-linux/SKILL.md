@@ -9,13 +9,13 @@ description: Linx Linux bring-up and runtime stabilization workflow. Use when de
 
 Use this skill for Linux runtime bring-up on Linx, from trap triage through stable smoke/full boot gates.
 
-## Canonical runtime gates
+## Required runtime gates
 
 ```bash
 python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/smoke.py
 python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/full_boot.py
-python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/ctx_ri_step_trap_smoke.py
-python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/ctx_tq_irq_smoke.py
+python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/busybox_rootfs/boot.py
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_linx_virt_defconfig_spec.py --defconfig /Users/zhoubot/linx-isa/kernel/linux/arch/linx/configs/linxisa_virt_defconfig --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/linxisa_virt_defconfig_audit.json
 ```
 
 ## Trap triage
@@ -30,7 +30,8 @@ python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/ctx_tq_irq_
 
 - kernel call/ret path matches contract,
 - dynamic targets are legal block starts,
-- regression rerun includes strict AVS system/runtime checks.
+- regression rerun includes strict AVS system/runtime checks,
+- timer IRQ behavior remains enabled in strict closure unless explicitly waived.
 
 ## Timer and BI-state diagnostics
 
