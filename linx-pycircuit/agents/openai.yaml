@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx pyCircuit"
+  short_description: "pyCircuit MLIR flow build and simulation checks"
+  default_prompt: "Use $linx-pycircuit to close pyCircuit PR/nightly gates, enforce pyCircuit↔LinxCore interface version contracts, and publish artifacts for cross-lane closure."

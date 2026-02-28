@@ -47,7 +47,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/
 1. Update/verify ISA source-of-truth in `isa/` and manual docs in `docs/`.
 2. Cross-check ambiguity against implementation requirements.
 3. Confirm architecture matrix covers all required cross-domain gate keys.
-4. Coordinate with `linxcore` and `linx-ide` before promoting architecture-visible changes.
+4. Coordinate with `linx-core`, `linx-qemu`, and `linx-pycircuit` before promoting architecture-visible changes.
 5. Capture evidence links for changed semantics.
 
 ## Included scope

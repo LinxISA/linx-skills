@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx QEMU"
+  short_description: "QEMU emulator bring-up and runtime triage"
+  default_prompt: "Use $linx-qemu to close strict runtime/opcode-sync/coverage gates, own first-mismatch triage versus LinxCore/pyCircuit, and coordinate ISA-visible fixes."

@@ -1,9 +1,9 @@
 ---
-name: linxcore
+name: linx-core
 description: LinxCore (rtl/LinxCore) development workflow + block/BID/BROB/BISQ design decisions. Use for any LinxCore backend/bctrl work, especially block-structure (BSTART/BSTOP/EOB), BID allocation, and flush semantics.
 ---
 
-# LinxCore skill
+# Linx Core
 
 Canonical repo location (superproject checkout):
 
@@ -35,8 +35,8 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_cbstop_inflation_guard.sh
 Coordination requirements:
 
 - Architecture-visible changes must coordinate with `linx-isa`.
-- pyCircuit interface-visible changes must coordinate with `linx-ide`.
-- Trace-visible changes must coordinate with `linx-ide` and pass SemVer checks.
+- pyCircuit interface-visible changes must coordinate with `linx-pycircuit`.
+- Reference-model divergences must coordinate with `linx-qemu`.
 - Publish evidence under `docs/bringup/gates/logs/<run-id>/<lane>/`.
 
 ## Block/BID design decisions (strict)

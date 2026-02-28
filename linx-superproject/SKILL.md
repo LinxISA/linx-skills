@@ -44,7 +44,7 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
 ## Owner map for collaboration
 
 - `arch`: architecture docs and contract lint gates.
-- `linxcore`: RTL/cosim/superscalar gates.
+- `linx-core`: RTL/cosim/superscalar gates.
 - `testbench`: ROB/replay/verification gates.
 - `pycircuit`: pyCircuit flow and interface-contract gates.
 - `trace`: LinxTrace schema/compatibility/viewer-sync gates.
@@ -134,4 +134,4 @@ This consolidated skill owns:
 - `references/runbook.md`
 - `../linx-isa/references/v0.3_contracts_and_asm.md` (ISA v0.3 stable contracts)
 - `../linx-compiler/references/v0.3_codegen_and_asm_contracts.md` (LLVM parity focus)
-- `../linx-ide/references/v0.3_qemu_trap_contracts.md` (QEMU parity focus)
+- `../linx-qemu/references/runtime_gates.md` (QEMU parity focus)
