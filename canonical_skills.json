@@ -11,6 +11,9 @@
     { "name": "linx-lib", "module": "lib" },
     { "name": "linx-isa", "module": "isa+docs" }
   ],
+  "managed_utility_skills": [
+    "linx-skills-submodule"
+  ],
   "protected_non_module_skills": [
     "linx-skills-submodule"
   ],

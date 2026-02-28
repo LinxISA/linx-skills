@@ -34,6 +34,18 @@ for item in data.get("protected_non_module_skills", []):
 PY
 )"
 
+MANAGED_UTILITY_SKILLS="$(python3 - "${MAP_FILE}" <<'PY'
+import json, sys
+path = sys.argv[1]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+for item in data.get("managed_utility_skills", []):
+    name = str(item).strip()
+    if name:
+        print(name)
+PY
+)"
+
 DEPRECATED_SKILLS="$(python3 - "${MAP_FILE}" <<'PY'
 import json, sys
 path = sys.argv[1]
@@ -61,6 +73,19 @@ while IFS= read -r skill; do
   echo "synced ${skill}"
 done <<< "${CANONICAL_SKILLS}"
 
+while IFS= read -r skill; do
+  [[ -z "${skill}" ]] && continue
+  src="${ROOT_DIR}/${skill}"
+  dst="${TARGET_DIR}/${skill}"
+  if [[ ! -d "${src}" ]]; then
+    echo "error: managed utility skill dir missing: ${src}" >&2
+    exit 1
+  fi
+  mkdir -p "${dst}"
+  rsync -a --delete "${src}/" "${dst}/"
+  echo "synced utility ${skill}"
+done <<< "${MANAGED_UTILITY_SKILLS}"
+
 cp "${ROOT_DIR}/README.md" "${TARGET_DIR}/README.md"
 cp "${MAP_FILE}" "${TARGET_DIR}/canonical_skills.json"
 
@@ -81,6 +106,12 @@ for path in "${TARGET_DIR}"/linx-*; do
     [[ -z "${k}" ]] && continue
     if [[ "${k}" == "${skill}" ]]; then keep=1; break; fi
   done <<< "${CANONICAL_SKILLS}"
+  if [[ "${keep}" -eq 0 ]]; then
+    while IFS= read -r k; do
+      [[ -z "${k}" ]] && continue
+      if [[ "${k}" == "${skill}" ]]; then keep=1; break; fi
+    done <<< "${MANAGED_UTILITY_SKILLS}"
+  fi
   if [[ "${keep}" -eq 0 ]]; then
     while IFS= read -r k; do
       [[ -z "${k}" ]] && continue

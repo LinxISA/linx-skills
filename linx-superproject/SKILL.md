@@ -58,6 +58,20 @@ git submodule update --init --recursive
 bash tools/ci/check_repo_layout.sh
 ```
 
+## Skills sync policy (mandatory per bring-up cycle)
+
+```bash
+git submodule update --init --recursive skills/linx-skills
+git -C skills/linx-skills fetch origin main
+git -C skills/linx-skills checkout origin/main
+bash tools/bringup/sync_canonical_skills.sh
+python3 skills/linx-skills/scripts/check_skill_change_scope.py --repo-root skills/linx-skills --base origin/main
+```
+
+- Start each superproject bring-up run from latest `skills/linx-skills`.
+- Summarize skill deltas after bring-up and repin `skills/linx-skills` SHA.
+- Use `$linx-skills-submodule` for safe, non-destructive skill maintenance.
+
 ## Canonical gate commands
 
 PR tier strict closure:
