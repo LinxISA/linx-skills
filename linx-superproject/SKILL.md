@@ -11,6 +11,11 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
 
 ## Core policy
 
+- NEVER run destructive git cleanup in shared trees/submodules without explicit user confirmation.
+  - Do **not** use `git reset --hard` or `git clean -fd/-ffd` in submodules when other agents/users may have WIP.
+  - Prefer: commit to a temp branch, or `git stash push -u`, or work in a separate clone/worktree.
+  - When preparing PRs, stage files explicitly (`git add <paths>`) to avoid dragging submodule noise.
+
 - Keep LinxISA links in root `.gitmodules` only.
 - Keep no inter-leaf LinxISA submodule links.
 - Keep a single in-repo source of truth; do not route work to external trees
