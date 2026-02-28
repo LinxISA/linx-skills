@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "naming_rule": "linx-<module>",
+  "canonical_skills": [
+    { "name": "linx-superproject", "module": "superproject" },
+    { "name": "linx-compiler", "module": "compiler/llvm" },
+    { "name": "linx-qemu", "module": "emulator/qemu" },
+    { "name": "linx-linux", "module": "kernel/linux" },
+    { "name": "linx-linxcore", "module": "rtl/LinxCore" },
+    { "name": "linx-pycircuit", "module": "tools/pyCircuit" },
+    { "name": "linx-lib", "module": "lib" },
+    { "name": "linx-isa", "module": "isa+docs" }
+  ],
+  "protected_non_module_skills": [
+    "linx-skills-submodule"
+  ],
+  "deprecated_skills": [
+    "linxcore",
+    "linx-ide",
+    "linx-arch-bringup",
+    "linx-glibc",
+    "linx-isa-emulator",
+    "linx-isa-manual",
+    "linx-llvm-backend",
+    "linx-mlir-pycircuit",
+    "linx-musl",
+    "linx-pto-kernels",
+    "linx-rtl-development",
+    "linx-trace-pipeview",
+    "linxcoresight-ide"
+  ]
+}

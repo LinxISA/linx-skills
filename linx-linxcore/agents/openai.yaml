@@ -1,0 +1,4 @@
+interface:
+  display_name: "LinxCore"
+  short_description: "RTL bring-up and block/BID semantics"
+  default_prompt: "Use $linx-linxcore to close LinxCore PR/nightly gates, maintain strict block/BID semantics, and publish cross-domain evidence for maturity closure."
