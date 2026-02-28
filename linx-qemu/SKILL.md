@@ -32,6 +32,18 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec
 - Keep timer IRQ policy explicit in strict runs (`LINX_EMU_DISABLE_TIMER_IRQ=0` by default).
 - Coordinate trap/MMU semantic updates with `linx-isa` before declaring closure.
 
+## Skill evolve loop (mandatory closeout)
+
+- At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
+- Update this skill only for material reusable findings:
+  - new emulator semantic rule that must stay aligned with LinxArch,
+  - new required runtime gate/command/env for reproducibility,
+  - new recurring first-divergence triage sequence.
+- Do not update for minor optimization, wording cleanup, or one-off local workaround.
+- If update is needed, keep scope narrow and validate with:
+  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-qemu`
+  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`
+
 ## References
 
 - `references/runtime_gates.md`
