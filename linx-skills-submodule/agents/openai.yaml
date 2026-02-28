@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Skills Submodule"
+  short_description: "Safe skill evolution and installation workflow"
+  default_prompt: "Use $linx-skills-submodule to pull latest skills, evolve touched skills safely, validate scope, summarize updates, and repin/install without destructive churn."

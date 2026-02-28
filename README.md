@@ -18,6 +18,9 @@ Linx ISA bring-up related Codex skills.
 - linx-compiler
 - linx-linux
 
+## Managed utility skills
+- linx-skills-submodule
+
 ## Module ownership map
 | Skill | Module scope |
 | --- | --- |
@@ -46,3 +49,19 @@ Use the canonical installer to sync skills and remove deprecated aliases:
 ```bash
 bash /Users/zhoubot/linx-skills/scripts/install_canonical_skills.sh
 ```
+
+## Safe skill-evolution workflow
+
+For bring-up evolution without destructive churn:
+
+1. Pull latest `skills/linx-skills` in superproject before bring-up work.
+2. Update only the touched skill folders.
+3. Validate touched skills and guard change scope:
+
+```bash
+python3 /Users/zhoubot/linx-skills/scripts/check_skill_change_scope.py --base origin/main
+python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py <skill-dir>
+```
+
+4. Summarize skill updates in bring-up evidence.
+5. Commit to `linx-skills`, repin superproject submodule, then install to Codex skills.
