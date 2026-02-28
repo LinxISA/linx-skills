@@ -1,9 +1,9 @@
 ---
-name: linx-linxcore
+name: linx-core
 description: LinxCore (rtl/LinxCore) development workflow + block/BID/BROB/BISQ design decisions. Use for any LinxCore backend/bctrl work, especially block-structure (BSTART/BSTOP/EOB), BID allocation, and flush semantics.
 ---
 
-# Linx LinxCore
+# Linx Core
 
 Canonical repo location (superproject checkout):
 

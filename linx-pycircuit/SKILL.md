@@ -37,7 +37,7 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 1. Implement dialect/pass/frontend/backend change.
 2. Rebuild generated artifacts and confirm producer scripts still conform.
 3. Run PR mandatory pyCircuit gates.
-4. If touched behavior affects LinxCore/trace, coordinate with `linx-linxcore` + `linx-qemu`.
+4. If touched behavior affects LinxCore/trace, coordinate with `linx-core` + `linx-qemu`.
 5. For nightly promotion, run nightly mandatory gates and publish evidence paths.
 
 ## References

@@ -44,7 +44,7 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
 ## Owner map for collaboration
 
 - `arch`: architecture docs and contract lint gates.
-- `linx-linxcore`: RTL/cosim/superscalar gates.
+- `linx-core`: RTL/cosim/superscalar gates.
 - `testbench`: ROB/replay/verification gates.
 - `pycircuit`: pyCircuit flow and interface-contract gates.
 - `trace`: LinxTrace schema/compatibility/viewer-sync gates.
