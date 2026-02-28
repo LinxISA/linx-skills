@@ -1,4 +1,4 @@
 interface:
   display_name: "Linx Superproject"
   short_description: "Submodule governance and cross-stack gate truth"
-  default_prompt: "Use $linx-superproject to manage LinxISA topology, dual-lane sync, AVS gates, and workload reporting."
+  default_prompt: "Use $linx-superproject to enforce LinxCore maturity phase gates, dual-lane closure, evidence-pack reporting, and repin governance."

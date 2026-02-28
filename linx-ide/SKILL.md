@@ -16,6 +16,48 @@ Use this skill as the consolidated developer-tooling surface for Linx debug, obs
 - RTL observability integration,
 - Konata trace generation/validation/renderer triage.
 
+## pyCircuit PR mandatory gates
+
+```bash
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_cpu_pyc_cpp.sh
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_qemu_vs_pyc.sh
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_pycircuit_interface_contract.py --root /Users/zhoubot/linx-isa --strict
+```
+
+## pyCircuit nightly mandatory gates
+
+```bash
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_examples.sh
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims.sh
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
+```
+
+## LinxTrace PR mandatory gates
+
+```bash
+python3 /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/lint_trace_contract_sync.py
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_konata_sanity.sh
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_trace_semver_compat.py --root /Users/zhoubot/linx-isa --strict
+```
+
+## LinxTrace nightly mandatory gates
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_konata_dfx_pipeview.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_konata_template_pipeview.sh
+```
+
+## Synchronization rules
+
+- Keep these touchpoints synchronized for trace contract changes:
+  - `rtl/LinxCore/src/common/stage_tokens.py`
+  - `rtl/LinxCore/tb/tb_linxcore_top.cpp`
+  - `rtl/LinxCore/tools/trace/build_linxtrace_view.py`
+  - `rtl/LinxCore/tools/linxcoresight/lint_linxtrace.py`
+  - `rtl/LinxCore/tools/linxcoresight/lint_trace_contract_sync.py`
+- Breaking trace changes require major version bump + compatibility validation.
+- pyCircuit interface contract changes require versioned updates and migration notes.
+
 ## Standard tooling loop
 
 1. reproduce on emulator or model,
@@ -25,11 +67,6 @@ Use this skill as the consolidated developer-tooling surface for Linx debug, obs
 5. rerun strict gates.
 
 ## Konata workflow
-
-```bash
-bash /Users/zhoubot/LinxCore/tools/konata/run_konata_trace.sh <memh> <max_commits>
-python3 /Users/zhoubot/LinxCore/tools/konata/check_konata_stages.py <konata> --require-stages F0,D3,IQ,ROB,CMT
-```
 
 If structural validation passes but UI is wrong, debug parser/renderer/theme paths.
 

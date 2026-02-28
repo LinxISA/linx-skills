@@ -1,4 +1,4 @@
 interface:
   display_name: "Linx ISA"
   short_description: "ISA architecture and specification guidance"
-  default_prompt: "Use $linx-isa to define or review Linx ISA architecture contracts, manual semantics, and bring-up requirements."
+  default_prompt: "Use $linx-isa to close LinxArch contract gates, keep architecture pages authoritative, and map each required gate to a documented ISA/µarch contract."

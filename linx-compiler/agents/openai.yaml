@@ -1,4 +1,4 @@
 interface:
   display_name: "Linx Compiler"
   short_description: "LLVM backend and compile gate workflow"
-  default_prompt: "Use $linx-compiler to implement and validate Linx compiler backend changes and call/ret compile conformance."
+  default_prompt: "Use $linx-compiler to close linx32/linx64 compile coverage gates, validate call/ret lowering contracts, and publish evidence for superproject repin."

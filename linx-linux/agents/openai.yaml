@@ -1,4 +1,4 @@
 interface:
   display_name: "Linx Linux"
   short_description: "Linux boot/runtime stabilization for Linx"
-  default_prompt: "Use $linx-linux to debug Linx Linux boot/runtime failures and close smoke/full-boot gates."
+  default_prompt: "Use $linx-linux to close required runtime gates (smoke/full/busybox/defconfig), triage trap loops with strict timer IRQ policy, and report lane-ready evidence."

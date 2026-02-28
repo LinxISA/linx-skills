@@ -18,8 +18,10 @@ Use this skill for all compiler-side work centered on `compiler/llvm` and AVS co
 ## Canonical checks
 
 ```bash
-bash /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/run.sh
-python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --fail-under 100
+cd /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests && CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang TARGET=linx64-linx-none-elf OUT_DIR=/Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx64 ./run.sh
+python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --out-dir /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx64 --fail-under 100
+cd /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests && CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang TARGET=linx32-linx-none-elf OUT_DIR=/Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx32 ./run.sh
+python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --out-dir /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx32 --fail-under 100
 ```
 
 ## Toolchain lane policy
@@ -42,8 +44,9 @@ python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py
 
 1. Implement backend change.
 2. Add lit/FileCheck coverage.
-3. Run AVS compile matrix and coverage.
+3. Run both linx64 and linx32 compile/coverage gates.
 4. Confirm no cross-stack call/ret regressions.
+5. Handoff gate evidence to integration owner before repin.
 
 ## Included scope
 

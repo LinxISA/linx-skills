@@ -9,7 +9,7 @@ description: LinxISA superproject governance and cross-repo execution workflow. 
 
 Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topology rules, lane sync, gate truth, and cross-stack reporting.
 
-## Core policy
+## Core policy (mandatory)
 
 - Keep LinxISA links in root `.gitmodules` only.
 - Keep no inter-leaf LinxISA submodule links.
@@ -23,6 +23,32 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
   - `tools/pyCircuit`
   - `lib/glibc`
   - `lib/musl`
+  - `workloads/pto_kernels`
+  - `skills/linx-skills`
+
+## LinxCore maturity collaboration contract
+
+- Canonical governance files:
+  - `docs/bringup/agent_runs/manifest.yaml`
+  - `docs/bringup/agent_runs/waivers.yaml`
+  - `docs/bringup/gates/latest.json`
+- Active phase is controlled by `manifest.phase_policy.active_phase` (G0..G5).
+- Waivers are phase-bound and must include owner, issue, phase, and `expires_utc`.
+- Required non-waived gates must pass in both `pin` and `external` lanes.
+- Evidence pack per run must include:
+  - canonical gate report row,
+  - SHA manifest,
+  - gate logs,
+  - multi-agent summary JSON.
+
+## Owner map for collaboration
+
+- `arch`: architecture docs and contract lint gates.
+- `linxcore`: RTL/cosim/superscalar gates.
+- `testbench`: ROB/replay/verification gates.
+- `pycircuit`: pyCircuit flow and interface-contract gates.
+- `trace`: LinxTrace schema/compatibility/viewer-sync gates.
+- `integration`: strict closure, performance floor, dual-lane parity.
 
 ## Canonical sync commands
 
@@ -30,6 +56,31 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
 git submodule sync --recursive
 git submodule update --init --recursive
 bash tools/ci/check_repo_layout.sh
+```
+
+## Canonical gate commands
+
+PR tier strict closure:
+
+```bash
+LINX_GATE_TIER=pr RUN_EXTENDED_CROSS_GATES=1 \
+bash /Users/zhoubot/linx-isa/tools/regression/strict_cross_repo.sh
+```
+
+Nightly tier strict closure:
+
+```bash
+LINX_GATE_TIER=nightly RUN_EXTENDED_CROSS_GATES=1 RUN_PERF_FLOOR_GATES=1 \
+bash /Users/zhoubot/linx-isa/tools/regression/strict_cross_repo.sh
+```
+
+Dual-lane runtime convergence:
+
+```bash
+LINX_GATE_TIER=pr RUN_EXTENDED_CROSS_GATES=1 \
+bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane pin --run-id <run-id-pin>
+LINX_GATE_TIER=pr RUN_EXTENDED_CROSS_GATES=1 \
+bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane external --run-id <run-id-ext>
 ```
 
 ## Dual-lane governance
@@ -63,6 +114,13 @@ Always record for each gate:
 - artifact links.
 
 Treat markdown status pages as generated views, not source-of-truth.
+
+## Repin workflow discipline
+
+1. Land module change with module-owned gates green.
+2. Update submodule SHA in superproject.
+3. Re-run PR strict closure with extended cross gates.
+4. Merge repin only with green required gates and complete evidence.
 
 ## Included scope
 

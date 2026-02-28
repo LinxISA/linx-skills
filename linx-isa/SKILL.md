@@ -26,12 +26,29 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - `BI=1` trap return contract explicitly restores second-layer block state
   (`EBARG/BSTATE`, including `TQ/UQ` queues and continuation PCs).
 
+## LinxArch mandatory gates
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict --require-mkdocs
+python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa
+```
+
+## Contract pages that must stay authoritative
+
+- `docs/architecture/v0.3-architecture-contract.md`
+- `docs/architecture/linxcore/overview.md`
+- `docs/architecture/linxcore/microarchitecture.md`
+- `docs/architecture/linxcore/interfaces.md`
+- `docs/architecture/linxcore/verification-matrix.md`
+
 ## Workflow
 
 1. Update/verify ISA source-of-truth in `isa/` and manual docs in `docs/`.
 2. Cross-check ambiguity against implementation requirements.
-3. Confirm test plan coverage in compile/runtime gates.
-4. Capture evidence links for changed semantics.
+3. Confirm architecture matrix covers all required cross-domain gate keys.
+4. Coordinate with `linxcore` and `linx-ide` before promoting architecture-visible changes.
+5. Capture evidence links for changed semantics.
 
 ## Included scope
 
