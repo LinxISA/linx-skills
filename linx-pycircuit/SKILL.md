@@ -14,7 +14,14 @@ Use this skill for `tools/pyCircuit` development, flow validation, and integrati
 ```bash
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_cpu_pyc_cpp.sh
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_qemu_vs_pyc.sh
-python3 /Users/zhoubot/linx-isa/tools/bringup/check_pycircuit_interface_contract.py --root /Users/zhoubot/linx-isa --strict
+```
+
+## Optional (deep) gates
+
+Model diff suite (pyCircuit vs QEMU correlation; use when touching trace/commit semantics):
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_model_diff_suite.py --root /Users/zhoubot/linx-isa
 ```
 
 ## Nightly mandatory gates
@@ -39,6 +46,20 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 3. Run PR mandatory pyCircuit gates.
 4. If touched behavior affects LinxCore/trace, coordinate with `linx-core` + `linx-qemu`.
 5. For nightly promotion, run nightly mandatory gates and publish evidence paths.
+
+## Tooling reliability (common)
+
+- If `git fetch` in the `tools/pyCircuit` submodule fails with `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, force Git to HTTP/1.1:
+
+```bash
+git -C /Users/zhoubot/linx-isa/tools/pyCircuit config http.version HTTP/1.1
+```
+
+- If `gh` GraphQL calls fail with `TLS handshake timeout` / `EOF`, retry with:
+
+```bash
+GH_HTTP_TIMEOUT=300 gh <command>
+```
 
 ## Skill evolve loop (mandatory closeout)
 
