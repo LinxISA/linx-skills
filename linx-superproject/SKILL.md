@@ -61,6 +61,10 @@ bash tools/ci/check_repo_layout.sh
 ## Skills sync policy (mandatory per bring-up cycle)
 
 ```bash
+# One-shot (recommended)
+bash tools/bringup/sync_canonical_skills.sh --pull-latest
+
+# Manual (if you already have latest submodule checkout)
 git submodule update --init --recursive skills/linx-skills
 git -C skills/linx-skills fetch origin main
 git -C skills/linx-skills checkout origin/main
@@ -71,6 +75,28 @@ python3 skills/linx-skills/scripts/check_skill_change_scope.py --repo-root skill
 - Start each superproject bring-up run from latest `skills/linx-skills`.
 - Summarize skill deltas after bring-up and repin `skills/linx-skills` SHA.
 - Use `$linx-skills-submodule` for safe, non-destructive skill maintenance.
+
+## Tooling reliability (common)
+
+- If `git fetch` fails with `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, force Git to HTTP/1.1:
+
+```bash
+git config http.version HTTP/1.1
+# or per-submodule:
+git -C tools/pyCircuit config http.version HTTP/1.1
+```
+
+- If `gh` GraphQL calls fail with `TLS handshake timeout` / `EOF`, retry with a larger timeout:
+
+```bash
+GH_HTTP_TIMEOUT=300 gh <command>
+```
+
+- `linx-isa` disallows merge commits; use squash merges:
+
+```bash
+gh pr merge <PR> --squash
+```
 
 ## Skill evolve loop (mandatory closeout)
 

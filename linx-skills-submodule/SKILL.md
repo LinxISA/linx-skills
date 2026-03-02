@@ -26,8 +26,16 @@ git -C /Users/zhoubot/linx-isa submodule update --init --recursive skills/linx-s
 git -C /Users/zhoubot/linx-isa/skills/linx-skills fetch origin main
 git -C /Users/zhoubot/linx-isa/skills/linx-skills checkout origin/main
 bash /Users/zhoubot/linx-isa/tools/bringup/sync_canonical_skills.sh
-python3 /Users/zhoubot/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main
+python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main
 python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py <skill-dir>
+```
+
+## Common failures
+
+- If `git fetch` fails with `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, force Git to HTTP/1.1 and retry:
+
+```bash
+git -C /Users/zhoubot/linx-isa/skills/linx-skills config http.version HTTP/1.1
 ```
 
 ## Anti-destruction policy
