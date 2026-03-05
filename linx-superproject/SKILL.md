@@ -80,15 +80,15 @@ git -C /Users/zhoubot/linx-isa worktree prune
 ## Skills sync policy (mandatory per bring-up cycle)
 
 ```bash
-# One-shot (recommended)
-bash tools/bringup/sync_canonical_skills.sh --pull-latest
+git -C /Users/zhoubot/linx-isa submodule update --init --recursive skills/linx-skills
+git -C /Users/zhoubot/linx-isa/skills/linx-skills fetch origin main
+git -C /Users/zhoubot/linx-isa/skills/linx-skills checkout origin/main
 
-# Manual (if you already have latest submodule checkout)
-git submodule update --init --recursive skills/linx-skills
-git -C skills/linx-skills fetch origin main
-git -C skills/linx-skills checkout origin/main
-bash tools/bringup/sync_canonical_skills.sh
-python3 skills/linx-skills/scripts/check_skill_change_scope.py --repo-root skills/linx-skills --base origin/main
+# Install/prune canonical skills into $CODEX_HOME/skills (defaults to $HOME/.codex/skills).
+bash /Users/zhoubot/linx-isa/skills/linx-skills/scripts/install_canonical_skills.sh
+
+python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py \
+  --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main
 ```
 
 - Start each superproject bring-up run from latest `skills/linx-skills`.

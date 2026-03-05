@@ -39,6 +39,20 @@ Coordination requirements:
 - Reference-model divergences must coordinate with `linx-qemu`.
 - Publish evidence under `docs/bringup/gates/logs/<run-id>/<lane>/`.
 
+## LinxTrace v1 container (strict)
+
+- Canonical trace artifact is a single uncompressed `*.linxtrace` (JSONL).
+- First non-empty record must be `{"type":"META", ...}` (in-band META).
+- Legacy split artifacts are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
+
+Generate + lint + open (LinxCore-side builder flow):
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/run_linxtrace.sh <program.memh> [max_commits]
+python3 /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/lint_linxtrace.py <trace.linxtrace>
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/open_linxcoresight.sh <trace.linxtrace>
+```
+
 ## Block/BID design decisions (strict)
 
 These are confirmed in #linx-core (2026-02-24) and must be preserved by future changes:
