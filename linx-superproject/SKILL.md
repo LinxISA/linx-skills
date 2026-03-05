@@ -58,6 +58,25 @@ git submodule update --init --recursive
 bash tools/ci/check_repo_layout.sh
 ```
 
+## Worktree Hygiene (single canonical checkout)
+
+- For bring-up, keep a single canonical superproject folder: `/Users/zhoubot/linx-isa`.
+- Avoid creating persistent `linx-isa-*` clones/worktrees under `/Users/zhoubot/`.
+
+Audit and cleanup:
+
+```bash
+git -C /Users/zhoubot/linx-isa worktree list
+git -C /Users/zhoubot/linx-isa worktree prune
+```
+
+If a worktree contains submodules, removal may require `--force`:
+
+```bash
+git -C /Users/zhoubot/linx-isa worktree remove --force <path>
+git -C /Users/zhoubot/linx-isa worktree prune
+```
+
 ## Skills sync policy (mandatory per bring-up cycle)
 
 ```bash
