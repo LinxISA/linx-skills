@@ -16,6 +16,21 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_c
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_qemu_vs_pyc.sh
 ```
 
+Hard-break closure gates (for pyc4.0 closure phases) are also mandatory:
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/pyCircuit/flows/tools/check_decision_status.py --status /Users/zhoubot/linx-isa/tools/pyCircuit/docs/gates/decision_status_v40.md --out /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/gates/<run-id>/decision_status_report.json --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
+mkdocs build
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_semantic_regressions_v40.sh
+```
+
+Examples gate now enforces strict decision coverage by default (`PYC_DECISION_STATUS_STRICT=1`).
+Use a single run-id across example + semantic lanes for coherent evidence bundles:
+
+```bash
+PYC_GATE_RUN_ID=<run-id> PYC_DECISION_STATUS_STRICT=1 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_examples.sh
+```
+
 ## Optional (deep) gates
 
 Model diff suite (pyCircuit vs QEMU correlation; use when touching trace/commit semantics):
@@ -38,6 +53,12 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 - Breaking interface changes require `MAJOR` bump.
 - Additive backward-compatible changes require `MINOR` bump.
 - Unversioned breaking changes must fail the interface gate.
+- pyc4 hard-break mode disallows legacy compatibility APIs/flags.
+- Decision 0013/0014 must remain enforced: runtime library packaging + STL-only default.
+- Decision-complete semantic closure requires:
+  - `.pyctrace` schema v3 (`PYC4TRC3`) with value/known/z payloads,
+  - explicit invalidate/reset event stream with ordered pre-phase semantics,
+  - full gate evidence without partial timeout acceptance.
 
 ## Workflow
 
@@ -46,6 +67,13 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 3. Run PR mandatory pyCircuit gates.
 4. If touched behavior affects LinxCore/trace, coordinate with `linx-core` + `linx-qemu`.
 5. For nightly promotion, run nightly mandatory gates and publish evidence paths.
+6. Archive closure evidence under `docs/gates/logs/<run-id>/` (commands, stdout/stderr, summary, decision mapping).
+7. For long simulation lanes, use case-level controls:
+   - `PYC_SIM_CASE_TIMEOUT_SEC`
+   - `PYC_SIM_RETRY_ON_TIMEOUT`
+   - `PYC_SIM_RESUME_FROM_CASE`
+   - Case logs are split by lane: `docs/gates/logs/<run-id>/cases/run_sims/<case>/` and `.../cases/run_sims_nightly/<case>/`.
+8. Prefer setting `PYC_GATE_RUN_ID` explicitly for every closure run so `run_examples.sh` and `run_semantic_regressions_v40.sh` land in the same evidence directory.
 
 ## Tooling reliability (common)
 

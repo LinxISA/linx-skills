@@ -278,6 +278,25 @@ After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
 
 - In the LinxISA superproject checkout, update the `rtl/LinxCore` submodule pointer on `main`, PR + merge.
 
+## Compile + sim scalability (pyc4 strict hierarchy)
+
+Use these when compile wall time/RSS or C++ sim throughput regresses.
+
+Fast profiling commands (local):
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_pyc_compile_pipeline.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_cpp_tu_manifest.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_linxcore_cpp_sim.sh
+```
+
+SCC fallback triage (event-driven C++ sim):
+
+- `sim_stats_text` exposes per-module `fallback_iterations`.
+- If `child.<name>.fallback_iterations` is non-zero/high, the simulator is iterating a cyclic SCC each cycle.
+- Break SCCs by pushing arbitration/mux fabrics into dedicated stage modules and registering event bundles at module boundaries.
+- Target: `child.janus_backend.fallback_iterations == 0` on CoreMark bounded runs.
+
 ## Skill evolve loop (mandatory closeout)
 
 - At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
