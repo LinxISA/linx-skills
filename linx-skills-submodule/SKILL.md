@@ -25,7 +25,7 @@ Use this skill for controlled, incremental evolution of skills during superproje
 git -C /Users/zhoubot/linx-isa submodule update --init --recursive skills/linx-skills
 git -C /Users/zhoubot/linx-isa/skills/linx-skills fetch origin main
 git -C /Users/zhoubot/linx-isa/skills/linx-skills checkout origin/main
-bash /Users/zhoubot/linx-isa/tools/bringup/sync_canonical_skills.sh
+bash /Users/zhoubot/linx-isa/skills/linx-skills/scripts/install_canonical_skills.sh
 python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main
 python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py <skill-dir>
 ```

@@ -60,6 +60,18 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
   - explicit invalidate/reset event stream with ordered pre-phase semantics,
   - full gate evidence without partial timeout acceptance.
 
+## LinxTrace v1 runtime writer (strict)
+
+- Runtime LinxTrace output is a single uncompressed `*.linxtrace` (JSONL) with in-band META first record.
+- Legacy split outputs are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
+- `PYC_LINXTRACE_GZ` is removed (no gzip writer/reader path).
+
+Common env (when a TB enables runtime LinxTrace):
+
+```bash
+PYC_LINXTRACE=/abs/path/to/out.linxtrace
+```
+
 ## Workflow
 
 1. Implement dialect/pass/frontend/backend change.
