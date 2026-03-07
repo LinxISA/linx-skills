@@ -14,6 +14,8 @@ Use this skill for `tools/pyCircuit` development, flow validation, and integrati
 ```bash
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_cpu_pyc_cpp.sh
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_qemu_vs_pyc.sh
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_pycircuit_interface_contract.py --root /Users/zhoubot/linx-isa --strict
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_trace_semver_compat.py --root /Users/zhoubot/linx-isa --strict
 ```
 
 Hard-break closure gates (for pyc4.0 closure phases) are also mandatory:
@@ -65,12 +67,45 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 - Runtime LinxTrace output is a single uncompressed `*.linxtrace` (JSONL) with in-band META first record.
 - Legacy split outputs are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
 - `PYC_LINXTRACE_GZ` is removed (no gzip writer/reader path).
+- DFX occupancy for canonical pipeline stages must be emitted from the real owner module/stage boundary.
+  Do not rebuild `W1/W2` or other residency from commit-edge sidecars in top-level glue.
+- `debug_occ` / probe authoring must stay probe-only.
+  Do not add architectural state, pipeline flops, commit-edge counters, or redirect/block sidecar logic in pyc modules just to satisfy trace.
+  If trace needs edge/sequence/block lifecycle reconstruction, prefer TB/raw-trace post-processing over synthesizing trace-only hardware.
 
 Common env (when a TB enables runtime LinxTrace):
 
 ```bash
 PYC_LINXTRACE=/abs/path/to/out.linxtrace
 ```
+
+- Keep trace schema SemVer separate from commit schema identifiers:
+  - `LINX_TRACE_SCHEMA_VERSION` is the architectural trace compatibility version (`MAJOR.MINOR`, currently `1.0`).
+  - `LINX_COMMIT_SCHEMA_ID` is the producer/consumer commit-bundle identifier (for example `LC-COMMIT-BUNDLE-V1`).
+  - Do not alias one to the other in producer scripts; `check_trace_semver_compat.py` and `check_pycircuit_interface_contract.py` both enforce this split.
+
+## Hierarchy discipline + emitted-cost gates (strict)
+
+- Use `@const` for structural/template metadata: `ParamSet`, `ModuleFamilySpec`, `ModuleVectorSpec/MapSpec/DictSpec`, and any frozen structural object that participates in specialization reuse.
+- Use `@function` only for inline pure combinational helpers. JIT now rejects `@function` bodies that instantiate modules, allocate state, or exceed inline complexity caps.
+- Use `@module` for repeated reusable/stateful hardware. Naked repeated hierarchy built from handwritten loops must be promoted to module families plus `m.array(...)`.
+- Hard emitted-cost gates are unconditional in `pycc`:
+  - hottest emitted source `<= 15000`
+  - hottest emitted module `<= 40000`
+  - total emitted C++ cost `<= 700000`
+- Cross-repo closure commands for hierarchy work:
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_pyc_hierarchy_discipline.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxcore.sh
+```
+
+- Practical hierarchy heuristic:
+  - prefer recursive bank/lane slices over per-entry stateful modules when parent `eval` fanout becomes the dominant emitted TU cost.
+  - if a consumer only needs aggregate slot state, redesign the interface around packed masks/buses instead of many scalar ports; medium-size instance caches can still become the hottest emitted TUs.
+  - if a helper scans queue state across `depth * fields`, place that scan in the queue-owning module and export only the compact summary; otherwise parent-side instance cache helpers often become the hottest emitted C++ shards even when the scan itself is already in a child module.
+  - if a state owner already has recursive hierarchy, keep read/query services inside that owner tree and export only compact query outputs; a separate top-level grouped query tree still forces the parent to re-fanout every owned field and can leave the hottest emitted `tick/eval` shard in the parent.
+  - validate hotspot guesses against the emitted top-module MLIR: rank `pyc.instance` sites by total I/O count before refactoring, because standalone child-module size often mispredicts the true parent-side instance-cache blocker.
 
 ## Workflow
 
