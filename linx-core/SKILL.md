@@ -39,11 +39,41 @@ Coordination requirements:
 - Reference-model divergences must coordinate with `linx-qemu`.
 - Publish evidence under `docs/bringup/gates/logs/<run-id>/<lane>/`.
 
+## Hierarchy + compile-budget discipline (strict)
+
+- Repeated substantial backend hardware must be expressed as `@module` families plus `spec.module_family(...).vector/map/dict(...)` and `m.array(...)`.
+- `@function` is only for small pure combinational helpers. Do not instantiate modules or allocate state from `@function`.
+- `@const` is required for reusable structural metadata that drives hierarchy shape or specialization reuse.
+- pyCircuit now hard-fails oversized emitted hierarchy by default:
+  - hottest emitted TU `<= 15000`
+  - hottest emitted module `<= 40000`
+  - total emitted cost `<= 700000`
+- Mandatory bring-up checks when touching backend hierarchy:
+
+```bash
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_pyc_hierarchy_discipline.sh
+bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxcore.sh
+```
+
+- Practical slicing rule from LinxCore ROB bring-up:
+  - do not jump straight to per-entry stateful child modules when that would create dozens of wide instance interfaces in the parent;
+  - prefer recursive bank/lane slices that keep compile-once reuse but cap parent eval fanout.
+  - when a parent only needs queue occupancy/readiness shape, pass packed masks (for example `valid_mask`) instead of `depth` scalar ports; per-entry scalar fanout can dominate emitted instance-cache TUs even after hierarchy splitting.
+  - when a consumer only needs a queue-local scan result (for example head-wait, oldest-ready, or replay candidate), keep the scan inside the queue owner module and export only the compact result; do not feed `iq_depth * fields` metadata into a parent or sibling scan module.
+  - when a consumer needs per-entry read/query services from a state owner (for example ROB commit-read or metadata lookup), attach that service to the existing owner hierarchy and export only compact query results; building a second top-level grouped consumer tree can still leave the hottest `tick/eval` shard in the parent because the parent must re-fanout every owned field into that tree.
+  - before cutting a suspected hotspot, rank the parent module's `pyc.instance` sites by combined input+output count from emitted top-level MLIR; the hottest compile shard is often the widest surviving parent/child boundary, not the child whose standalone module body is largest.
+
 ## LinxTrace v1 container (strict)
 
 - Canonical trace artifact is a single uncompressed `*.linxtrace` (JSONL).
 - First non-empty record must be `{"type":"META", ...}` (in-band META).
 - Legacy split artifacts are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
+- Keep LinxTrace authoring on the pyc probe path.
+  Do not introduce trace-only pipeline state, edge detectors, sequence counters, or block-event sidecars into the functional LinxCore hardware just to make pipeview look correct.
+  If the trace needs reconstruction, do it in TB/raw-trace/build steps unless the stage owner already exposes the needed state as a natural probe.
+- Visible backend stages must come from real owner stage state, not transient probe overlap or commit-edge reconstruction.
+  In particular, `W1/W2` must not be synthesized from retire-side bookkeeping; top-level commit probes should emit only `CMT`.
+- Keep block structure in the main trace contract: `uop` rows plus `block` rows, with `BLOCK_EVT` preserved as auxiliary lifecycle context.
 
 Generate + lint + open (LinxCore-side builder flow):
 
@@ -52,7 +82,6 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/run_linxtrace.sh <
 python3 /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/lint_linxtrace.py <trace.linxtrace>
 bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/open_linxcoresight.sh <trace.linxtrace>
 ```
-
 ## Block/BID design decisions (strict)
 
 These are confirmed in #linx-core (2026-02-24) and must be preserved by future changes:
@@ -291,25 +320,6 @@ Confirmed in #linx-core (2026-02-25):
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
 
 - In the LinxISA superproject checkout, update the `rtl/LinxCore` submodule pointer on `main`, PR + merge.
-
-## Compile + sim scalability (pyc4 strict hierarchy)
-
-Use these when compile wall time/RSS or C++ sim throughput regresses.
-
-Fast profiling commands (local):
-
-```bash
-bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_pyc_compile_pipeline.sh
-bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_cpp_tu_manifest.sh
-bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/perf/profile_linxcore_cpp_sim.sh
-```
-
-SCC fallback triage (event-driven C++ sim):
-
-- `sim_stats_text` exposes per-module `fallback_iterations`.
-- If `child.<name>.fallback_iterations` is non-zero/high, the simulator is iterating a cyclic SCC each cycle.
-- Break SCCs by pushing arbitration/mux fabrics into dedicated stage modules and registering event bundles at module boundaries.
-- Target: `child.janus_backend.fallback_iterations == 0` on CoreMark bounded runs.
 
 ## Skill evolve loop (mandatory closeout)
 
