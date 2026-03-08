@@ -71,6 +71,10 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
 - Keep LinxTrace authoring on the pyc probe path.
   Do not introduce trace-only pipeline state, edge detectors, sequence counters, or block-event sidecars into the functional LinxCore hardware just to make pipeview look correct.
   If the trace needs reconstruction, do it in TB/raw-trace/build steps unless the stage owner already exposes the needed state as a natural probe.
+- Preserve probe-only child hierarchy with compiler keep metadata, not parent debug-port fanout.
+  If a child exists only to emit `dbg__*` probes for ProbeRegistry/LinxTrace, keep the instance alive via pyCircuit's keep path (`pyc.debug_keep` + dead-instance pruning) instead of forwarding every probe leaf into the parent just to defeat DCE.
+- Probe-only DFX boundaries should be packed for compile budget.
+  `debug_occ` helper modules do not need to preserve functional-hardware port granularity; if parent/child fanout becomes a hotspot, pack per-lane/per-stage probe payloads into wide buses and unpack inside the probe module.
 - Visible backend stages must come from real owner stage state, not transient probe overlap or commit-edge reconstruction.
   In particular, `W1/W2` must not be synthesized from retire-side bookkeeping; top-level commit probes should emit only `CMT`.
 - Keep block structure in the main trace contract: `uop` rows plus `block` rows, with `BLOCK_EVT` preserved as auxiliary lifecycle context.

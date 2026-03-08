@@ -72,6 +72,13 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 - `debug_occ` / probe authoring must stay probe-only.
   Do not add architectural state, pipeline flops, commit-edge counters, or redirect/block sidecar logic in pyc modules just to satisfy trace.
   If trace needs edge/sequence/block lifecycle reconstruction, prefer TB/raw-trace post-processing over synthesizing trace-only hardware.
+- Frontend/backend must stamp and preserve `pyc.probe_only = true` for probe-only trace modules.
+  Use it for modules whose visible contract is only `dbg__*` probe exports, and for zero-output probe containers whose children are all probe-only.
+  Probe-only modules must be retained through dead-instance pruning, but they are exempt from hierarchy/emitted-cost hardware closure gates; do not mix functional outputs into them.
+- Keep probe-only child instances alive with compiler metadata instead of debug-port fanout.
+  pyc modules that exist only to emit `dbg__*` outputs should be retained through the `pyc.debug_keep` / dead-instance-pruning path; do not forward their probe leaves into parent modules just to make ProbeRegistry see them.
+- For probe-only modules, optimize the instance boundary for compile cost rather than hardware realism.
+  It is valid to pack many per-lane/per-stage probe fields into wide buses and unpack inside the child probe module if that reduces parent `eval` fanout and keeps emitted-cost gates green.
 
 Common env (when a TB enables runtime LinxTrace):
 
