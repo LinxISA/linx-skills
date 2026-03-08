@@ -7,7 +7,7 @@ description: Linx ISA architecture and specification workflow. Use when defining
 
 ## Overview
 
-Use this skill for ISA-level decisions and spec-quality updates that must stay consistent across software and hardware bring-up.
+Use this skill for ISA-level decisions and spec-quality updates in `~/linx-isa` that must stay consistent across software and hardware bring-up.
 
 ## Responsibilities
 
@@ -16,6 +16,8 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - Contract mapping into downstream requirements.
 
 ## Non-negotiable invariants
+
+- **Coverage merge threshold:** Do not merge coverage-only PRs unless the net `implemented_forms` increase is **≥ 5%** of `total_forms`, unless the user explicitly asks to merge earlier.
 
 - Block-structured control-flow contract is explicit.
 - Safety rule on control-flow targets is enforced.
@@ -29,26 +31,38 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 ## LinxArch mandatory gates
 
 ```bash
-python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict
-python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict --require-mkdocs
-python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa
+python3 ~/linx-isa/tools/isa/build_golden.py --profile v0.4 --check
+python3 ~/linx-isa/tools/isa/validate_spec.py --profile v0.4
+python3 ~/linx-isa/tools/bringup/check_sail_model.py
+python3 ~/linx-isa/tools/isa/check_canonical_v04.py --root ~/linx-isa
+python3 ~/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root ~/linx-isa --strict --require-mkdocs
 ```
 
 ## Contract pages that must stay authoritative
 
-- `docs/architecture/v0.3-architecture-contract.md`
+- `docs/architecture/v0.4-architecture-contract.md`
+- `docs/architecture/isa-manual/src/linxisa-isa-manual.adoc`
+- `docs/architecture/v0.4-hardening-policy.md`
+- `docs/architecture/v0.4-workload-engine-model.md`
+- `docs/architecture/v0.4-rendering-kernel-authoring.md`
+- `docs/architecture/v0.4-rendering-pto-contract.md`
+- `docs/architecture/v0.4-rendering-command-contract.md`
 - `docs/architecture/linxcore/overview.md`
 - `docs/architecture/linxcore/microarchitecture.md`
 - `docs/architecture/linxcore/interfaces.md`
 - `docs/architecture/linxcore/verification-matrix.md`
 
+`docs/architecture/v0.4-draft/README.md` is archival context only and must not be treated as the active source of truth.
+
 ## Workflow
 
 1. Update/verify ISA source-of-truth in `isa/` and manual docs in `docs/`.
 2. Cross-check ambiguity against implementation requirements.
-3. Confirm architecture matrix covers all required cross-domain gate keys.
-4. Coordinate with `linx-core`, `linx-qemu`, and `linx-pycircuit` before promoting architecture-visible changes.
-5. Capture evidence links for changed semantics.
+3. Before surfacing a design question, re-read the relevant manual/state files and recent working memory so already-settled points are not re-asked as if unresolved.
+4. For any control-flow, trap-state, or save/restore ambiguity, first classify which layer is being described: block/header stream vs body/kernel stream, and top-level architectural state vs second-layer `BSTATE`/`EBSTATE` state. Do not treat those layers as interchangeable.
+5. Confirm architecture matrix covers all required cross-domain gate keys.
+6. Coordinate with downstream compiler/emulator/RTL/pyCircuit owners before promoting architecture-visible changes; when using skills, route emulator/pyCircuit alignment through `linx-ide` and RTL/microarchitecture alignment through `linxcore`.
+7. Capture evidence links for changed semantics.
 
 ## Skill evolve loop (mandatory closeout)
 
@@ -59,8 +73,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/
   - new recurring ambiguity pattern with a repeatable resolution workflow.
 - Do not update for wording cleanup, minor optimization, or one-off editorial fixes.
 - If update is needed, limit to touched docs and validate with:
-  - `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-isa`
-  - `python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root /Users/zhoubot/linx-isa/skills/linx-skills --base origin/main`
+  - `QUICK_VALIDATE=$(find ~/.codex ~/.openclaw /home/zhoubot -path '*/skill-creator/scripts/quick_validate.py' 2>/dev/null | head -n1); test -n "$QUICK_VALIDATE" && python3 "$QUICK_VALIDATE" ~/linx-isa/skills/linx-skills/linx-isa`
+  - `python3 ~/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --repo-root ~/linx-isa/skills/linx-skills --base origin/main`
 
 ## Included scope
 
@@ -70,3 +84,4 @@ This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.
 
 - `references/spec_alignment.md`
 - `references/v0.3_contracts_and_asm.md` (v0.3 stable contracts + assembler-visible encodings; LLVM/QEMU parity checklist)
+- `../linx-ide/references/v0.3_qemu_trap_contracts.md` (QEMU/pyCircuit-facing runtime and trap-alignment reference)
