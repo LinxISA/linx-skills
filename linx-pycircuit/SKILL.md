@@ -9,6 +9,15 @@ description: pyCircuit and MLIR workflow for submodule `tools/pyCircuit`. Use wh
 
 Use this skill for `tools/pyCircuit` development, flow validation, and integration checks against Linx bring-up lanes.
 
+## Log / trace hygiene (strict)
+
+- Avoid generating excessive large logs.
+- Do not start broad pyCircuit/QEMU/LinxCore logging from the beginning of execution unless no narrower reproducer exists.
+- First localize the point of interest, then enable only the minimum trace/log surface needed for that window.
+- Keep artifacts bounded: smallest case set, shortest timeout, narrowest commit window, and no duplicate log streams unless they are required for correlation.
+- Treat generated logs/traces as disposable debugging artifacts. Remove large outputs from `/tmp`, `/private/tmp`, and repo-local output trees once the needed evidence has been extracted.
+- If a run is still producing logs after the needed evidence is captured, stop it before rerunning or widening the reproducer.
+
 ## PR mandatory gates
 
 ```bash
@@ -67,6 +76,8 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 - Runtime LinxTrace output is a single uncompressed `*.linxtrace` (JSONL) with in-band META first record.
 - Legacy split outputs are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
 - `PYC_LINXTRACE_GZ` is removed (no gzip writer/reader path).
+- Do not leave runtime raw-trace or commit-trace capture unbounded by default.
+  Prefer bounded commit windows, explicit timeout/terminal conditions, or post-processed focused captures over whole-run logging from cycle 0.
 - DFX occupancy for canonical pipeline stages must be emitted from the real owner module/stage boundary.
   Do not rebuild `W1/W2` or other residency from commit-edge sidecars in top-level glue.
 - `debug_occ` / probe authoring must stay probe-only.
