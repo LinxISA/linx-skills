@@ -37,10 +37,16 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/
 ## Contract pages that must stay authoritative
 
 - `docs/architecture/v0.3-architecture-contract.md`
-- `docs/architecture/linxcore/overview.md`
-- `docs/architecture/linxcore/microarchitecture.md`
-- `docs/architecture/linxcore/interfaces.md`
-- `docs/architecture/linxcore/verification-matrix.md`
+- canonical LinxCore authoring:
+  - `rtl/LinxCore/docs/architecture/overview.md`
+  - `rtl/LinxCore/docs/architecture/microarchitecture.md`
+  - `rtl/LinxCore/docs/architecture/interfaces.md`
+  - `rtl/LinxCore/docs/architecture/verification-matrix.md`
+- published mirrors:
+  - `docs/architecture/linxcore/overview.md`
+  - `docs/architecture/linxcore/microarchitecture.md`
+  - `docs/architecture/linxcore/interfaces.md`
+  - `docs/architecture/linxcore/verification-matrix.md`
 
 ## Workflow
 

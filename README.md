@@ -42,6 +42,14 @@ These skills encode strict cross-domain collaboration rules for LinxCore maturit
 - PR + nightly gate tiers with dual-lane (`pin` + `external`) closure,
 - mandatory evidence pack (gate report + SHA manifest + logs/traces).
 
+## Log and trace hygiene
+
+- Do not generate large logs or traces from the beginning of execution unless no narrower reproducer exists.
+- First localize the point of interest, then enable logging only around that window.
+- Keep capture scope minimal: shortest repro, narrowest event set, smallest commit/time window, and one lane at a time.
+- Treat large debug logs and traces as disposable artifacts. Remove them from `/tmp`, `/private/tmp`, and repo-local output trees as soon as the needed evidence is extracted.
+- Do not leave runaway log producers active after a failure; stop them before rerunning or changing the reproducer.
+
 ## Programmatic install/prune
 
 Use the canonical installer to sync skills and remove deprecated aliases:

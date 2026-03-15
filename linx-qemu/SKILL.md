@@ -22,9 +22,18 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec
 
 1. Reproduce with the smallest AVS case.
 2. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
-3. Compare against ISA semantics and expected Linux/runtime behavior.
-4. Patch decode/execute or exception path and add a focused regression.
-5. Re-run runtime and system strict gates.
+3. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
+4. Compare against ISA semantics and expected Linux/runtime behavior.
+5. Patch decode/execute or exception path and add a focused regression.
+6. Re-run runtime and system strict gates.
+
+## Trace policy
+
+- Do not generate full-run QEMU traces from the beginning of execution unless no narrower reproducer exists.
+- First localize the suspicious `pc`/opcode/window from AVS output, guest state, or a smaller repro, then enable trace only near that window.
+- Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
+- Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
+- Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.
 
 ## Collaboration rules
 

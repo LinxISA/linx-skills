@@ -39,6 +39,15 @@ Coordination requirements:
 - Reference-model divergences must coordinate with `linx-qemu`.
 - Publish evidence under `docs/bringup/gates/logs/<run-id>/<lane>/`.
 
+## Log / trace hygiene (strict)
+
+- Avoid generating excessive large logs.
+- Do not start full-run DUT/QEMU/raw-trace capture from cycle 0 unless no narrower reproducer exists.
+- First localize the suspicious `pc`, retire window, stage window, or benchmark end condition, then enable logging only around that point of interest.
+- Keep captures minimal: shortest repro, smallest commit/time budget, narrowest event set, and no duplicate trace lanes when one is sufficient.
+- Treat debug logs/traces under `/tmp`, `/private/tmp`, and repo-local output trees as disposable. Remove them once the needed evidence has been extracted.
+- If a producer is still writing after the evidence you need is captured, stop it before rerunning or changing the setup.
+
 ## Hierarchy + compile-budget discipline (strict)
 
 - Repeated substantial backend hardware must be expressed as `@module` families plus `spec.module_family(...).vector/map/dict(...)` and `m.array(...)`.
@@ -63,11 +72,43 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
   - when a consumer needs per-entry read/query services from a state owner (for example ROB commit-read or metadata lookup), attach that service to the existing owner hierarchy and export only compact query results; building a second top-level grouped consumer tree can still leave the hottest `tick/eval` shard in the parent because the parent must re-fanout every owned field into that tree.
   - before cutting a suspected hotspot, rank the parent module's `pyc.instance` sites by combined input+output count from emitted top-level MLIR; the hottest compile shard is often the widest surviving parent/child boundary, not the child whose standalone module body is largest.
 
+## Reference-model structure discipline (strict)
+
+- The cycle-accurate reference model must preserve the same owner boundaries called out by the LinxCore microarchitecture contract; do not collapse queue ownership, wakeup ownership, replay ownership, and stage-local state into one giant implementation file.
+- Keep state-owner modules/files aligned to architectural domains:
+  - queue-owned state and wakeup routing together,
+  - LSU owner state together,
+  - recovery/flush ownership together,
+  - trace emission separate from state mutation.
+- For issue-side work specifically, keep `S1/S2/IQ/P1/I1/I2` responsibilities inspectable in dedicated modules/files. A monolithic scheduler file is a contract smell because it hides which stage owns routing, readiness initialization, wakeup fanout, and deallocation.
+- Within that issue-side split, keep `P1/I1/I2` pick arbitration, RF-read accounting, issue-confirm gating, and issue-side wait-cause logic in an issue-owner module/file rather than leaving them split across top-level scheduler glue and queue-owner code. Queue ownership should stop at IQ residency/wakeup; issue ownership should cover pick/read/confirm behavior.
+- When adding new owner tables or wake structures such as qtag wait crossbars or IQ owner tables, place them in the queue-owner module/file instead of generic top-level helpers.
+- For LSU-side work, keep `LIQ/LHQ/MDB/STQ/SCB/L1D` transitions in an LSU-owner module/file and keep redirect pruning plus LSID rebasing in a recovery-owner module/file. Do not mix memory-owner progression and recovery-domain pruning into generic scheduler glue.
+- For frontend-side work, keep instruction-to-uop build/decode in a decode-owner module/file, `F0..F4/D1..D3/S1/S2` movement and routing in a frontend-owner module/file, and stage-event generation in a trace-owner module/file. Do not mix uop construction, stage transport, and trace emission back into one scheduler file; that obscures which part of the model owns fetch barriers, ROB admission, and visible stage residency.
+- Model architectural redirect restart as an explicit `FLS -> F0` recovery handoff, not as an implicit side effect of generic fetch iteration. In the CA reference model, recovery should publish the earliest frontend restart cycle and `F0` should honor that registered restart boundary; do not let fetch resume in the same abstract step that resolved the redirect just because the software loop can see the corrected target immediately.
+- Keep redirect restart-source selection in the recovery owner too. `FLS` should resolve the legal restart source from redirect metadata and block-boundary legality (`BSTART`, `FENTRY`, `FEXIT`, `FRET.*`), then hand `F0` a concrete restart token `(target_pc, restart_seq, resume_cycle)`; do not let generic fetch code infer restart by “next surviving seq” once wrong-path/frontend occupancy exists.
+- Keep architectural redirect ownership boundary-only. In the CA reference model, a non-fallthrough BRU commit is not itself an `FLS` redirect owner; treat it as pre-boundary correction metadata and let the later architectural boundary (`BSTART`/`BSTOP`/macro boundary) own the visible redirect and frontend restart.
+- Model deferred BRU correction as explicit recovery-owner state, and let the later architectural boundary consume it before any boundary-local redirect target. A BRU mismatch should publish pending correction metadata when it becomes architecturally visible, but `FLS` should only resolve at the boundary, using pending BRU correction first and clearing that state once the boundary-owned redirect/restart token is issued.
+- Match deferred BRU correction by block/branch epoch, not plain age. In the CA reference model, a later boundary may consume deferred BRU correction only when the correction epoch matches that boundary's block epoch; a stale correction from an older dynamic block instance must not leak across a head-`BSTART` epoch advance into the next loop iteration.
+- Model recovery-target safety as a BRU-side precise trap, not a boundary fallback. If deferred BRU correction resolves to a target that lacks legal `BSTART` metadata, raise `TRAP_BRU_RECOVERY_NOT_BSTART` on the offending BRU row and retire that row with `trap_valid/trap_cause`; do not silently convert the fault into a boundary-local redirect or guessed restart sequence.
+- Carry checkpoint identity through recovery-owner state and trace visibility. Deferred BRU correction, boundary redirect selection, and BRU recovery faults should preserve the checkpoint id associated with the owning row, and `FLS/CMT` trace emission should surface that checkpoint/trap metadata instead of collapsing recovery events to an unlabeled redirect cause.
+- Carry live boundary kind through recovery trace visibility as well. `FLS/CMT` events that represent redirect ownership, BRU recovery faults, or rows retiring under a live branch-validation context should surface the owning branch class (`fall/cond/call/ret/direct/ind/icall`) so DFX can distinguish which architectural boundary kind drove recovery instead of reducing everything to a generic redirect cause.
+- Keep checkpoint ownership split by domain: frontend owns fetch-packet checkpoint assignment, and recovery owns `flush_checkpoint_id` / redirect-checkpoint propagation. Do not synthesize backend-visible checkpoint ids from unrelated notions like block epoch once a fetch/F4 packet boundary exists; derive/store checkpoint id at packet ingress and carry the boundary row's checkpoint through redirect/fault handling.
+- Model flush cleanup as registered recovery state, not same-cycle helper cleanup. In the CA reference model, boundary redirect resolution should publish `flush_pending` / `flush_checkpoint_id`-like state first, and speculative prune plus LSID/memory-owner cleanup should apply on the later recovery cycle when that pending flush becomes visible; do not prune wrong-path state in the same abstract step that retired the redirect owner just because the software scheduler can see both events at once.
+- For rename-like owner state, checkpoint snapshots belong to start-marker dispatch and restore belongs to `flush_checkpoint_id`. In the CA reference model, if you do not yet model full SMAP/CMAP/freelist state, at least snapshot the owned logical-ready/rename-visible state when a start marker dispatches and restore that snapshot when the registered flush applies; do not try to reconstruct rename recovery solely from age-based wrong-path pruning after the fact.
+- Keep fetch checkpoint ids and ROB-visible checkpoint ids distinct. In the hardware contract, packet/fetch checkpoint identity comes from the frontend, while start-marker/ROB checkpoint identity is derived at decode/dispatch (for example `f4_checkpoint_id + slot`) and only start markers carry that backend-visible checkpoint token. A CA model should not reuse fetch-packet checkpoint ids as if every row had a ROB checkpoint; recovery, BRU correction ownership, and commit/trace checkpoint fields should use the start-marker/ROB-visible namespace.
+- BRU correction ownership uses the active start-marker checkpoint context, not the non-start BRU row's trivial checkpoint id. In the hardware contract, deferred BRU correction carries the ROB-visible checkpoint state of the current recovery context (the latest active start-marker/boundary checkpoint), even when the offending BRU row is not itself a start marker. A CA model should therefore resolve BRU correction and BRU recovery-fault checkpoint ids from the active checkpoint context, while boundary-owned redirect/flush state still uses the boundary row's own checkpoint token.
+- Once that checkpoint context is live in the backend, carry it as backend-owned row state instead of reconstructing it by stream scans. In the hardware contract, BRU/recovery paths consume the checkpoint token already attached to backend-visible row state (`ROB`/issue-visible ownership). A CA model should assign recovery checkpoint context when rows enter backend ownership and let BRU correction/fault paths read that live token directly; backward scans over prior `BSTART` rows are only a bootstrap fallback, not the steady-state owner path.
+- Apply the same owner rule to branch/block epoch metadata. In the hardware contract, BRU validation compares live backend `bru_epoch` against live branch state epoch, and deferred correction carries that backend-owned epoch forward. A CA model should assign row epoch when rows enter backend ownership and restore that epoch context on checkpoint flush; do not gate BRU correction or stale-correction suppression by recomputing epoch only from the committed stream once backend-owned row state exists.
+- For reorder/commit work, keep `ROB/CMT` retirement, commit-visible ready-table publication, and ROB-age ordering helpers in a commit-owner module/file. Do not leave retirement and age ordering buried in the top-level scheduler once queue/front-end/LSU ownership has been split, or the model will stop reflecting which domain owns retirement semantics versus recovery semantics.
+
 ## LinxTrace v1 container (strict)
 
 - Canonical trace artifact is a single uncompressed `*.linxtrace` (JSONL).
 - First non-empty record must be `{"type":"META", ...}` (in-band META).
 - Legacy split artifacts are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
+- Do not turn LinxTrace/raw-event generation into an unbounded full-run logger by default.
+  Prefer bounded commit windows or explicit terminal conditions, and only expand the window after a smaller capture proved insufficient.
 - Keep LinxTrace authoring on the pyc probe path.
   Do not introduce trace-only pipeline state, edge detectors, sequence counters, or block-event sidecars into the functional LinxCore hardware just to make pipeview look correct.
   If the trace needs reconstruction, do it in TB/raw-trace/build steps unless the stage owner already exposes the needed state as a natural probe.
@@ -318,6 +359,162 @@ Confirmed in #linx-core (2026-02-25):
   - BRU flush may clear younger ROB entries (and their nuke marks).
 - Implementation: ROB maintains an `oldest_nuke` record (not full-table OR scan) and validates nuke reports only for still-valid RIDs.
 - For block domain: on nuke flush, compute `flush_bid = rob_head.block_bid` and flush younger blocks by BID (`bid > flush_bid`).
+
+## Deferred BRU correction payload (strict)
+
+- Deferred BRU correction must carry both:
+  - the branch target, and
+  - `actual_take` / correction-take state.
+- Do not model deferred BRU correction as target-only metadata.
+- Boundary-authoritative recovery may need to restart at:
+  - the carried branch target when `actual_take=1`, or
+  - the boundary fallthrough when `actual_take=0`.
+- A CA reference model that records only the target cannot represent the
+  spec-required `pred_taken=1, actual_take=0` recovery case correctly.
+
+## Live branch-validation context (strict)
+
+- Backend BRU validation context must be seeded only by boundary forms that
+  carry BRU-visible prediction semantics:
+  - conditional boundaries, and
+  - return boundaries.
+- Do not treat every redirecting `BSTART*` form as a conditional-validation
+  context. `CALL` / `DIRECT` / `IND` / `ICALL` boundaries are not BRU
+  mismatch-validation owners.
+- For conditional boundaries, seed `pred_take` from frontend direction policy:
+  - backward target (`target < pc`) => predicted taken
+  - forward target (`target >= pc`) => predicted not-taken
+- For return boundaries, seed `pred_take = 0`.
+- Keep the full live boundary kind taxonomy in backend-owned context
+  (`FALL/COND/CALL/RET/DIRECT/IND/ICALL` or the local equivalent).
+- Do not collapse live boundary context to only `cond/ret/none` in the CA
+  model. BRU mismatch validation is a subset rule over that full taxonomy,
+  not the only branch-context state the backend owns.
+
+## Dynamic boundary target ownership (strict)
+
+- `RET` / `IND` / `ICALL` recovery must be driven by live backend-owned target
+  state, not only by a committed-row `next_pc` surrogate.
+- In the CA reference model:
+  - `SETC.TGT` / `C.SETC.TGT` publish the dynamic target owner state for the
+    current block;
+  - `FRET.*` may publish row-local dynamic target state directly;
+  - boundary rows (`BSTOP` / equivalent block terminators) may snapshot only
+    already-live dynamic target owner state.
+- Do not let a boundary row manufacture dynamic-target ownership from a generic
+  committed-row redirect fallback when no live `setc.tgt` owner exists.
+- If a `RET` / `IND` / `ICALL` boundary resolves without live dynamic-target
+  owner state, model a precise boundary-owner trap rather than silently using a
+  guessed restart.
+- If live dynamic-target state resolves to a non-block start, model a precise
+  boundary-owner bad-target trap on that same row.
+- Keep this target owner state checkpoint-restorable with the rest of the live
+  recovery/rename-owned backend context.
+
+## Call-header return-target ownership (strict)
+
+- Treat `CALL` start markers as a distinct backend-owned header contract, not
+  just as a branch-kind label.
+- The CA reference model must support both legal call-header shapes:
+  - fused returning call headers that already publish `ra` / return-target state
+    on the call-start row, and
+  - adjacent `CALL` start marker + `SETRET/C.SETRET/HL.SETRET` materialization.
+- For the adjacent form, keep a one-row call-header adjacency window alive
+  across the call-start boundary so the immediately following `SETRET` can bind
+  to that header.
+- `SETRET` outside that immediate adjacency window is a precise strict-mode
+  contract fault on the `SETRET` row itself.
+- `CALL` headers without adjacent `SETRET` remain legal as non-returning call
+  headers; do not trap the header row just because it lacks return-target state.
+- `SETRET/C.SETRET` materializes an explicit return label for later return
+  consumption; do not apply `RET/IND/ICALL` block-start legality checks at
+  call-header materialization time. Enforce target legality when the dynamic
+  return target is actually consumed.
+- Call-header return-target owner state and open-header adjacency state must be
+  checkpoint-restorable with the rest of the backend recovery context.
+- Keep producer-side target setup state separate from boundary-consumer target
+  ownership in the CA model.
+  `SETC.TGT` / equivalent setup rows publish a live target source, but once a
+  `RET/IND/ICALL` boundary row enters backend ownership, capture its consumed
+  target (and source row identity if tracked) on the boundary row itself.
+  Later mutations of live producer state must not rewrite an already-owned
+  boundary target.
+- Keep return-consumer metadata distinct from generic `ret` branch kind.
+  `FRET.RA`, `FRET.STK`, and `BSTART.RET` consuming `SETC.TGT` are different
+  backend ownership paths and should be preserved in CA owner state and trace
+  metadata (for example on `FLS/CMT`) instead of collapsing to only
+  `branch_kind=ret`.
+- Keep precise return-target fault causes distinct on `FLS` as well.
+  When the recovery owner raises precise `RET/IND/ICALL` target faults
+  (for example missing dynamic target state or a non-`BSTART` target), the CA
+  trace should surface the exact architectural fault class on the `FLS` row and
+  preserve the live `return_kind`; do not collapse these rows into a generic
+  BRU-recovery fault once return-consumer ownership is already modeled.
+- Preserve precise trap payloads on `FLS/CMT`, not only the trap class.
+  If the CA model already carries precise recovery traps with `traparg0`
+  (for example boundary source PC on BRU/RET target faults), keep that payload
+  visible in stage-trace events and `linxtrace` output so DFX can identify the
+  exact failing owner row without having to fall back to commit JSONL only.
+- Preserve boundary target-owner identity on `FLS/CMT` for dynamic control
+  consumers.
+  When a `RET/IND/ICALL` boundary consumes target state published by an earlier
+  owner row (`SETC.TGT`, `FRET.*`, or equivalent), keep that owner-row identity
+  visible in CA trace metadata instead of collapsing everything onto the
+  boundary row alone. DFX needs to correlate the consuming boundary with the
+  producer row that supplied the dynamic target.
+- Apply the same owner discipline to returning call headers.
+  If a `CALL` header gets its return label from adjacent `SETRET/C.SETRET` or a
+  fused returning form, keep the materializing owner-row identity in CA owner
+  state, restore it with checkpoints, and expose it on `CMT` for the call
+  header. The call boundary row and the target-materializing row are not always
+  the same instruction.
+- Preserve attempted owner-row identity on precise call-header faults too.
+  A strict-mode `SETRET/C.SETRET/HL.SETRET` adjacency fault is still an
+  attempted return-label materialization, so `FLS/CMT` metadata should identify
+  the faulting `SETRET` row as the target-owner row instead of dropping owner
+  identity just because materialization failed.
+- Preserve call-header materialization kind on `FLS/CMT`, not only owner row.
+  Returning call headers reached by a fused call form and returning call
+  headers materialized by adjacent `SETRET/C.SETRET/HL.SETRET` are different
+  backend ownership paths. Keep an explicit materialization kind in CA owner
+  state and surface it in trace so DFX does not have to infer it indirectly
+  from row identity alone.
+- Keep call-return materialization alive as return-source owner state until
+  `RET` consumes it.
+  Do not treat fused-call or adjacent-`SETRET` materialization as a short-lived
+  call-header-only annotation. The backend CA model should preserve the live
+  return-label source (owner row and materialization kind) across later
+  boundaries/checkpoint restore so `FRET.RA` recovery and validation can use the
+  real source metadata instead of falling back to row-local surrogates.
+- If `SETC.TGT` copies a live call-return label into dynamic-target state,
+  preserve the exact fused-vs-adjacent materialization kind through later
+  `RET`/`IND`/`ICALL` consumers, not only a coarse source class.
+  Once a dynamic boundary consumes target state derived from live return-label
+  ownership, `FLS/CMT` should still be able to distinguish `fused_call` from
+  `adjacent_setret` on the consuming boundary row; do not collapse that path to
+  generic `call_return_*` source metadata only.
+- Preserve explicit dynamic-target producer kind alongside owner-row identity.
+  For dynamic control consumers, `uopN` as the target owner is not sufficient
+  DFX metadata by itself. Keep whether the target was produced by `SETC.TGT`,
+  `FRET.RA`, or `FRET.STK` in live CA owner state and on `FLS/CMT`, especially
+  for `IND`/`ICALL` rows where consumer-side `return_kind` may be absent.
+- Model `SETC.TGT in the same block` as an epoch-owned recovery contract, not
+  just a boolean presence check.
+  If a dynamic boundary consumes target state whose setup epoch does not match
+  the boundary block epoch, raise a precise stale-setup fault distinct from
+  `dynamic_target_missing`; do not collapse owner-state mismatch into generic
+  absence.
+- Preserve both target setup epoch and consuming boundary epoch on `FLS/CMT`
+  for stale dynamic-target faults.
+  Once stale dynamic-target recovery is modeled precisely, the CA trace should
+  expose the setup-vs-boundary epoch mismatch directly instead of leaving DFX
+  with only a coarse `dynamic_target_stale_*` class string.
+- If `SETC.TGT` copies a live return label, preserve the original source-owner
+  row and source epoch separately from the copied setup epoch.
+  In the CA model, a stale return-derived target is not the same thing as a
+  stale architectural target setup. Keep the copied `SETC.TGT` owner/setup
+  epoch and the original return-label source owner/epoch as distinct live owner
+  state, and surface both on `FLS/CMT`.
 
 ## When merging LinxCore PRs
 
