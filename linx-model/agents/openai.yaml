@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Model"
+  short_description: "C++ Module/SimQueue rules for queue-wired cycle models"
+  default_prompt: "Use $linx-model for tools/model work: enforce Module Work semantics, INPUT/OUTPUT/INNER queue-role tagging, payload ownership policy, and queue wiring assertions."

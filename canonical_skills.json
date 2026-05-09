@@ -8,6 +8,7 @@
     { "name": "linx-linux", "module": "kernel/linux" },
     { "name": "linx-core", "module": "rtl/LinxCore" },
     { "name": "linx-pycircuit", "module": "tools/pyCircuit" },
+    { "name": "linx-model", "module": "tools/model" },
     { "name": "linx-lib", "module": "lib" },
     { "name": "linx-isa", "module": "isa+docs" }
   ],

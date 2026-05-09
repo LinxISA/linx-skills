@@ -131,6 +131,11 @@ gh pr merge <PR> --squash
 
 ## Canonical gate commands
 
+Retired public `0.3`/`0.4` guard scripts are not active gates. Use
+`tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa` as the
+compatibility entrypoint for the live v0.56 contract and keep CI/workflow names
+on `public-v056` surfaces.
+
 PR tier strict closure:
 
 ```bash
@@ -203,6 +208,6 @@ This consolidated skill owns:
 ## References
 
 - `references/runbook.md`
-- `../linx-isa/references/v0.3_contracts_and_asm.md` (ISA v0.3 stable contracts)
-- `../linx-compiler/references/v0.3_codegen_and_asm_contracts.md` (LLVM parity focus)
+- `../linx-isa/references/v0.3_contracts_and_asm.md` (archive-only historical baseline)
+- `../linx-compiler/references/v0.3_codegen_and_asm_contracts.md` (archive-only historical baseline)
 - `../linx-qemu/references/runtime_gates.md` (QEMU parity focus)
