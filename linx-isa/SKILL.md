@@ -34,9 +34,18 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --
 python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa
 ```
 
+`check26_contract.py` is the compatibility entrypoint for the live v0.56
+contract. Do not restore retired `check_public_v03.sh`,
+`check_canonical_v04.py`, or `check_no_legacy_v0*.py` paths; update callers to
+the v0.56 compatibility guard instead.
+
 ## Contract pages that must stay authoritative
 
-- `docs/architecture/v0.3-architecture-contract.md`
+- `docs/architecture/v0.56-architecture-contract.md`
+- `docs/architecture/v0.56-workload-engine-model.md`
+- `docs/architecture/v0.56-rendering-command-contract.md`
+- `docs/architecture/isa-manual/src/linxisa-isa-manual.adoc`
+- `isa/v0.56/linxisa-v0.56.json`
 - canonical LinxCore authoring:
   - `rtl/LinxCore/docs/architecture/overview.md`
   - `rtl/LinxCore/docs/architecture/microarchitecture.md`
@@ -75,4 +84,4 @@ This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.
 ## References
 
 - `references/spec_alignment.md`
-- `references/v0.3_contracts_and_asm.md` (v0.3 stable contracts + assembler-visible encodings; LLVM/QEMU parity checklist)
+- `references/v0.3_contracts_and_asm.md` (archive-only historical baseline; not an active v0.56 gate source)

@@ -52,7 +52,7 @@ python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py
 
 - At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
 - Update this skill only for material reusable findings:
-  - new backend contract/call-ret rule tied to v0.3 closure,
+  - new backend contract/call-ret rule tied to v0.56 closure,
   - new mandatory compile gate/repro command/env,
   - new recurring compiler triage pattern that changed debug order.
 - Skip updates for minor optimization, wording cleanup, or one-off local workaround.
@@ -67,4 +67,4 @@ This consolidated skill absorbs prior `llvm-backend` and compiler-side `call-ret
 ## References
 
 - `references/compiler_checks.md`
-- `references/v0.3_codegen_and_asm_contracts.md` (v0.3 codegen/asm encodings; TEPL/TOPS contract)
+- `references/v0.3_codegen_and_asm_contracts.md` (archive-only historical baseline; not an active v0.56 gate source)
