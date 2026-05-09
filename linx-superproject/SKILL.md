@@ -131,10 +131,16 @@ gh pr merge <PR> --squash
 
 ## Canonical gate commands
 
-Retired public `0.3`/`0.4` guard scripts are not active gates. Use
-`tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa` as the
-compatibility entrypoint for the live v0.56 contract and keep CI/workflow names
-on `public-v056` surfaces.
+Retired public `0.3`/`0.4` guard scripts and historical compatibility wrappers
+are not active gates. Use the canonical v0.56 checks directly:
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
+python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
+python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
+```
+
+Keep CI/workflow names on `public-v056` surfaces.
 
 PR tier strict closure:
 

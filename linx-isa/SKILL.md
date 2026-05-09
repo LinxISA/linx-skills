@@ -31,13 +31,14 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 ```bash
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict --require-mkdocs
-python3 /Users/zhoubot/linx-isa/tools/bringup/check26_contract.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
+python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
+python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
 ```
 
-`check26_contract.py` is the compatibility entrypoint for the live v0.56
-contract. Do not restore retired `check_public_v03.sh`,
-`check_canonical_v04.py`, or `check_no_legacy_v0*.py` paths; update callers to
-the v0.56 compatibility guard instead.
+Historical compatibility wrappers are retired. Do not restore
+`check_public_v03.sh`, `check_canonical_v04.py`, or `check_no_legacy_v0*.py`
+paths; update callers to the canonical v0.56 checks above instead.
 
 ## Contract pages that must stay authoritative
 
