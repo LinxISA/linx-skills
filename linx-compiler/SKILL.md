@@ -18,11 +18,20 @@ Use this skill for all compiler-side work centered on `compiler/llvm` and AVS co
 ## Canonical checks
 
 ```bash
+python3 /Users/zhoubot/linx-isa/tools/isa/gen_c_codec.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --out-dir /tmp/linxisa-llvm-codec-check
+diff -q /tmp/linxisa-llvm-codec-check/linxisa_opcodes.h /Users/zhoubot/linx-isa/compiler/llvm/llvm/lib/Target/LinxISA/MCTargetDesc/linxisa_opcodes.h
+diff -q /tmp/linxisa-llvm-codec-check/linxisa_opcodes.c /Users/zhoubot/linx-isa/compiler/llvm/llvm/lib/Target/LinxISA/MCTargetDesc/linxisa_opcodes.c
 cd /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests && CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang TARGET=linx64-linx-none-elf OUT_DIR=/Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx64 ./run.sh
 python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --out-dir /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx64 --fail-under 100
 cd /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests && CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang TARGET=linx32-linx-none-elf OUT_DIR=/Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx32 ./run.sh
 python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py --out-dir /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx32 --fail-under 100
 ```
+
+The codec parity check is the source-of-truth proof that LLVM MC tables are
+generated from the live v0.56 ISA catalog. The coverage checks must cover
+710/710 unique v0.56 mnemonics with `99_spec_decode` included; stale output
+artifacts are acceptable only as audit evidence, not as a replacement for a
+fresh `run.sh` when the compiler binary is available.
 
 ## Toolchain lane policy
 
