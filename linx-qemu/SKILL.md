@@ -14,6 +14,7 @@ Use this skill for emulator-focused work in `emulator/qemu` and for runtime fail
 ```bash
 bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
+python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
 python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
 ```
@@ -28,8 +29,12 @@ running a historical comparison.
 2. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
 3. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
 4. Compare against ISA semantics and expected Linux/runtime behavior.
-5. Patch decode/execute or exception path and add a focused regression.
-6. Re-run runtime and system strict gates.
+5. If the first divergence only appears on positive direct-call or call/ret
+   runtime cases using 64-bit `L.BSTART.*` headers, verify whether the raw
+   immediate decode is still in halfword units before `linx_pcrel_target()`
+   shifts it into a byte offset.
+6. Patch decode/execute or exception path and add a focused regression.
+7. Re-run runtime and system strict gates.
 
 ## Trace policy
 
