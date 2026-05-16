@@ -18,6 +18,28 @@ python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/busybox_rootfs/boot.p
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linx_virt_defconfig_spec.py --defconfig /Users/zhoubot/linx-isa/kernel/linux/arch/linx/configs/linxisa_virt_defconfig --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/linxisa_virt_defconfig_audit.json
 ```
 
+## Deterministic smoke repro
+
+- For early boot triage, prefer the pinned `vmlinux` + initramfs smoke form so
+  you can move the boot boundary without rebuilding QEMU each iteration:
+
+```bash
+TIMEOUT=20 LINX_DISABLE_TIMER_IRQ=1 SKIP_BUILD=1 \
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build/qemu-system-linx64 \
+python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/smoke.py
+```
+
+- Keep the matching kernel rebuild command alongside it:
+
+```bash
+bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
+  --linux-root /Users/zhoubot/linx-isa/kernel/linux \
+  --out-dir /Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed \
+  --clang /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang \
+  --gmake /opt/homebrew/bin/gmake \
+  --target vmlinux
+```
+
 ## Trap triage
 
 1. capture first repeated trap tuple (`pc`, cause, context),
@@ -32,6 +54,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check_linx_virt_defconfig_spec.py 
 - dynamic targets are legal block starts,
 - regression rerun includes strict AVS system/runtime checks,
 - timer IRQ behavior remains enabled in strict closure unless explicitly waived.
+- treat `/chosen/bootargs` string corruption separately from later parser bugs:
+  if the command line bytes are already wrong before `parse_args()`, fix the DT
+  property read/import path first.
 
 ## Timer and BI-state diagnostics
 
