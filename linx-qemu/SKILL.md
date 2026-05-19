@@ -22,6 +22,10 @@ Keep the active QEMU line explicit before making changes:
 Do not assume the target naming surface. Read `configs/targets/` first and use
 the names that actually exist in the checked-out branch.
 
+For the merged current recovery lane, direct kernel/rootfs runs are
+firmwareless by default. Preserve `-bios none` in local reproductions unless a
+specific firmware blob is intentionally under test.
+
 ## Historical recovery lane
 
 When the user provides a recovered full patch and says it is the authoritative

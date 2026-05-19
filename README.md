@@ -33,6 +33,10 @@ Linx ISA bring-up related Codex skills.
 | `linx-compiler` | `compiler/llvm` |
 | `linx-linux` | `kernel/linux` |
 
+`compiler/ptoas` does not have a dedicated module skill yet. Route PTOAS work
+through `linx-superproject` and state the owning module scope explicitly in the
+task brief.
+
 ## LinxCore maturity collaboration policy
 
 These skills encode strict cross-domain collaboration rules for LinxCore maturity:
@@ -55,7 +59,7 @@ These skills encode strict cross-domain collaboration rules for LinxCore maturit
 Use the canonical installer to sync skills and remove deprecated aliases:
 
 ```bash
-bash /Users/zhoubot/linx-skills/scripts/install_canonical_skills.sh
+bash /Users/zhoubot/linx-isa/skills/linx-skills/scripts/install_canonical_skills.sh
 ```
 
 ## Safe skill-evolution workflow
@@ -76,7 +80,7 @@ For bring-up evolution without destructive churn:
 4. Validate touched skills and guard change scope:
 
 ```bash
-python3 /Users/zhoubot/linx-skills/scripts/check_skill_change_scope.py --base origin/main
+python3 /Users/zhoubot/linx-isa/skills/linx-skills/scripts/check_skill_change_scope.py --base origin/main
 python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py <skill-dir>
 ```
 

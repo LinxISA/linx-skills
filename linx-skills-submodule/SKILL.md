@@ -57,6 +57,12 @@ git -C /Users/zhoubot/linx-isa/skills/linx-skills config http.version HTTP/1.1
   - new contract/invariant/gate absent from current skill docs,
   - new recurring failure pattern that changed the triage workflow,
   - new mandatory reproducibility command/env/artifact path.
+- Recent examples that do qualify:
+  - direct kernel/rootfs recovery moved to firmwareless `-bios none`,
+  - repeated Linx backend `isOrEquivalentToAdd` crashes now use a reusable
+    Clang-temp-repro -> object-scoped vectorizer-workaround triage flow,
+  - superproject repins must be followed by a gitlink-only repoint when
+    submodule PRs merge with rewritten SHAs.
 - Decision is `no-update` for:
   - formatting/wording cleanup only,
   - minor optimization without new policy,

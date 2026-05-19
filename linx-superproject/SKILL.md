@@ -206,6 +206,9 @@ Treat markdown status pages as generated views, not source-of-truth.
 2. Update submodule SHA in superproject.
 3. Re-run PR strict closure with extended cross gates.
 4. Merge repin only with green required gates and complete evidence.
+5. If the module PR merged by squash/rebase and rewrote the submodule SHA,
+   follow immediately with a gitlink-only superproject repoint so `main`
+   references the merged upstream SHA rather than the earlier topic-branch tip.
 
 ## Included scope
 
