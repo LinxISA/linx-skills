@@ -9,6 +9,36 @@ description: Linx emulator development workflow for submodule `emulator/qemu`. U
 
 Use this skill for emulator-focused work in `emulator/qemu` and for runtime failures where QEMU is the likely first divergence point.
 
+## Target lines
+
+Keep the active QEMU line explicit before making changes:
+
+- Current/modern line may expose `linx64-softmmu` in the in-repo build tree.
+- Recovered historical lines can instead expose:
+  - `linx-softmmu`
+  - `linx-linux-user`
+  - `linx_be-linux-user`
+
+Do not assume the target naming surface. Read `configs/targets/` first and use
+the names that actually exist in the checked-out branch.
+
+## Historical recovery lane
+
+When the user provides a recovered full patch and says it is the authoritative
+latest implementation, treat that as a separate recovery workflow rather than a
+normal forward-port.
+
+- Prefer finding an old upstream QEMU base that fits the patch over manually
+  replaying selected hunks onto a newer branch.
+- In this workspace, the recovered `my.patch`-style Linx tree matched best
+  against an upstream `v7.0.0` base.
+- If you must configure `linx-linux-user` on a non-Linux host during recovery,
+  any host-policy relaxations in `configure` / `meson.build` are host bring-up
+  adaptations, not ISA or emulator semantic changes.
+- If the recovered tree references `pc-bios/LinxInit.bin` but the firmware blob
+  is unavailable, prefer making that blob optional for local configure/build
+  validation instead of pretending to have reconstructed it.
+
 ## Required gates
 
 ```bash
@@ -26,15 +56,27 @@ running a historical comparison.
 ## Workflow
 
 1. Reproduce with the smallest AVS case.
-2. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
-3. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
-4. Compare against ISA semantics and expected Linux/runtime behavior.
-5. If the first divergence only appears on positive direct-call or call/ret
+2. If the failure is in AVS compile or object generation, first decide whether
+   the blocker belongs to the compiler surface rather than QEMU semantics.
+   In particular, old Linx AVS cases that still use `%tpcrel_hi/%tpcrel_lo`,
+   unfused symbolic `BSTART CALL`, or legacy block-attribute syntax should not
+   be treated as emulator regressions until the in-repo `clang` integrated
+   assembler accepts them.
+3. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
+4. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
+5. Compare against ISA semantics and expected Linux/runtime behavior.
+6. If the first divergence only appears on positive direct-call or call/ret
    runtime cases using 64-bit `L.BSTART.*` headers, verify whether the raw
    immediate decode is still in halfword units before `linx_pcrel_target()`
    shifts it into a byte offset.
-6. Patch decode/execute or exception path and add a focused regression.
-7. Re-run runtime and system strict gates.
+7. Patch decode/execute or exception path and add a focused regression.
+8. Re-run runtime and system strict gates.
+
+For recovered historical lines, insert one extra step before implementation:
+
+1. Pick and validate the old base first.
+2. Apply the recovered patch whole if possible.
+3. Only then start conflict resolution or branch-local build adaptation.
 
 ## Trace policy
 
@@ -49,6 +91,9 @@ running a historical comparison.
 - When QEMU diverges from LinxCore/pyCircuit traces, act as reference owner and publish first mismatch evidence.
 - Keep timer IRQ policy explicit in strict runs (`LINX_EMU_DISABLE_TIMER_IRQ=0` by default).
 - Coordinate trap/MMU semantic updates with `linx-isa` before declaring closure.
+- If a QEMU AVS case is blocked by current compiler asm-surface compatibility
+  rather than emulator semantics, mark or skip that case explicitly in the AVS
+  harness instead of counting it as a QEMU execution failure.
 
 ## Skill evolve loop (mandatory closeout)
 

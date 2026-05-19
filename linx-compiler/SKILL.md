@@ -53,9 +53,26 @@ fresh `run.sh` when the compiler binary is available.
 
 1. Implement backend change.
 2. Add lit/FileCheck coverage.
-3. Run both linx64 and linx32 compile/coverage gates.
-4. Confirm no cross-stack call/ret regressions.
-5. Handoff gate evidence to integration owner before repin.
+3. Rebuild the actual in-repo `clang` binary when the change touches the
+   assembler/parser/MC path, not just `llvm-mc`:
+
+```bash
+ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
+```
+
+4. Validate both standalone MC and integrated-assembler surfaces when the
+   change affects assembly syntax, reloc spelling, or expression parsing.
+   Do not treat `llvm-mc` success as sufficient proof for `.S` files compiled
+   through Clang:
+
+```bash
+/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/llvm-mc -triple=linx64 -filetype=obj /tmp/probe.s -o /tmp/probe.o
+/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang -target linx64-linx-none-elf -c /tmp/probe.s -o /tmp/probe-clang.o
+```
+
+5. Run both linx64 and linx32 compile/coverage gates.
+6. Confirm no cross-stack call/ret regressions.
+7. Handoff gate evidence to integration owner before repin.
 
 ## Skill evolve loop (mandatory closeout)
 
