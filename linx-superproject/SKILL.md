@@ -182,6 +182,9 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane ext
 - Keep Linux timer diagnostics separate from parser failures: if `ctx_tq` fails
   with `irq0_delta=0`, capture `/proc/interrupts` and `/proc/stat` evidence
   before changing checklist status.
+- In recovery-forward-port runs, treat compiler/assembler compatibility
+  failures as module-domain first, and do not use stale Linux/QEMU artifacts as
+  closure evidence before rebuilding them with the refreshed in-repo toolchain.
 - Checklist status must be run-id backed, absolute-date stamped, and path-clean
   (no external tree evidence links).
 

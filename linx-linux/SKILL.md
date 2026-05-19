@@ -40,6 +40,22 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
   --target vmlinux
 ```
 
+- If the active `arch/linx` tree was replaced from a recovered authoritative
+  patch and the clean build helper falls into Kconfig restart prompts, seed the
+  build explicitly from the checked-in Linx defconfig before trying `vmlinux`:
+
+```bash
+cd /Users/zhoubot/linx-isa/kernel/linux
+PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
+/opt/homebrew/bin/gmake \
+  O=/Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed \
+  ARCH=linx \
+  LLVM=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/ \
+  'CC=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang --target=linx64-unknown-linux-gnu -fintegrated-as' \
+  HOSTCC=/usr/bin/clang HOSTCXX=/usr/bin/clang++ \
+  linx_v150_defconfig olddefconfig
+```
+
 ## Trap triage
 
 1. capture first repeated trap tuple (`pc`, cause, context),
@@ -57,6 +73,22 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
 - treat `/chosen/bootargs` string corruption separately from later parser bugs:
   if the command line bytes are already wrong before `parse_args()`, fix the DT
   property read/import path first.
+- Do not rely on a previously built `build-linx-fixed/vmlinux` after replacing
+  `arch/linx` from a recovered patch. Rebuild from current source first; if the
+  rebuild does not complete, treat runtime smoke results from the stale image as
+  non-authoritative.
+
+## Recovery-forward-port note
+
+- When the Linux port is sourced from an older recovered patch, expect two
+  independent classes of failures:
+  - source/API drift against current kernel headers and MM helpers,
+  - old Linx asm surface (`b.attr`, old block-head macros, unfused symbolic
+    `BSTART CALL`, `%tpcrel_hi/%tpcrel_lo`) that depends on compiler-side
+    compatibility.
+- Separate those two before debugging runtime behavior: refresh the in-repo
+  `clang` binary first when assembler/parser changes were made, then resume
+  kernel source forward-porting.
 
 ## Timer and BI-state diagnostics
 
