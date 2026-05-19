@@ -70,9 +70,19 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
 /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang -target linx64-linx-none-elf -c /tmp/probe.s -o /tmp/probe-clang.o
 ```
 
-5. Run both linx64 and linx32 compile/coverage gates.
-6. Confirm no cross-stack call/ret regressions.
-7. Handoff gate evidence to integration owner before repin.
+5. For recurring kernel-forward-port crashes in
+   `SelectionDAGISel::isOrEquivalentToAdd`, first use the emitted Clang crash
+   repro script from `/var/folders/.../*.sh` and remove the quoted
+   `"-vectorize-loops"` / `"-vectorize-slp"` cc1 flags in that reproducer. If
+   the repro then passes, treat the failure as a candidate for an
+   object-scoped kernel workaround (`CFLAGS_<obj>.o += -fno-vectorize
+   -fno-slp-vectorize`) before widening LLVM backend changes.
+6. Keep active compatibility MC coverage out of `legacy-*` naming. Historical
+   baselines may stay archived, but any still-supported syntax/reloc surface
+   should live under normal compatibility-oriented test names.
+7. Run both linx64 and linx32 compile/coverage gates.
+8. Confirm no cross-stack call/ret regressions.
+9. Handoff gate evidence to integration owner before repin.
 
 ## Skill evolve loop (mandatory closeout)
 

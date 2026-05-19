@@ -32,6 +32,10 @@ python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link
 - Static and shared outcomes are first-class and separate.
 - No aggregate green if one mode fails.
 - Preserve mode-level logs and summaries.
+- Treat phase-b runtime proof and hosted phase-c packaging proof separately.
+  SPEC Stage-A and other hosted-userland lanes need the shared-musl runtime
+  package (`libc.so` and loader path), so do not claim hosted closure from
+  phase-b static/shared smoke results alone.
 
 ## Alignment checks
 

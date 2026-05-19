@@ -18,6 +18,10 @@ python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/busybox_rootfs/boot.p
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linx_virt_defconfig_spec.py --defconfig /Users/zhoubot/linx-isa/kernel/linux/arch/linx/configs/linxisa_virt_defconfig --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/linxisa_virt_defconfig_audit.json
 ```
 
+For the merged direct-kernel recovery lane, these wrappers are firmwareless by
+default. If you override `QEMU_EXTRA_ARGS`, preserve `-bios none` unless you
+are explicitly testing a firmware artifact.
+
 ## Deterministic smoke repro
 
 - For early boot triage, prefer the pinned `vmlinux` + initramfs smoke form so
@@ -38,6 +42,19 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
   --clang /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang \
   --gmake /opt/homebrew/bin/gmake \
   --target vmlinux
+```
+
+- Reproduce the current BusyBox rootfs lane with the clean helper path and
+  explicit firmwareless boot when you need a rootfs-specific verdict instead of
+  an initramfs-only boundary:
+
+```bash
+QEMU="$(bash /Users/zhoubot/linx-isa/tools/bringup/run_qemu_build_clean.sh \
+  --qemu-root /Users/zhoubot/linx-isa/emulator/qemu \
+  --out-dir /tmp/linx-qemu-clean-build \
+  --target qemu-system-linx64)" \
+SKIP_BUILD=1 QEMU="$QEMU" QEMU_EXTRA_ARGS='-bios none' \
+python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/busybox_rootfs/boot.py
 ```
 
 - If the active `arch/linx` tree was replaced from a recovered authoritative
@@ -89,6 +106,14 @@ PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
 - Separate those two before debugging runtime behavior: refresh the in-repo
   `clang` binary first when assembler/parser changes were made, then resume
   kernel source forward-porting.
+- When the clean rebuild stops in the repeated
+  `SelectionDAGISel::isOrEquivalentToAdd` crash family, use the generated
+  `/var/folders/.../*.sh` Clang crash repro first. If removing the quoted cc1
+  vectorizer flags makes the repro pass, prefer an object-scoped kernel
+  workaround (`CFLAGS_<obj>.o += -fno-vectorize -fno-slp-vectorize`) before
+  widening backend changes. Current verified progression moved through the
+  earlier `fs/nfs`, `fs/lockd`, and `lib/random32.o` blockers and now stops
+  later at `lib/hexdump.o`.
 
 ## Timer and BI-state diagnostics
 
