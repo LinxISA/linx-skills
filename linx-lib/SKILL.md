@@ -27,6 +27,23 @@ python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared
 ```
 
+## Musl `M1` triage
+
+- If musl `configure` fails with `unsupported long double type`, do not assume
+  the compiler is wrong first.
+- Check the active Linx compiler model directly:
+
+```bash
+/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang --target=linx64-unknown-linux-musl -dM -E -x c /dev/null | rg "__LDBL_|__SIZEOF_LONG_DOUBLE__|__FLT_EVAL_METHOD__"
+```
+
+- Then compare that output against
+  `lib/musl/arch/linx64/bits/float.h`. If the arch header still hardcodes a
+  different `long double` model than the live toolchain, align the musl header
+  first and rerun `M1`.
+- Treat this as a recurring libc/toolchain contract check, not a one-off local
+  workaround.
+
 ## Runtime policy
 
 - Static and shared outcomes are first-class and separate.

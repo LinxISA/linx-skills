@@ -29,6 +29,26 @@ QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build/qemu-system-linx64 \
 python3 /Users/zhoubot/linx-isa/kernel/linux/tools/linxisa/initramfs/smoke.py
 ```
 
+## Incremental build policy
+
+- Default to incremental kernel rebuilds in the existing `O=` directory.
+- Keep `kernel/linux/build-linx-fixed` hot and rerun only the target you need:
+
+```bash
+cd /Users/zhoubot/linx-isa/kernel/linux
+PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
+/opt/homebrew/bin/gmake \
+  O=/Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed \
+  ARCH=linx \
+  LLVM=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/ \
+  'CC=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang --target=linx64-unknown-linux-gnu -fintegrated-as' \
+  HOSTCC=/usr/bin/clang HOSTCXX=/usr/bin/clang++ \
+  vmlinux -j$(sysctl -n hw.ncpu 2>/dev/null || nproc)
+```
+
+- Use `run_linux_vmlinux_build_clean.sh` only when source-generated state in
+  the Linux tree has drifted and a reproducible clean-lane rebuild is required.
+
 - Keep the matching kernel rebuild command alongside it:
 
 ```bash
@@ -95,6 +115,14 @@ PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
 - Distinguish signal-path success from timer-path success:
   `ctx_ri_step_trap_smoke.py` validates trap-resume (`BI=1` + restore);
   `ctx_tq_irq_smoke.py` validates timer-interrupt coverage.
+- For in-kernel task switching, treat block-state preservation as a raw-window
+  contract, not a hand-picked field list. The stable adaptation point is
+  `arch/linx/kernel/entry.S::__switch_to`, and the expected Linux-side policy
+  is to save/restore the full ACR1 EBSTATE switch window
+  (`SSR_A1_EBARG0 .. SSR_A1_EBSTATE_EXT13`, i.e. `0x1f40..0x1f5f`) per task.
+- If the current `vmlinux` cannot be rebuilt from source, do not use runtime
+  results to validate a `switch_to`/thread-context fix. A stale image can still
+  reproduce the old zero-PC loop even when the source-side adaptation is right.
 - When diagnosing state corruption, use QEMU debug dump mode
   (`LINX_CPU_DUMP_DEBUG=1`) and inspect `EBARG/BSTATE` plus debug SSR
   (`DBCR/DBVR/DWCR/DWVR`) before and after trap return.

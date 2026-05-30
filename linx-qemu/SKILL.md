@@ -46,12 +46,45 @@ bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
-python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
+python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
 ```
 
 Coverage and opcode-sync gates must target the live v0.56 catalog. Treat any
 `isa/v0.3` or `isa/v0.4` coverage command as archive-only unless explicitly
 running a historical comparison.
+
+## Incremental build policy
+
+- Reuse one local QEMU build directory across iterations; do not `rm -rf` the
+  build tree between ordinary bring-up edits.
+- After the initial configure, prefer plain incremental rebuilds:
+
+```bash
+mkdir -p /tmp/linx-qemu-local-build
+cd /tmp/linx-qemu-local-build
+/Users/zhoubot/linx-isa/emulator/qemu/configure --with-git-submodules=ignore --target-list=linx64-softmmu --enable-plugins --disable-docs --disable-werror
+ninja -C /tmp/linx-qemu-local-build qemu-system-linx64
+```
+
+- Use `run_qemu_build_clean.sh` only when you need a reproducible clean-lane
+  proof or when the local incremental tree is suspected to be poisoned.
+
+## Firmwareless boot contract
+
+- For direct-kernel Linx runtime harnesses (`-kernel` + initramfs / direct boot),
+  treat `-bios none` as mandatory unless the runner is explicitly using a
+  known `...bios-none` binary wrapper.
+- If a runtime/control lane reports
+  `Unable to load the LINX firmware "LinxInit.bin"`, fix the harness command
+  line first; do not treat that as a guest runtime regression.
+- Keep control lanes aligned with bring-up lanes. If SPEC/TSVC/runtime-smoke
+  runners use firmwareless boot, their control/smoke variants must do the same
+  before you compare outcomes.
+- If a corrected firmwareless lane still produces only repeated
+  `Trace-XX ... [0000000000000000/0000000000000000/00000000/ff000000]`, treat
+  that as the canonical zero-PC collapse signal. Do not spend more time on the
+  wrapper once that signature appears; move directly to first-divergence state
+  triage.
 
 ## Workflow
 
@@ -69,8 +102,16 @@ running a historical comparison.
    runtime cases using 64-bit `L.BSTART.*` headers, verify whether the raw
    immediate decode is still in halfword units before `linx_pcrel_target()`
    shifts it into a byte offset.
-7. Patch decode/execute or exception path and add a focused regression.
-8. Re-run runtime and system strict gates.
+7. If a firmwareless Linux/initramfs lane still shows zero guest-visible output
+   after the harness is corrected, split the problem with a trivial static
+   initramfs control payload before blaming SPEC/TSVC/benchmark logic.
+8. When Linux task switching is involved, verify that the QEMU ACR1
+   `0x1f40..0x1f5f` CSR window is a live architectural view of current block
+   state, not just trap-shadow storage. The named EBARG slots (`LRA`, `TQ/UQ`,
+   `LB/LC`, `EXTCTX_*`, `TPLFLAGS`) must stay spec-shaped, while emulator-only
+   spill data belongs in hidden extension slots.
+9. Patch decode/execute or exception path and add a focused regression.
+10. Re-run runtime and system strict gates.
 
 For recovered historical lines, insert one extra step before implementation:
 
