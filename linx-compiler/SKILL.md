@@ -42,6 +42,22 @@ fresh `run.sh` when the compiler binary is available.
 - In reports, include lane + compiler path provenance so gate outcomes are
   reproducible.
 
+## Incremental build policy
+
+- Default to targeted incremental rebuilds inside the existing
+  `compiler/llvm/build-linxisa-clang` tree.
+- Do not trigger whole-tree rebuilds unless the build graph itself is broken.
+- Match the rebuilt target set to the surface you changed:
+
+```bash
+ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang llvm-mc llvm-objdump
+ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang
+ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang ld.lld
+```
+
+- MC/parser/asm changes must rebuild `clang`, not only `llvm-mc`, because AVS
+  `.S` paths exercise the integrated assembler.
+
 ## Call/ret compile contract
 
 - enforce call-header adjacency,
@@ -53,11 +69,11 @@ fresh `run.sh` when the compiler binary is available.
 
 1. Implement backend change.
 2. Add lit/FileCheck coverage.
-3. Rebuild the actual in-repo `clang` binary when the change touches the
-   assembler/parser/MC path, not just `llvm-mc`:
+3. Rebuild only the affected in-repo tools when the change touches the
+   assembler/parser/MC path:
 
 ```bash
-ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
+ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang llvm-mc llvm-objdump -j10
 ```
 
 4. Validate both standalone MC and integrated-assembler surfaces when the

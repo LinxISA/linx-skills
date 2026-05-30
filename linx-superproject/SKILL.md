@@ -32,7 +32,9 @@ Use this skill for root-level coordination in `/Users/zhoubot/linx-isa`: topolog
   - `docs/bringup/agent_runs/manifest.yaml`
   - `docs/bringup/agent_runs/waivers.yaml`
   - `docs/bringup/gates/latest.json`
-- Active phase is controlled by `manifest.phase_policy.active_phase` (G0..G5).
+- Active phase is controlled by `manifest.phase_policy.active_phase` using the
+  named governance phases (`FOUNDATION`, `CORE-CLOSURE`, `LINUX-RUNTIME`,
+  `HOSTED-RUNTIME`, `WORKLOAD-RUNTIME`, `PROMOTION`).
 - Waivers are phase-bound and must include owner, issue, phase, and `expires_utc`.
 - Required non-waived gates must pass in both `pin` and `external` lanes.
 - Evidence pack per run must include:
@@ -165,6 +167,20 @@ LINX_GATE_TIER=pr RUN_EXTENDED_CROSS_GATES=1 \
 bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane external --run-id <run-id-ext>
 ```
 
+SPEC Stage-A matrix rule:
+
+```bash
+QEMU=/tmp/linx-qemu-clean-build/qemu-system-linx64 \
+python3 /Users/zhoubot/linx-isa/tools/spec2017/run_stage_qemu_matrix.py \
+  --spec-dir /Users/zhoubot/linx-isa/workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --stage a --input-set test --strict \
+  --out-dir /Users/zhoubot/linx-isa/workloads/generated/spec_stage_a
+```
+
+- The Stage-A wrapper must pass the active QEMU path through to
+  `run_int_rate_qemu.py`. Prefer `QEMU=...` or `--qemu ...`; do not assume the
+  in-repo default binary exists.
+
 ## Dual-lane governance
 
 - Pin lane: superproject submodule SHAs.
@@ -185,6 +201,10 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane ext
 - In recovery-forward-port runs, treat compiler/assembler compatibility
   failures as module-domain first, and do not use stale Linux/QEMU artifacts as
   closure evidence before rebuilding them with the refreshed in-repo toolchain.
+- If a SPEC Stage-A benchmark still stalls after rebuilding it as static PIE
+  (`guest_shared_runtime=false`), reclassify the blocker from "dynamic SPEC
+  runtime packaging" to the broader firmwareless Linux initramfs/userspace-entry
+  path and confirm that with a trivial static hello control lane.
 - Checklist status must be run-id backed, absolute-date stamped, and path-clean
   (no external tree evidence links).
 

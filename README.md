@@ -41,7 +41,7 @@ task brief.
 
 These skills encode strict cross-domain collaboration rules for LinxCore maturity:
 
-- phase-based gate program (`G0..G5`) in `docs/bringup/agent_runs/manifest.yaml`,
+- named governance phase program (`FOUNDATION` .. `PROMOTION`) in `docs/bringup/agent_runs/manifest.yaml`,
 - phase-bound waivers with explicit expiry and issue links,
 - PR + nightly gate tiers with dual-lane (`pin` + `external`) closure,
 - mandatory evidence pack (gate report + SHA manifest + logs/traces).
