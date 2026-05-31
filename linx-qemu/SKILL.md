@@ -57,6 +57,28 @@ Coverage and opcode-sync gates must target the live v0.56 catalog. Treat any
 `isa/v0.3` or `isa/v0.4` coverage command as archive-only unless explicitly
 running a historical comparison.
 
+## Incremental build policy
+
+- Prefer a fresh out-of-tree local build when the checked-in `build/` tree
+  drifts across upstream Meson option schema changes.
+- Current recovered QEMU uses `configure` passthrough options rather than the
+  older `--with-git-submodules=ignore` form. A known-good local rebuild form is:
+
+```bash
+mkdir -p /tmp/linx-qemu-local-build
+cd /tmp/linx-qemu-local-build
+/Users/zhoubot/linx-isa/emulator/qemu/configure \
+  --target-list=linx64-softmmu \
+  --enable-plugins \
+  --disable-docs \
+  --disable-werror \
+  --disable-install-blobs
+ninja qemu-system-linx64
+```
+
+- Reuse that build directory for incremental semantic/debug iterations once it
+  configures successfully.
+
 ## Workflow
 
 1. Reproduce with the smallest AVS case.
