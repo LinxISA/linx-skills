@@ -165,6 +165,20 @@ LINX_GATE_TIER=pr RUN_EXTENDED_CROSS_GATES=1 \
 bash /Users/zhoubot/linx-isa/tools/bringup/run_runtime_convergence.sh --lane external --run-id <run-id-ext>
 ```
 
+Benchmark/QEMU/Linux hard-break flow:
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_benchmark_linux_flow.py --profile pr --dry-run
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_benchmark_linux_flow.py --profile pr --report-out /Users/zhoubot/linx-isa/workloads/generated/flow-pr/report.json
+```
+
+- Use this flow before TSVC, SPEC, or full benchmark work.
+- Stop at the first red hard-break stage in the same lane; do not debug
+  downstream Linux/rootfs/SPEC failures while ISA/compiler/QEMU/TSVC
+  prerequisites are red.
+- Put new benchmark artifacts under `workloads/generated/<run-id>/`, not
+  ad-hoc `workloads/generated-*` sibling directories.
+
 ## Dual-lane governance
 
 - Pin lane: superproject submodule SHAs.
