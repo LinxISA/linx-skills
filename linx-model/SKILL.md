@@ -34,6 +34,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `BSTART.STD` / `FALL` descriptor and body stores. The model must preserve that
   descriptor as part of the open direct block, matching QEMU execution, rather
   than closing the block before the finisher body.
+- For scalar global-address drift after QEMU pass, check ADDTPC before LSU:
+  current Linx LLVM/QEMU materialize globals as
+  `ADDTPC = (current_pc & ~0xfff) + decoded_page_delta`, then `ADDI` applies the
+  low 12 bits. If later loop blocks load from addresses that differ by the
+  instruction-PC delta, patch the model PC-relative calculator rather than
+  chasing store buffer or SCB merge paths.
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
   before touching benchmark or compiler code: Linx LLVM and QEMU encode
   `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
@@ -138,4 +144,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (model direct-block descriptor contract)`
+  - `skill-evolve: update linx-model (direct-block and ADDTPC page-base model contracts)`
