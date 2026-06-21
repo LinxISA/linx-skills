@@ -29,6 +29,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - If a QEMU-passing direct-boot ELF loops in `gfsim`, record the repeated BPC,
   retired block count, ELF objdump address, and smoke log path in the fix
   packet before changing compiler or benchmark code.
+- If the repeated BPC is the post-test spin or a fail finisher path is skipped,
+  inspect the objdump for `C.BSTART DIRECT,<target>` followed by an in-body
+  `BSTART.STD` / `FALL` descriptor and body stores. The model must preserve that
+  descriptor as part of the open direct block, matching QEMU execution, rather
+  than closing the block before the finisher body.
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
   before touching benchmark or compiler code: Linx LLVM and QEMU encode
   `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
@@ -133,4 +138,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (module work + queue-role rules)`
+  - `skill-evolve: update linx-model (model direct-block descriptor contract)`
