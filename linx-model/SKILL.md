@@ -29,6 +29,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - If a QEMU-passing direct-boot ELF loops in `gfsim`, record the repeated BPC,
   retired block count, ELF objdump address, and smoke log path in the fix
   packet before changing compiler or benchmark code.
+- For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
+  before touching benchmark or compiler code: Linx LLVM and QEMU encode
+  `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+- Direct-boot SuperNPUBench ELFs use the test finisher MMIO address
+  `0x10009000`; `0x5555` is pass, while `0x3333` and `0x7777` are non-pass
+  terminal statuses. A final-green `gfsim` run should exit naturally and leave
+  a `linx_test_finisher write addr=0x10009000 ... pass` line in its log.
 - Classify QEMU-passing ELF load/decode/runtime failures as `model` until
   digest or trace evidence proves the compiler or emulator produced the first
   wrong architectural event.
