@@ -200,6 +200,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TMax'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TMaxs'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TAnd'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TOr'
@@ -223,11 +225,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
-  `TAdd`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TAnd`, and
-  `TOr`. `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TAnd`, and `TOr`
-  are the first Tier-1 scalar arithmetic/logical promotions: each uses a
-  `jcore/<op>.hpp` Linx scalar path and a bounded int64 direct-boot source
-  branch, then must pass QEMU before `gfsim -f <elf>`.
+  `TAdd`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`,
+  and `TOr`. `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
+  `TAnd`, and `TOr` are the first Tier-1 scalar arithmetic/logical promotions:
+  each uses a `jcore/<op>.hpp` Linx scalar path and a bounded int64 direct-boot
+  source branch, then must pass QEMU before `gfsim -f <elf>`.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
