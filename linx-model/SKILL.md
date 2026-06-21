@@ -37,10 +37,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   retired block count, ELF objdump address, and smoke log path in the fix
   packet before changing compiler or benchmark code.
 - If the repeated BPC is the post-test spin or a fail finisher path is skipped,
-  inspect the objdump for `C.BSTART DIRECT,<target>` followed by an in-body
-  `BSTART.STD` / `FALL` descriptor and body stores. The model must preserve that
-  descriptor as part of the open direct block, matching QEMU execution, rather
-  than closing the block before the finisher body.
+  inspect the objdump for `C.BSTART DIRECT,<target>` followed by a 32-bit
+  in-body `BSTART.STD` / `FALL` descriptor and body stores. The model must
+  preserve that descriptor as part of the open direct block, matching QEMU
+  execution, rather than closing the block before the finisher body. Do not apply
+  that preservation to compressed `C.BSTART.STD` after a direct header; PTO
+  `unique_i32` proved that compressed form can be a real targetable block
+  boundary.
 - For scalar global-address drift after QEMU pass, check ADDTPC before LSU:
   current Linx LLVM/QEMU materialize globals as
   `ADDTPC = (current_pc & ~0xfff) + decoded_page_delta`, then `ADDI` applies the
