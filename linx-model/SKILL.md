@@ -20,6 +20,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 /Users/zhoubot/linx-isa/model/LinxCoreModel/bin/gfsim -f <linx.elf>
 ```
 
+- The smoke profile includes `avs-pto-parity-smoke`, a bounded PTO parity case
+  built with `-DPTO_PARITY_TLOAD_STORE_ONLY=1`. Treat it as the fast
+  QEMU-to-model PTO parity handoff proof, not as full parity closure.
+- The full smoke-sized AVS PTO parity sequence remains `avs-pto-parity` in
+  Tier 1. If it times out after QEMU pass, keep the fix packet in the model lane
+  with the latest BROB progress instead of relaxing the final `gfsim -f <elf>`
+  target.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or

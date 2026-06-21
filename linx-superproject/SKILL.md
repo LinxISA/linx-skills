@@ -185,7 +185,8 @@ AI workload/QEMU/LinxCoreModel hard-break flow:
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --run-id <run-id>
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke \
-  --run-id <run-id> --case avs-tile-smoke --case supernpu-tileop_api
+  --run-id <run-id> --case avs-pto-parity-smoke --case avs-tile-smoke \
+  --case supernpu-tileop_api
 ```
 
 - Use this flow to promote PTO and SuperNPUBench AI workloads from source
@@ -202,18 +203,24 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
+- AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
+  `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
+  --extra-cflag` and runs only the PTO `tload_store` digest path. The full
+  smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
+  model-lane maturity packet when it does not exit within the selected timeout.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
-  source is green. Keep this case-level smoke separate from model-build smoke.
+  source is green. Keep these case-level smokes separate from model-build smoke.
 - Model-build smoke must use the generated tiny ELF under `cases/_model/`
   unless `--model-smoke-elf` is explicitly provided; do not reuse an arbitrary
   QEMU-passing workload ELF as the global `gfsim` availability check.
 - `--model-build-timeout` covers CMake configure/build only; `--model-timeout`
   covers `gfsim -f <elf>` smoke and workload execution.
-- Use a targeted smoke selection such as `--case avs-tile-smoke --case
-  supernpu-tileop_api` when you need a fast source-to-model green proof. Keep
-  long PTO parity ELFs in the report as model-lane maturity packets unless they
-  naturally exit within the selected model timeout.
+- Use a targeted smoke selection such as `--case avs-pto-parity-smoke --case
+  avs-tile-smoke --case supernpu-tileop_api` when you need a fast
+  source-to-model green proof. Keep long full-parity ELFs in the PR/nightly
+  report as model-lane maturity packets unless they naturally exit within the
+  selected model timeout.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
 - Failed cases emit bounded agent fix packets under
