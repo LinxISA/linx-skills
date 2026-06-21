@@ -179,6 +179,22 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_benchmark_linux_flow.py --prof
 - Put new benchmark artifacts under `workloads/generated/<run-id>/`, not
   ad-hoc `workloads/generated-*` sibling directories.
 
+AI workload/QEMU/LinxCoreModel hard-break flow:
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --run-id <run-id>
+```
+
+- Use this flow to promote PTO and SuperNPUBench AI workloads from source
+  contracts through in-repo Linx LLVM, Linx QEMU, and C++ `model/LinxCoreModel`.
+- Treat `workloads/generated/<run-id>/ai-bringup/report.json` as the
+  machine-readable source of truth; `summary.md` is a generated human view.
+- First failing hard-break stage owns the fix lane:
+  `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
+- Failed cases emit bounded agent fix packets under
+  `workloads/generated/<run-id>/ai-bringup/fix-packets/`.
+
 ## Dual-lane governance
 
 - Pin lane: superproject submodule SHAs.

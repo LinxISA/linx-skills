@@ -9,6 +9,23 @@ Canonical repo location (superproject checkout):
 
 - `tools/model`
 
+AI workload final-target lane:
+
+- The AI workload hard-break flow uses the C++ BlockISA model at
+  `model/LinxCoreModel` as the final execution target.
+- Canonical command:
+
+```bash
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run
+/Users/zhoubot/linx-isa/model/LinxCoreModel/bin/gfsim -f <linx.elf>
+```
+
+- Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
+  `workloads/generated/<run-id>/ai-bringup/report.json`.
+- Classify QEMU-passing ELF load/decode/runtime failures as `model` until
+  digest or trace evidence proves the compiler or emulator produced the first
+  wrong architectural event.
+
 ## Module work contract (strict)
 
 - `Work()` is the one-cycle evaluation phase. A module reads current visible queue heads, performs combinational logic, and optionally enqueues results to output queues.
