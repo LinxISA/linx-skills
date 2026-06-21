@@ -198,6 +198,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCI'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TExpandScalar'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCopyIn'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCopyOut'
@@ -242,10 +244,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`,
-  `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`,
-  `TMaxs`, `TAnd`, and `TOr`. `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`,
-  `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`,
-  `TMax`, `TMaxs`, `TAnd`, and `TOr` are the first Tier-1 scalar
+  `TExpandScalar`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`,
+  `TMuls`, `TMax`, `TMaxs`, `TAnd`, and `TOr`. `TAbs`, `TCI`,
+  `TExpandScalar`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`, `TTrans`,
+  `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
+  `TAnd`, and `TOr` are the first Tier-1 scalar
   arithmetic/logical/unary/data-movement promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
   source branch, then must pass QEMU before `gfsim -f <elf>`. For `TReshape`,
@@ -257,7 +260,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   pad loop in the direct-boot smoke instead of runtime `assert`/libc calls.
   For `TCI`, keep the smoke `8x8` int32: unboxed row-major tiles require
   `Cols * bits` to be 32-byte aligned, and unboxed col-major tiles require
-  `Rows * bits` to be 32-byte aligned.
+  `Rows * bits` to be 32-byte aligned. For `TExpandScalar`, keep the smoke
+  `4x8` int64 so row-major `Cols * bits` and col-major `Rows * bits` both
+  satisfy the same unboxed tile byte-alignment rule.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
