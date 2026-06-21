@@ -193,6 +193,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
+- AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
+  execution to prove the PTO/QEMU/model handoff before the full tile runtime
+  source is green. Keep this case-level smoke separate from model-build smoke.
+- Model-build smoke must use the generated tiny ELF under `cases/_model/`
+  unless `--model-smoke-elf` is explicitly provided; do not reuse an arbitrary
+  QEMU-passing workload ELF as the global `gfsim` availability check.
 - `--model-build-timeout` covers CMake configure/build only; `--model-timeout`
   covers `gfsim -f <elf>` smoke and workload execution.
 - First failing hard-break stage owns the fix lane:
