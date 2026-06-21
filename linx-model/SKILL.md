@@ -22,6 +22,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
+- Do not mark model smoke/workload execution green by adding artificial `-m` or
+  `--stop_cycle` limits. The final target is plain `gfsim -f <linx.elf>`;
+  timeout artifacts belong to the `model` lane until the model exits naturally
+  or an explicit architectural stop condition is implemented.
+- If a QEMU-passing direct-boot ELF loops in `gfsim`, record the repeated BPC,
+  retired block count, ELF objdump address, and smoke log path in the fix
+  packet before changing compiler or benchmark code.
 - Classify QEMU-passing ELF load/decode/runtime failures as `model` until
   digest or trace evidence proves the compiler or emulator produced the first
   wrong architectural event.

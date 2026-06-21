@@ -190,6 +190,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   contracts through in-repo Linx LLVM, Linx QEMU, and C++ `model/LinxCoreModel`.
 - Treat `workloads/generated/<run-id>/ai-bringup/report.json` as the
   machine-readable source of truth; `summary.md` is a generated human view.
+- SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
+  `_start` first at `0x10000`; preserve the generated linker script, objdump,
+  raw bin, and compile logs as triage artifacts.
+- `--model-build-timeout` covers CMake configure/build only; `--model-timeout`
+  covers `gfsim -f <elf>` smoke and workload execution.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
 - Failed cases emit bounded agent fix packets under
