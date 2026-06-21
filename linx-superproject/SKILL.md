@@ -194,6 +194,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TAdds'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TAdd_mask'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TAbs'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCI'
@@ -259,13 +261,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
-  `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`,
-  `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and `TRowMaxExpand`.
+  `TSubs`, `TAdd_mask`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`,
+  `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
+  `TRowMaxExpand`.
   `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
-  `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`,
-  `TRowSum`, `TRowMax`, `TRowSumExpand`, and `TRowMaxExpand` are the first
-  Tier-1 scalar arithmetic/logical/compare/unary/data-movement/reduction
+  `TAdd_mask`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`,
+  `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and `TRowMaxExpand` are the
+  first Tier-1 scalar arithmetic/logical/compare/unary/data-movement/reduction
   promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
   source branch, then must pass QEMU before `gfsim -f <elf>`. For `TReshape`,
@@ -292,7 +295,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `-nostdlib` link. For `TCmp`, keep the direct smoke at `8x8` so row-major and
   col-major int32 output tiles both satisfy the unboxed 32-byte alignment rule;
   cover int64 row/col comparisons plus int32 `EQ`, and defer float/half
-  direct-boot comparison until soft-float/runtime evidence exists.
+  direct-boot comparison until soft-float/runtime evidence exists. For
+  `TAdd_mask`, use a `6x6` int64 global shape over a `4x4` tile to exercise the
+  full tile plus trailing-row, trailing-column, and corner paths without
+  violating the row-major unboxed 32-byte tile alignment rule.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
