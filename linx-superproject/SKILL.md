@@ -364,8 +364,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
   model-lane maturity packet when it does not exit within the selected timeout.
 - PTO catalog smoke promotion currently covers `pto-kernel-tload_store`,
-  `pto-kernel-gemm`, `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and
-  `pto-kernel-relu_fp32` in Tier 1, plus Tier-2 layout-copy cases
+  `pto-kernel-gemm`, `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`,
+  `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and `pto-kernel-relu_fp32` in
+  Tier 1, plus Tier-2 layout-copy cases
   `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
   `pto-kernel-squeeze_fp32`, `pto-kernel-unsqueeze_fp32`,
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
@@ -380,9 +381,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`.
   `pto-kernel-add_custom` is promoted with a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded
-  by the oracle; do not generalize it into a compiler-rt substitute. Keep every
-  other non-promoted `pto_kernel` catalog entry source/compile/static until it
-  has an ABI-specific harness, oracle, and QEMU-to-model evidence.
+  by the oracle; do not generalize it into a compiler-rt substitute.
+  `pto-kernel-gemm_basic` and `pto-kernel-gemm_demo` are promoted only through
+  their `PTO_QEMU_SMOKE` float bit-pattern copy-oracle branches; do not count
+  them as full float TMATMUL/TCVT/TMULS coverage. Keep every other
+  non-promoted `pto_kernel` catalog entry source/compile/static until it has an
+  ABI-specific harness, oracle, and QEMU-to-model evidence.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.
