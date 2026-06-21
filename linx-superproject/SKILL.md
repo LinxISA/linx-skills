@@ -218,6 +218,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCopy'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TCvt'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TReshape'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TTrans'
@@ -265,13 +267,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
-  `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`,
+  `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TReshape`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
   `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`,
   `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
   `TRowSumExpand`, and `TRowMaxExpand`.
   `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
-  `TCopyOut`, `TCopy`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
+  `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
   `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`, `TMax`,
   `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
   `TRowMaxExpand` are the first Tier-1 scalar
@@ -290,7 +292,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `4x8` int64 so row-major `Cols * bits` and col-major `Rows * bits` both
   satisfy the same unboxed tile byte-alignment rule. For `TExpandRow` and
   `TExpandCol`, use the same `4x8` int64 smoke shape and cover both row-major
-  and col-major expansion paths in the direct-boot branch. For `TRowSum` and
+  and col-major expansion paths in the direct-boot branch. For `TCvt`, keep
+  the direct smoke at `16x16` int64, fill tile storage directly instead of
+  using `TCOPYIN`/`TCOPYOUT` on boxed tiles, and verify row-major, col-major,
+  NZ, and ZN round-trips before returning success. For `TRowSum` and
   `TRowMax`, use a `4x8` int64 direct-boot branch, keep the output tile
   `ValidCol == 1`, and cover both row-major and col-major row reductions before
   promotion. For `TRowSumExpand` and `TRowMaxExpand`, use the same `4x8` int64
