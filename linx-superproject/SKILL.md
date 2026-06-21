@@ -190,6 +190,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-MatMacc'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-test_MatMul'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-test_MatMacc'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TSub'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TSubs'
@@ -273,23 +277,30 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
-  `MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
-  `TReshape`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`,
-  `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`,
-  `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`,
-  `TRowMax`, `TRowSumExpand`, and `TRowMaxExpand`.
-  `MatMacc`, `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
-  `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
-  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`,
-  `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
-  `TRowSumExpand`, and
+  `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`,
+  `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
+  `TExpandScalar`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`,
+  `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
+  `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
+  `TRowMaxExpand`.
+  `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAbs`, `TCI`, `TExpandCol`,
+  `TExpandRow`, `TExpandScalar`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
+  `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
+  `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`,
+  `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
   `TRowMaxExpand` are the first Tier-1 scalar
   arithmetic/logical/compare/unary/data-movement/reduction promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
   source branch, then must pass QEMU before `gfsim -f <elf>`. For `MatMacc`,
   keep direct smoke at `4x4` int64 row-major multiply-accumulate with nonzero
   initial C tile values; col-major MatMacc currently has QEMU-pass/model-fail
-  evidence and belongs in the model lane before promotion. For `TReshape`,
+  evidence and belongs in the model lane before promotion. For `test_MatMul`,
+  keep direct smoke at `4x4` int64 row-major MATMUL; the original
+  TileLeft/TileRight/TileAcc plus TCVT float path remains deferred until the
+  Linx direct-boot model lane supports that runtime contract. For
+  `test_MatMacc`, keep direct smoke at `4x4` int64 row-major MATMUL+MATMACC;
+  the original TileLeft/TileRight/TileAcc plus TCVT float path remains
+  deferred on the same model-lane runtime contract. For `TReshape`,
   keep the bounded smoke shape aligned to the tile row-major byte contract, as
   in the current `4x8 -> 8x4` int64 case. For `TTrans`, keep the smoke square
   (`4x4` int64) unless the test source starts using distinct input/output tile
