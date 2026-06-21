@@ -14,6 +14,11 @@ Use this skill for emulator-focused work in `emulator/qemu` and for runtime fail
 Keep the active QEMU line explicit before making changes:
 
 - Current/modern line may expose `linx64-softmmu` in the in-repo build tree.
+- For current LinxISA superproject bring-up, prefer
+  `/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64` when
+  it exists. Use `QEMU` or `QEMU_CLEAN_OUT_DIR` only when intentionally testing
+  another matching build. The older `emulator/qemu/build/qemu-system-linx64`
+  path can be a stale legacy fallback.
 - Recovered historical lines can instead expose:
   - `linx-softmmu`
   - `linx-linux-user`
@@ -25,6 +30,11 @@ the names that actually exist in the checked-out branch.
 For the merged current recovery lane, direct kernel/rootfs runs are
 firmwareless by default. Preserve `-bios none` in local reproductions unless a
 specific firmware blob is intentionally under test.
+
+For direct-boot AVS and SuperNPUBench AI workload runs, set
+`LINX_VIRT_TEST_FINISHER=1` unless intentionally debugging guest-side spins.
+That env makes test finisher MMIO writes report pass/fail to the host instead
+of relying on timeout behavior.
 
 QEMU linux-user mode is a separate process ABI lane. Use it only when the
 checked-out or recovered QEMU tree actually provides a `qemu-linx` binary; the

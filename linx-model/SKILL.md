@@ -57,6 +57,17 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `be_bfu_nuke` is pending. If a direct or queued nuke targets an FB older than
   the BRQ front, consume it as stale; a missing non-stale active nuke header is
   still a model error.
+- For queued BE nuke records that name a later local split, first look for the
+  exact `(fbid, fbid_local)` in BRQ. If it is absent but the same global `fbid`
+  has an older resident local split, use that resident FB only to find the
+  owning nuke header. If no resident header matches, consume the queued record
+  as stale instead of aborting; the requested local split is no longer active in
+  BFU. Exact-resident FBs that lack a valid nuke header remain model errors.
+- When mapping a queued nuke body PC back to its owning header, compare against
+  the decoded header size (`spInfo->hsize`) before falling back to the fixed
+  bundle step. Compressed `C.BSTART` headers can have their first body
+  instruction two bytes after the header, and a fixed `MIN_BUNDLE_SIZE` match
+  can miss the valid owner.
 - Direct-boot SuperNPUBench ELFs use the test finisher MMIO address
   `0x10009000`; `0x5555` is pass, while `0x3333` and `0x7777` are non-pass
   terminal statuses. A final-green `gfsim` run should exit naturally and leave
@@ -158,4 +169,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, and BFU nuke contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, BFU nuke, and compressed-header contracts)`

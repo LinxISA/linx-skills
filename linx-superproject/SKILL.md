@@ -184,10 +184,19 @@ AI workload/QEMU/LinxCoreModel hard-break flow:
 ```bash
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --run-id <run-id>
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke \
+  --run-id <run-id> --case avs-tile-smoke --case supernpu-tileop_api
 ```
 
 - Use this flow to promote PTO and SuperNPUBench AI workloads from source
   contracts through in-repo Linx LLVM, Linx QEMU, and C++ `model/LinxCoreModel`.
+- Unless `QEMU` or `QEMU_CLEAN_OUT_DIR` selects a matching clean build, the
+  flow should prefer `emulator/qemu/build-linx/qemu-system-linx64`. Treat
+  `emulator/qemu/build/qemu-system-linx64` as a legacy fallback that may be
+  stale against current Linx direct-boot semantics.
+- Direct-boot AI workload QEMU runs require `LINX_VIRT_TEST_FINISHER=1` so
+  SuperNPUBench and AVS pass/fail MMIO writes become host-visible exits instead
+  of long-running guest spins.
 - Treat `workloads/generated/<run-id>/ai-bringup/report.json` as the
   machine-readable source of truth; `summary.md` is a generated human view.
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
@@ -201,6 +210,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   QEMU-passing workload ELF as the global `gfsim` availability check.
 - `--model-build-timeout` covers CMake configure/build only; `--model-timeout`
   covers `gfsim -f <elf>` smoke and workload execution.
+- Use a targeted smoke selection such as `--case avs-tile-smoke --case
+  supernpu-tileop_api` when you need a fast source-to-model green proof. Keep
+  long PTO parity ELFs in the report as model-lane maturity packets unless they
+  naturally exit within the selected model timeout.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
 - Failed cases emit bounded agent fix packets under
