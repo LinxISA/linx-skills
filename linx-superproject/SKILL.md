@@ -372,15 +372,17 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `pto-kernel-stack_fp32`, and Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
   `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
-  `pto-kernel-argmax_fp32`, and `pto-kernel-unique_i32`. Use `--tier 2` with
-  `--profile pr` when targeting the Tier-2 cases directly. The AI flow
+  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`, and
+  `pto-kernel-add_custom`. Use `--tier 2` with `--profile pr` when targeting
+  the Tier-2 cases directly. The AI flow
   generates explicit per-case harnesses, compiles each matching source with
   `-DPTO_QEMU_SMOKE=1`, emits standalone Linx ELFs plus objdump/raw-bin
-  artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`. Keep
-  `pto-kernel-add_custom` and every other
-  non-promoted `pto_kernel` catalog entry source/compile/static until it has an
-  ABI-specific harness, oracle, and QEMU-to-model evidence; `add_custom` has
-  direct-boot evidence for an unresolved `__addsf3` soft-float helper.
+  artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`.
+  `pto-kernel-add_custom` is promoted with a harness-local freestanding
+  `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded
+  by the oracle; do not generalize it into a compiler-rt substitute. Keep every
+  other non-promoted `pto_kernel` catalog entry source/compile/static until it
+  has an ABI-specific harness, oracle, and QEMU-to-model evidence.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.
