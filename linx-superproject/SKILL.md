@@ -365,10 +365,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   model-lane maturity packet when it does not exit within the selected timeout.
 - PTO catalog smoke promotion currently covers `pto-kernel-tload_store`,
   `pto-kernel-gemm`, `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and
-  `pto-kernel-relu_fp32`. The AI flow generates explicit per-case harnesses,
-  compiles each matching source with `-DPTO_QEMU_SMOKE=1`, emits standalone
-  Linx ELFs plus objdump/raw-bin artifacts, then runs each ELF in QEMU and only
-  then `gfsim -f <elf>`. Keep `pto-kernel-add_custom` and every other
+  `pto-kernel-relu_fp32` in Tier 1, plus Tier-2 layout-copy cases
+  `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
+  `pto-kernel-squeeze_fp32`, and `pto-kernel-unsqueeze_fp32`. Use `--tier 2`
+  with `--profile pr` when targeting the layout-copy cases directly. The AI
+  flow generates explicit per-case harnesses, compiles each matching source
+  with `-DPTO_QEMU_SMOKE=1`, emits standalone Linx ELFs plus objdump/raw-bin
+  artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`. Keep
+  `pto-kernel-add_custom` and every other
   non-promoted `pto_kernel` catalog entry source/compile/static until it has an
   ABI-specific harness, oracle, and QEMU-to-model evidence; `add_custom` has
   direct-boot evidence for an unresolved `__addsf3` soft-float helper.
