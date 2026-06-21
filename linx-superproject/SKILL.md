@@ -187,6 +187,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke \
   --run-id <run-id> --case avs-pto-parity-smoke --case avs-tile-smoke \
   --case supernpu-tileop_api
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TSub'
 ```
 
 - Use this flow to promote PTO and SuperNPUBench AI workloads from source
@@ -200,9 +202,16 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   of long-running guest spins.
 - Treat `workloads/generated/<run-id>/ai-bringup/report.json` as the
   machine-readable source of truth; `summary.md` is a generated human view.
+- `--case <text>` is a substring selector. Use quoted exact selectors such as
+  `--case '=supernpu-tileop_api-TSub'` when a case name is a prefix of another
+  case, for example `TSub` versus `TSubs`.
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
+- Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
+  `TAdd`, and `TSub`. `TSub` is the first Tier-1 scalar arithmetic promotion:
+  it uses the `jcore/TSub.hpp` Linx scalar path and a bounded int64 direct-boot
+  source branch, then must pass QEMU before `gfsim -f <elf>`.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
@@ -223,6 +232,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   selected model timeout.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
+- In SuperNPUBench compile logs, classify missing `*_Impl` tile API coverage,
+  unsupported Linx tile runtime contracts (`__vbuf__`, `blkv_get_*`, boxed
+  layout static asserts), and host-libc/soft-float direct-boot dependencies as
+  `benchmark`; reserve `compiler` for true LLVM/backend/MC/link legality bugs
+  after the workload source contract is valid for Linx direct boot.
 - Failed cases emit bounded agent fix packets under
   `workloads/generated/<run-id>/ai-bringup/fix-packets/`.
 
