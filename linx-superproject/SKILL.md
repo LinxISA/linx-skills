@@ -206,6 +206,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TTrans'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TPad'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TMul'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TMuls'
@@ -238,17 +240,19 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `TAdd`, `TAbs`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`, `TTrans`,
-  `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, and
-  `TOr`. `TAbs`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`, `TTrans`,
-  `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, and
-  `TOr` are the first Tier-1 scalar
+  `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
+  `TAnd`, and `TOr`. `TAbs`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`,
+  `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`,
+  `TMaxs`, `TAnd`, and `TOr` are the first Tier-1 scalar
   arithmetic/logical/unary/data-movement promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded int64 direct-boot
   source branch, then must pass QEMU before `gfsim -f <elf>`. For `TReshape`,
   keep the bounded smoke shape aligned to the tile row-major byte contract, as
   in the current `4x8 -> 8x4` int64 case. For `TTrans`, keep the smoke square
   (`4x4` int64) unless the test source starts using distinct input/output tile
-  shape parameters.
+  shape parameters. For `TPad`, keep the Linx include path free of host-only
+  headers such as `assert.h`; use static shape checks plus a bounded scalar
+  pad loop in the direct-boot smoke instead of runtime `assert`/libc calls.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
