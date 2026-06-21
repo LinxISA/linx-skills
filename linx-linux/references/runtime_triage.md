@@ -8,6 +8,16 @@ llvm-objdump -d /Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed/vmlinux | 
 LINX_CPU_DUMP_DEBUG=1 /Users/zhoubot/linx-isa/emulator/qemu/build/qemu-system-linx64 ...
 ```
 
+## Hosted user-fault breadcrumbs
+
+- When musl fork/exec/stdio smoke reaches userspace and then traps, preserve
+  the kernel-side `LINX_USER_TRAP` and `LINX_REBOOT` debug UART breadcrumbs
+  until the same sample passes without QEMU fault tracing.
+- Pair those breadcrumbs with QEMU `LINX_FAULT_TRACE=1` filters around the
+  first wrong user PC or instruction-count window. Do not widen Linux logging
+  before checking whether the QEMU trace already identifies the bad target,
+  fault address, or trap delivery state.
+
 ## Early-boot boundary walk
 
 - When smoke stops before userspace, move the boundary with single-character

@@ -7,15 +7,19 @@
 
 ## Musl runtime checks
 
-- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static`
-- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample all`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared --sample all`
+
+The full sample set covers malloc/printf, fork/wait, fork/exec, stdio
+flushing, and C++ startup. Use explicit narrower `--sample` values only for
+local bisection or first-divergence minimization.
 
 ## Linux-user process smoke
 
 When a local/recovered Linx linux-user QEMU exists, validate userspace ABI
 bring-up before full-system rootfs work with:
 
-- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static --runner user --qemu-user /Users/zhoubot/linx-isa/emulator/qemu/build-user/qemu-linx`
+- `python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample all --runner user --qemu-user /Users/zhoubot/linx-isa/emulator/qemu/build-user/qemu-linx`
 - `python3 /Users/zhoubot/linx-isa/avs/qemu/run_glibc_smoke.py --runner user --qemu-user /Users/zhoubot/linx-isa/emulator/qemu/build-user/qemu-linx`
 
 This path runs `qemu-linx -L <sysroot> <elf>` and checks the same smoke pass

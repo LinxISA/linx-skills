@@ -25,6 +25,7 @@ bash /Users/zhoubot/linx-isa/lib/glibc/tools/linx/build_linx64_glibc.sh
 MODE=phase-b /Users/zhoubot/linx-isa/lib/musl/tools/linx/build_linx64_musl.sh
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared
+python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link both --sample all
 ```
 
 ## Runtime policy
@@ -32,6 +33,9 @@ python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link
 - Static and shared outcomes are first-class and separate.
 - No aggregate green if one mode fails.
 - Preserve mode-level logs and summaries.
+- PR/runtime gate runs use `--sample all` so fork/wait, fork/exec, stdio, and
+  C++ startup regressions are not hidden behind the lightweight malloc/printf
+  default. Use narrower `--sample` selections only for local triage.
 - Treat phase-b runtime proof and hosted phase-c packaging proof separately.
   SPEC Stage-A and other hosted-userland lanes need the shared-musl runtime
   package (`libc.so` and loader path), so do not claim hosted closure from
