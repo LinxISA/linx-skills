@@ -229,6 +229,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --run-id <run-id> --case '=supernpu-tileop_api-TOr'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TRowSum'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TRowMax'
 ```
 
 - Use this flow to promote PTO and SuperNPUBench AI workloads from source
@@ -252,12 +254,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TReshape`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
   `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, and
-  `TRowSum`.
+  `TRowSum`, and `TRowMax`.
   `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
-  `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, and `TRowSum` are
-  the first Tier-1 scalar arithmetic/logical/unary/data-movement/reduction
-  promotions: each uses a
+  `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TRowSum`, and
+  `TRowMax` are the first Tier-1 scalar arithmetic/logical/unary/data-movement/
+  reduction promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
   source branch, then must pass QEMU before `gfsim -f <elf>`. For `TReshape`,
   keep the bounded smoke shape aligned to the tile row-major byte contract, as
@@ -272,9 +274,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `4x8` int64 so row-major `Cols * bits` and col-major `Rows * bits` both
   satisfy the same unboxed tile byte-alignment rule. For `TExpandRow` and
   `TExpandCol`, use the same `4x8` int64 smoke shape and cover both row-major
-  and col-major expansion paths in the direct-boot branch. For `TRowSum`, use a
-  `4x8` int64 direct-boot branch, keep the output tile `ValidCol == 1`, and
-  cover both row-major and col-major row reductions before promotion.
+  and col-major expansion paths in the direct-boot branch. For `TRowSum` and
+  `TRowMax`, use a `4x8` int64 direct-boot branch, keep the output tile
+  `ValidCol == 1`, and cover both row-major and col-major row reductions before
+  promotion. If Clang lowers a direct-boot tile copy to `memcpy`, keep the
+  helper source-local and freestanding under `__linx`; do not pull in host libc
+  or relax the `-nostdlib` link.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
