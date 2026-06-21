@@ -26,6 +26,26 @@ For the merged current recovery lane, direct kernel/rootfs runs are
 firmwareless by default. Preserve `-bios none` in local reproductions unless a
 specific firmware blob is intentionally under test.
 
+QEMU linux-user mode is a separate process ABI lane. Use it only when the
+checked-out or recovered QEMU tree actually provides a `qemu-linx` binary; the
+current canonical checked-in target list may still expose only softmmu targets.
+The reusable smoke form is:
+
+```bash
+python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py \
+  --mode phase-b \
+  --link static \
+  --runner user \
+  --qemu-user /Users/zhoubot/linx-isa/emulator/qemu/build-user/qemu-linx
+python3 /Users/zhoubot/linx-isa/avs/qemu/run_glibc_smoke.py \
+  --runner user \
+  --qemu-user /Users/zhoubot/linx-isa/emulator/qemu/build-user/qemu-linx
+```
+
+This invokes `qemu-linx -L <sysroot> <elf>` and should be treated as a fast
+pre-rootfs check for ELF startup, libc syscalls, and linux-user dispatch. It
+does not replace `qemu-system-linx64` kernel/initramfs or full-OS gates.
+
 ## Historical recovery lane
 
 When the user provides a recovered full patch and says it is the authoritative
@@ -88,15 +108,19 @@ ninja qemu-system-linx64
    unfused symbolic `BSTART CALL`, or legacy block-attribute syntax should not
    be treated as emulator regressions until the in-repo `clang` integrated
    assembler accepts them.
-3. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
-4. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
-5. Compare against ISA semantics and expected Linux/runtime behavior.
-6. If the first divergence only appears on positive direct-call or call/ret
+3. For Linux userspace/runtime failures, try the linux-user process smoke first
+   if `qemu-linx` exists. A user-mode pass narrows later failures to
+   kernel/rootfs/system integration; a user-mode fail keeps the first
+   divergence in ELF startup, syscall, or linux-user QEMU dispatch.
+4. Capture the first wrong architectural event (`pc`, opcode, trap/irq cause, memory side-effect).
+5. Only if needed, add targeted QEMU tracing around the suspicious PC or first wrong event; do not start tracing from reset/boot by default.
+6. Compare against ISA semantics and expected Linux/runtime behavior.
+7. If the first divergence only appears on positive direct-call or call/ret
    runtime cases using 64-bit `L.BSTART.*` headers, verify whether the raw
    immediate decode is still in halfword units before `linx_pcrel_target()`
    shifts it into a byte offset.
-7. Patch decode/execute or exception path and add a focused regression.
-8. Re-run runtime and system strict gates.
+8. Patch decode/execute or exception path and add a focused regression.
+9. Re-run runtime and system strict gates.
 
 For recovered historical lines, insert one extra step before implementation:
 
@@ -108,6 +132,11 @@ For recovered historical lines, insert one extra step before implementation:
 
 - Do not generate full-run QEMU traces from the beginning of execution unless no narrower reproducer exists.
 - First localize the suspicious `pc`/opcode/window from AVS output, guest state, or a smaller repro, then enable trace only near that window.
+- For hosted user-fault bring-up, prefer the opt-in `LINX_FAULT_TRACE=1`
+  path before adding new trace code. Narrow it with
+  `LINX_FAULT_TRACE_PC_LO`/`LINX_FAULT_TRACE_PC_HI` or
+  `LINX_FAULT_TRACE_COUNT_LO`/`LINX_FAULT_TRACE_COUNT_HI`, and cap output with
+  `LINX_FAULT_TRACE_LIMIT` when possible.
 - Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
 - Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
 - Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.

@@ -12,6 +12,7 @@ Linx ISA bring-up related Codex skills.
 - linx-superproject
 - linx-core
 - linx-pycircuit
+- linx-model
 - linx-qemu
 - linx-isa
 - linx-lib
@@ -27,6 +28,7 @@ Linx ISA bring-up related Codex skills.
 | `linx-superproject` | superproject integration and repin governance |
 | `linx-core` | `rtl/LinxCore` |
 | `linx-pycircuit` | `tools/pyCircuit` |
+| `linx-model` | `tools/model` |
 | `linx-qemu` | `emulator/qemu` |
 | `linx-isa` | ISA/docs architecture contracts |
 | `linx-lib` | `lib/` runtime bring-up |
