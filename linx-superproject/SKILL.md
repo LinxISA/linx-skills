@@ -204,6 +204,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TRecip'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TSqrt'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TAbs'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCI'
@@ -271,13 +273,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TReshape`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
-  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TMul`, `TMuls`,
-  `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
+  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`,
+  `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
   `TRowSumExpand`, and `TRowMaxExpand`.
   `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
-  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TMul`, `TMuls`, `TMax`,
-  `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
+  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`,
+  `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
+  `TRowSumExpand`, and
   `TRowMaxExpand` are the first Tier-1 scalar
   arithmetic/logical/compare/unary/data-movement/reduction promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
@@ -324,6 +327,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `4x4` int64, fill row-major and col-major tile storage directly, and verify
   reciprocal results before the finisher; model-only failures around the
   compiler's reciprocal lowering are commonly scalar `csel`/`psel` semantics.
+  For `TSqrt`, keep direct smoke at `4x4` int64 perfect squares and use the
+  bounded comparison-ladder helper in the Linx-only path; unbounded integer
+  sqrt loops can expose current model loop/divergence limitations, and broader
+  integer or floating-point sqrt belongs in a later model-backed promotion.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
