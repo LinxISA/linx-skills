@@ -43,6 +43,20 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
   before touching benchmark or compiler code: Linx LLVM and QEMU encode
   `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+- For 48-bit load decode failures after QEMU pass, check the decode table
+  before changing compiler output. `LWU_PCR` uses selector `110` in the
+  BlockISA model, matching the Linx QEMU/LLVM contract.
+- For LSU crashes in non-atomic load execution, do not require `src1`.
+  `src1`/`dataVld` is mandatory for atomic memory operations; ordinary loads
+  may execute with no right-hand source operand.
+- For BSTART recovery after direct-block body execution, preserve the owning
+  start-header `hid` when converting in-body `BSTART` / `BEND` markers to last
+  markers. BRQ/RAS lookup may need that relation to recover the original open
+  block.
+- For BFU nuke handling, do not consume queued BE nuke records while a direct
+  `be_bfu_nuke` is pending. If a direct or queued nuke targets an FB older than
+  the BRQ front, consume it as stale; a missing non-stale active nuke header is
+  still a model error.
 - Direct-boot SuperNPUBench ELFs use the test finisher MMIO address
   `0x10009000`; `0x5555` is pass, while `0x3333` and `0x7777` are non-pass
   terminal statuses. A final-green `gfsim` run should exit naturally and leave
@@ -144,4 +158,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block and ADDTPC page-base model contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, and BFU nuke contracts)`
