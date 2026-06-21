@@ -371,7 +371,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
   `pto-kernel-stack_fp32`, and Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
-  `pto-kernel-scatter_fp32`, and `pto-kernel-where_fp32`. Use `--tier 2` with
+  `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
+  `pto-kernel-argmax_fp32`, and `pto-kernel-unique_i32`. Use `--tier 2` with
   `--profile pr` when targeting the Tier-2 cases directly. The AI flow
   generates explicit per-case harnesses, compiles each matching source with
   `-DPTO_QEMU_SMOKE=1`, emits standalone Linx ELFs plus objdump/raw-bin
@@ -379,10 +380,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `pto-kernel-add_custom` and every other
   non-promoted `pto_kernel` catalog entry source/compile/static until it has an
   ABI-specific harness, oracle, and QEMU-to-model evidence; `add_custom` has
-  direct-boot evidence for an unresolved `__addsf3` soft-float helper. Treat
-  `pto-kernel-argmax_fp32` and `pto-kernel-unique_i32` as model-lane maturity
-  packets: both have generated harnesses and QEMU-pass evidence, but current
-  `gfsim` runs stop at timeout/fail finisher before final-green promotion.
+  direct-boot evidence for an unresolved `__addsf3` soft-float helper.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.

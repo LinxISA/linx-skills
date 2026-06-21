@@ -53,6 +53,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
   before touching benchmark or compiler code: Linx LLVM and QEMU encode
   `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+- For scalar loop divergence involving 48-bit immediate materialization, check
+  `HL.LUI`/`HL.LIS`/`HL.LIU` before chasing rename, SCB, or benchmark logic.
+  Linx Sail and QEMU define `HL.LUI` and `HL.LIS` as sign-extending the decoded
+  32-bit immediate to 64 bits, while `HL.LIU` zero-extends it. PTO
+  `argmax_fp32` proved this through the `hl.lui -1; sll 32; srl 32` mask
+  sequence: QEMU passed, but a model high-half materialization made the loop
+  counter start at `-1` and never reach the pass finisher.
 - For scalar/vector select divergence after QEMU pass, verify the `csel`/`psel`
   source order before changing compiler or workload code. Linx LLVM/QEMU use
   `SrcP != 0` to select `SrcR` and `SrcP == 0` to select `SrcL`.
@@ -182,4 +189,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, BFU nuke, and compressed-header contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, BFU nuke, compressed-header, and HL immediate contracts)`
