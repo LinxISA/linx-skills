@@ -391,6 +391,15 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   criterion. Do not count these as full float TMATMUL/TCVT/TMULS coverage. Keep
   every other non-promoted `pto_kernel` catalog entry source/compile/static
   until it has an ABI-specific harness, oracle, and QEMU-to-model evidence.
+- `pto-kernel-gemm_reuse_a_fp16`, `pto-kernel-gemm_reuse_b_fp16`, and
+  `pto-kernel-gemm_reuse_ab_fp16` have direct-boot FP16 storage harnesses with
+  harness-local positive-integer `__mulsf3`/`__addsf3` shims. They pass source,
+  compiler, and QEMU at the default `PTO_QEMU_SMOKE=1` 16x16x16 shape, then
+  fail in `gfsim` with model-owned fix packets (`last_brob_bpc` evidence). Do
+  not mark them final-green or replace them with a smaller shape until that
+  smaller shape independently proves the same QEMU oracle and the model reaches
+  the finisher. The PTO sources expose `PTO_QEMU_SMOKE_DIM` only as a controlled
+  future probe hook.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.
