@@ -50,6 +50,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
   before touching benchmark or compiler code: Linx LLVM and QEMU encode
   `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+- For scalar/vector select divergence after QEMU pass, verify the `csel`/`psel`
+  source order before changing compiler or workload code. Linx LLVM/QEMU use
+  `SrcP != 0` to select `SrcR` and `SrcP == 0` to select `SrcL`.
 - For 48-bit load decode failures after QEMU pass, check the decode table
   before changing compiler output. `LWU_PCR` uses selector `110` in the
   BlockISA model, matching the Linx QEMU/LLVM contract.

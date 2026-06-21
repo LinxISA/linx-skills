@@ -202,6 +202,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TRem'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-TRecip'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TAbs'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCI'
@@ -269,12 +271,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TReshape`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
-  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`,
+  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TMul`, `TMuls`,
   `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
   `TRowSumExpand`, and `TRowMaxExpand`.
   `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
-  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`, `TMax`,
+  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TMul`, `TMuls`, `TMax`,
   `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
   `TRowMaxExpand` are the first Tier-1 scalar
   arithmetic/logical/compare/unary/data-movement/reduction promotions: each uses a
@@ -318,7 +320,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   scalar-register writes. For `TRem`, keep direct smoke at `8x8` int32 and
   cover both row-major and col-major tiles with nonzero denominators; this
   proves scalar Linx `remw` lowering through QEMU and `gfsim` without
-  soft-float/compiler-rt dependencies.
+  soft-float/compiler-rt dependencies. For `TRecip`, keep direct smoke at
+  `4x4` int64, fill row-major and col-major tile storage directly, and verify
+  reciprocal results before the finisher; model-only failures around the
+  compiler's reciprocal lowering are commonly scalar `csel`/`psel` semantics.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
@@ -339,6 +344,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   selected model timeout.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
+- For model-lane scalar/vector select mismatches after QEMU pass, verify the
+  `csel`/`psel` contract before changing benchmark or compiler code:
+  `SrcP != 0` selects `SrcR`; `SrcP == 0` selects `SrcL`, matching
+  Linx LLVM/QEMU.
 - In SuperNPUBench compile logs, classify missing `*_Impl` tile API coverage,
   unsupported Linx tile runtime contracts (`__vbuf__`, `blkv_get_*`, boxed
   layout static asserts), and host-libc/soft-float direct-boot dependencies as
