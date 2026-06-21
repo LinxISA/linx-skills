@@ -188,6 +188,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --run-id <run-id> --case avs-pto-parity-smoke --case avs-tile-smoke \
   --case supernpu-tileop_api
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
+  --run-id <run-id> --case '=supernpu-tileop_api-MatMacc'
+python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TSub'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TSubs'
@@ -271,12 +273,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
-  `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TReshape`,
-  `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`, `TSub`,
-  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`,
-  `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
-  `TRowSumExpand`, and `TRowMaxExpand`.
-  `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
+  `MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
+  `TReshape`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TTrans`, `TPad`,
+  `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`,
+  `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`,
+  `TRowMax`, `TRowSumExpand`, and `TRowMaxExpand`.
+  `MatMacc`, `TAbs`, `TCI`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`,
   `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`,
   `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`,
@@ -284,7 +286,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `TRowMaxExpand` are the first Tier-1 scalar
   arithmetic/logical/compare/unary/data-movement/reduction promotions: each uses a
   `jcore/<op>.hpp` Linx scalar/direct-copy path and a bounded integer direct-boot
-  source branch, then must pass QEMU before `gfsim -f <elf>`. For `TReshape`,
+  source branch, then must pass QEMU before `gfsim -f <elf>`. For `MatMacc`,
+  keep direct smoke at `4x4` int64 row-major multiply-accumulate with nonzero
+  initial C tile values; col-major MatMacc currently has QEMU-pass/model-fail
+  evidence and belongs in the model lane before promotion. For `TReshape`,
   keep the bounded smoke shape aligned to the tile row-major byte contract, as
   in the current `4x8 -> 8x4` int64 case. For `TTrans`, keep the smoke square
   (`4x4` int64) unless the test source starts using distinct input/output tile
