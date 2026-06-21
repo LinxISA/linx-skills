@@ -363,14 +363,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
   smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
   model-lane maturity packet when it does not exit within the selected timeout.
-- PTO catalog smoke promotion currently covers `pto-kernel-tload_store` and
-  `pto-kernel-gemm`. The AI flow generates explicit per-case harnesses,
-  compiles `workloads/pto_kernels/kernels/memory/tload_store.cpp` or
-  `workloads/pto_kernels/kernels/matmul/gemm.cpp` with `-DPTO_QEMU_SMOKE=1`,
-  emits standalone Linx ELFs plus objdump/raw-bin artifacts, then runs each ELF
-  in QEMU and only then `gfsim -f <elf>`. Keep every other `pto_kernel` catalog
-  entry source/compile/static until it has an ABI-specific harness, oracle, and
-  QEMU-to-model evidence.
+- PTO catalog smoke promotion currently covers `pto-kernel-tload_store`,
+  `pto-kernel-gemm`, `pto-kernel-mamulb`, and `pto-kernel-tmatmul_acc`. The AI
+  flow generates explicit per-case harnesses, compiles each matching source
+  with `-DPTO_QEMU_SMOKE=1`, emits standalone Linx ELFs plus objdump/raw-bin
+  artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`. Keep
+  every other `pto_kernel` catalog entry source/compile/static until it has an
+  ABI-specific harness, oracle, and QEMU-to-model evidence.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.
