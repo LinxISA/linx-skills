@@ -291,8 +291,19 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`,
   `TDiv`, `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`,
-  `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
-  `TRowMaxExpand`.
+  `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`,
+  `TRowMaxExpand`, and `kernel/control hashtable_lookup_simt`.
+  `hashtable_lookup_simt` is currently a bounded `kNum=16` embedded-data
+  direct smoke using `LINX_HT_DIRECT=1` and `LINX_HT_SCAN=1` over the generated
+  2048-entry table. The MurmurHash3
+  initial-slot plus linear-probe path has QEMU-pass but `gfsim` fail evidence
+  and remains a model-owned maturity packet until the C++ model matches QEMU on
+  that scalar hash/probe loop.
+  For `kernel/control` data-object cases, keep output object paths under
+  `$(OBJ_ROOT)/kernel/control/...` and give generated `.o` targets explicit
+  no-op recipes after the data-object builder runs; otherwise Make may rebuild
+  generated `.s` files with a host/default assembler when the AI runner
+  redirects `OBJ_ROOT`.
   `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAbs`, `TCI`, `TExpandCol`,
   `TExpandRow`, `TExpandScalar`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
   `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
