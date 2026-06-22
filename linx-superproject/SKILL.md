@@ -445,6 +445,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   ownership. Stale data-object assembly paths that still target `linx64v5`, or
   source manifests that still require missing benchmark-only headers such as
   `benchmark.h`, are benchmark/source-contract failures.
+- For SuperNPUBench data-object cases, keep generated data/object packaging in
+  the benchmark lane until it uses the current `COMPILER_DIR` with
+  `linx64-linx-none-elf`, writes object artifacts under the run's `OBJ_ROOT`,
+  links `EXTRA_OBJ_FILES`, and ignores regenerated `.data`/`.bin` inputs. Only
+  after that packaging is valid should `Tr`/`blkv_get_*` errors be treated as
+  the next unsupported Linx tile runtime contract.
 - Failed cases emit bounded agent fix packets under
   `workloads/generated/<run-id>/ai-bringup/fix-packets/`.
 
