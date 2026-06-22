@@ -74,6 +74,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `gemm_reuse_*_fp16` proved that the old immediate-first `store_si3` ordering
   stores FP32 data as an address and reaches the fail finisher despite QEMU
   passing the same ELF.
+- For PCR store failures after QEMU pass, preserve the decode operand contract:
+  `SB/SH/SW/SD.PCR` carries the PC-relative address immediate in `src0` and the
+  store data in `src1`. Address calculation must use `pc + src0`, while common
+  store-data paths must select `src1` only for PCR stores and keep `src0` for
+  ordinary stores. `pto-kernel-unique_i32` proved this by passing QEMU, then
+  tripping the model text-store assertion on `hl.sw.pcr` until PCR stores used
+  a dedicated store-data source selector.
 - For LSU crashes in non-atomic load execution, do not require `src1`.
   `src1`/`dataVld` is mandatory for atomic memory operations; ordinary loads
   may execute with no right-hand source operand.
@@ -85,6 +92,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `be_bfu_nuke` is pending. If a direct or queued nuke targets an FB older than
   the BRQ front, consume it as stale; a missing non-stale active nuke header is
   still a model error.
+- For BFU delivery crashes after QEMU pass, check F4 no-valid-FB handling
+  before changing workload or compiler code. `Pipe::GetFirstValidFBIdx()`
+  returns `-1U` when the pipe has no resident fetch bundle, so
+  `BFU::DeliverStall` must bounds-check that sentinel before indexing
+  `pipe[F4].fb[global_idx]`; `pto-kernel-hash_table_insert_fp32` proved this
+  path by passing QEMU and then SIGBUSing in model `DeliverStall`.
 - For queued BE nuke records that name a later local split, first look for the
   exact `(fbid, fbid_local)` in BRQ. If it is absent but the same global `fbid`
   has an older resident local split, use that resident FB only to find the

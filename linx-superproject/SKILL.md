@@ -366,23 +366,28 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - PTO catalog smoke promotion currently covers `pto-kernel-tload_store`,
   `pto-kernel-gemm`, `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`,
   `pto-kernel-gemm_performance`, `pto-kernel-mamulb`,
-  `pto-kernel-tmatmul_acc`, and `pto-kernel-relu_fp32` in Tier 1, plus Tier-2
-  layout-copy cases
+  `pto-kernel-tmatmul_acc`, `pto-kernel-relu_fp32`, and
+  `pto-kernel-add_custom` in Tier 1, plus Tier-2 layout cases
   `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
   `pto-kernel-squeeze_fp32`, `pto-kernel-unsqueeze_fp32`,
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
-  `pto-kernel-stack_fp32`, and Tier-2 indexing cases
+  `pto-kernel-stack_fp32`, `pto-kernel-permute_nhwc_nchw_fp32`, and
+  `pto-kernel-transpose_large_fp32`, and Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
   `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
-  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`, and
-  `pto-kernel-add_custom`. Use `--tier 2` with `--profile pr` when targeting
+  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`,
+  `pto-kernel-hash_table_insert_fp32`,
+  `pto-kernel-hash_table_lookup_fp32`, and
+  `pto-kernel-unsorted_segment_sum_fp32`. Use `--tier 2` with `--profile pr` when targeting
   the Tier-2 cases directly. The AI flow
   generates explicit per-case harnesses, compiles each matching source with
   `-DPTO_QEMU_SMOKE=1`, emits standalone Linx ELFs plus objdump/raw-bin
   artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`.
   `pto-kernel-add_custom` is promoted with a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded
-  by the oracle; do not generalize it into a compiler-rt substitute.
+  by the oracle; `pto-kernel-unsorted_segment_sum_fp32` uses the same scoped
+  helper for positive integer-valued smoke additions. Do not generalize either
+  helper into a compiler-rt substitute.
   `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`, and
   `pto-kernel-gemm_performance` are promoted only through their
   `PTO_QEMU_SMOKE` float bit-pattern copy-oracle branches; `gemm_performance`
