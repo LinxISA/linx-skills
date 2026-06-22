@@ -278,6 +278,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
+- For SuperNPUBench manifest rows with a generic `TESTCASE`, resolve concrete
+  source files from `TYPE` first and keep the filesystem's actual case in source
+  manifests. `kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4` resolves
+  `src/HiF4_HiF4.cpp`; `TYPE=A16W4` resolves `src/A16W4.cpp`.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
@@ -358,6 +362,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   lookup tables for the same bounded values have QEMU-pass/model-timeout
   evidence, and float/half exponential belongs in a later model-backed
   promotion.
+- SuperNPUBench `kernel/gemm/matmul` MX cases `TYPE=A16W4` and
+  `TYPE=HIF4_HIF4` currently pass source discovery/model-build smoke, then stop
+  at compiler-contract with benchmark-owned evidence because their full MX path
+  still depends on vector-only `template_asm.h` `Tr` constraints and
+  `blkv_get_*` launch helpers. Do not classify these as compiler/QEMU/model
+  bugs until the benchmark has a valid Linx direct-boot MX API contract.
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
@@ -425,8 +435,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `SrcP != 0` selects `SrcR`; `SrcP == 0` selects `SrcL`, matching
   Linx LLVM/QEMU.
 - In SuperNPUBench compile logs, classify missing `*_Impl` tile API coverage,
-  unsupported Linx tile runtime contracts (`__vbuf__`, `blkv_get_*`, boxed
-  layout static asserts, MATMUL unboxed/ACC static asserts), and
+  unsupported Linx tile runtime contracts (`__vbuf__`, `blkv_get_*`, `Tr` asm
+  constraints, boxed layout static asserts, MATMUL unboxed/ACC static asserts), and
   host-libc/soft-float direct-boot dependencies as `benchmark`; reserve
   `compiler` for true LLVM/backend/MC/link legality bugs after the workload
   source contract is valid for Linx direct boot.
