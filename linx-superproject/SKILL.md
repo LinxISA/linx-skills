@@ -282,6 +282,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   source files from `TYPE` first and keep the filesystem's actual case in source
   manifests. `kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4` resolves
   `src/HiF4_HiF4.cpp`; `TYPE=A16W4` resolves `src/A16W4.cpp`.
+- Treat SuperNPUBench `compile.all` as a machine-readable case manifest for the
+  AI flow. Keep rows as concrete `make` commands with expanded values; shell
+  loops or literals such as `${num_col}` and `${debug}` create benchmark-owned
+  source-contract failures because the runner reads `make` rows literally.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
