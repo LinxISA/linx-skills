@@ -440,6 +440,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   host-libc/soft-float direct-boot dependencies as `benchmark`; reserve
   `compiler` for true LLVM/backend/MC/link legality bugs after the workload
   source contract is valid for Linx direct boot.
+- If a SuperNPUBench `make` command exits successfully but the AI flow cannot
+  find the expected ELF, inspect the compile log before assigning compiler
+  ownership. Stale data-object assembly paths that still target `linx64v5`, or
+  source manifests that still require missing benchmark-only headers such as
+  `benchmark.h`, are benchmark/source-contract failures.
 - Failed cases emit bounded agent fix packets under
   `workloads/generated/<run-id>/ai-bringup/fix-packets/`.
 
