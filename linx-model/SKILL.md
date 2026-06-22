@@ -66,6 +66,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - For 48-bit load decode failures after QEMU pass, check the decode table
   before changing compiler output. `LWU_PCR` uses selector `110` in the
   BlockISA model, matching the Linx QEMU/LLVM contract.
+- For 48-bit store-immediate decode failures after QEMU pass, check the
+  `store_si*` operand order before changing compiler or workload code. BlockISA
+  scalar stores use `src0` as store data and `src1`/`src2` as address operands;
+  `SBI/SHI/SWI/SDI.PR` and `.PO` must decode as data, base, scaled immediate,
+  with PR address/writeback computed from base plus offset. PTO
+  `gemm_reuse_*_fp16` proved that the old immediate-first `store_si3` ordering
+  stores FP32 data as an address and reaches the fail finisher despite QEMU
+  passing the same ELF.
 - For LSU crashes in non-atomic load execution, do not require `src1`.
   `src1`/`dataVld` is mandatory for atomic memory operations; ordinary loads
   may execute with no right-hand source operand.
@@ -189,4 +197,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, LDQ, BFU nuke, compressed-header, and HL immediate contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, decode, store-immediate PR/PO, LDQ, BFU nuke, compressed-header, and HL immediate contracts)`

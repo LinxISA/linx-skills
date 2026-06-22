@@ -393,13 +393,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   until it has an ABI-specific harness, oracle, and QEMU-to-model evidence.
 - `pto-kernel-gemm_reuse_a_fp16`, `pto-kernel-gemm_reuse_b_fp16`, and
   `pto-kernel-gemm_reuse_ab_fp16` have direct-boot FP16 storage harnesses with
-  harness-local positive-integer `__mulsf3`/`__addsf3` shims. They pass source,
-  compiler, and QEMU at the default `PTO_QEMU_SMOKE=1` 16x16x16 shape, then
-  fail in `gfsim` with model-owned fix packets (`last_brob_bpc` evidence). Do
-  not mark them final-green or replace them with a smaller shape until that
-  smaller shape independently proves the same QEMU oracle and the model reaches
-  the finisher. The PTO sources expose `PTO_QEMU_SMOKE_DIM` only as a controlled
-  future probe hook.
+  harness-local positive-integer `__mulsf3`/`__addsf3` shims. They are promoted
+  at the default `PTO_QEMU_SMOKE=1` 16x16x16 shape and pass source, compiler,
+  QEMU, and `gfsim -f <elf>` when the AI flow uses `--model-timeout 600`.
+  Earlier model-fail packets around these cases were closed by the BlockISA
+  `store_si3` PR/PO decode fix plus LSU/local-link wakeup fixes; do not regress
+  them by replacing the workload with a smaller shape. The PTO sources expose
+  `PTO_QEMU_SMOKE_DIM` only as a controlled future probe hook.
 - AVS Tier-0 tile smoke uses the compile-smoke source override during QEMU
   execution to prove the PTO/QEMU/model handoff before the full tile runtime
   source is green. Keep these case-level smokes separate from model-build smoke.
