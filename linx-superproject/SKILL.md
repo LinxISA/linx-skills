@@ -287,7 +287,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   loops or literals such as `${num_col}` and `${debug}` create benchmark-owned
   source-contract failures because the runner reads `make` rows literally.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
-  `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`,
+  `MatMul_e4m3`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`,
+  `TCI`, `TCopyIn`,
   `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`,
   `TDiv`, `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`,
@@ -323,9 +324,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   the original TileLeft/TileRight/TileAcc plus TCVT float path remains
   deferred on the same model-lane runtime contract. For `MatMul_e4m3`, keep the
   original FP8 e4m3 conversion, TileLeft/TileRight inputs, TileAcc output, and
-  vector-kernel conversion contract as a benchmark-owned maturity packet until
-  the Linx direct-boot lane has real boxed/ACC/FP8 support; do not promote it by
-  substituting the existing int64 `MatMul` smoke. For `TReshape`,
+  vector-kernel conversion contract for non-Linx builds, but use a source-local
+  `4x4` int64 MATMUL direct-boot smoke under `__linx` until boxed, ACC, and FP8
+  runtime support is available. Keep this smoke in both `tileop_api` and
+  `other/tileop_api`; do not collapse it into the existing `MatMul` source,
+  because the manifests must remain individually promotable. For `TReshape`,
   keep the bounded smoke shape aligned to the tile row-major byte contract, as
   in the current `4x8 -> 8x4` int64 case. For `TTrans`, keep the smoke square
   (`4x4` int64) unless the test source starts using distinct input/output tile
