@@ -299,7 +299,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   linear-scan fallback and a no-scan MurmurHash3 initial-slot plus linear-probe
   path. The hash/probe row must stay promoted through QEMU and `gfsim` as the
   regression for C++ model `SRLW`/`SRLIW` low32, 5-bit shift, sign-extended
-  result semantics.
+  result semantics. Keep only these `kNum=16` `FOR_GFSIM` rows in Tier 1; the
+  `kNum=6144` SIMT rows and SIMD `NUM_COL=256/512/1024` rows are Tier 2 until
+  their large/debug source contracts are adapted for Linx direct boot.
   For `kernel/control` data-object cases, keep output object paths under
   `$(OBJ_ROOT)/kernel/control/...` and give generated `.o` targets explicit
   no-op recipes after the data-object builder runs; otherwise Make may rebuild
