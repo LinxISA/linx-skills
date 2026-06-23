@@ -104,6 +104,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `BFU::DeliverStall` must bounds-check that sentinel before indexing
   `pipe[F4].fb[global_idx]`; `pto-kernel-hash_table_insert_fp32` proved this
   path by passing QEMU and then SIGBUSing in model `DeliverStall`.
+- For BFU/BHC miss-queue stalls after QEMU pass, preserve the
+  `MissQEntry(va_cl, pa_cl, stid, is_pf, enqueue_time)` constructor order.
+  Demand misses must enqueue `(fb->stid, false)` and prefetch misses must
+  enqueue `(pfi->stid, true)`. Swapping `stid` and `is_pf` can make STID0
+  prefetch entries look like STID1 demand entries, escaping STID0 flushes and
+  consuming demand miss capacity during long soft-float loops.
 - For queued BE nuke records that name a later local split, first look for the
   exact `(fbid, fbid_local)` in BRQ. If it is absent but the same global `fbid`
   has an older resident local split, use that resident FB only to find the
@@ -216,4 +222,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, W-form shifts, decode, store-immediate PR/PO, LDQ, BFU nuke, compressed-header, and HL immediate contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, W-form shifts, decode, store-immediate PR/PO, LDQ, BFU nuke, BHC miss queue, compressed-header, and HL immediate contracts)`
