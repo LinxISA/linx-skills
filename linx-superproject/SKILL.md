@@ -293,12 +293,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `TDiv`, `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`,
   `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`,
   `TRowMaxExpand`, and `kernel/control hashtable_lookup_simt`.
-  `hashtable_lookup_simt` is currently a bounded `kNum=16` embedded-data
-  direct smoke using `LINX_HT_DIRECT=1` and `LINX_HT_SCAN=1` over the generated
-  2048-entry table. The MurmurHash3
-  initial-slot plus linear-probe path has QEMU-pass but `gfsim` fail evidence
-  and remains a model-owned maturity packet until the C++ model matches QEMU on
-  that scalar hash/probe loop.
+  `hashtable_lookup_simt` currently has two bounded `kNum=16` embedded-data
+  direct smokes over the generated 2048-entry table: `LINX_HT_SCAN=1` for the
+  linear-scan fallback and a no-scan MurmurHash3 initial-slot plus linear-probe
+  path. The hash/probe row must stay promoted through QEMU and `gfsim` as the
+  regression for C++ model `SRLW`/`SRLIW` low32, 5-bit shift, sign-extended
+  result semantics.
   For `kernel/control` data-object cases, keep output object paths under
   `$(OBJ_ROOT)/kernel/control/...` and give generated `.o` targets explicit
   no-op recipes after the data-object builder runs; otherwise Make may rebuild
