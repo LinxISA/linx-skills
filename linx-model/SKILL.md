@@ -27,6 +27,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   Tier 1. If it times out after QEMU pass, keep the fix packet in the model lane
   with the latest BROB progress instead of relaxing the final `gfsim -f <elf>`
   target.
+- `avs-pto-parity-prefix-gemm-performance` is the current Tier-1 parity prefix
+  that passes through QEMU and `gfsim`; it uses fast deterministic F32/FP16
+  bit-pattern seeds and stops after `PTO_PARITY_STAGE_GEMM_PERFORMANCE`.
+  Treat it as a model-green prefix proof only. The full `avs-pto-parity` row
+  still owns later float-helper-heavy maturity, with current evidence reaching
+  `sigmoid` before timeout and a separate sigmoid-prefix probe able to expose
+  an `add_custom` BFU crash after QEMU pass.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or

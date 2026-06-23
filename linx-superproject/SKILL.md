@@ -396,6 +396,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
   smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
   model-lane maturity packet when it does not exit within the selected timeout.
+  `avs-pto-parity-prefix-gemm-performance` is the Tier-1 model-green prefix
+  boundary; it uses `PTO_PARITY_FAST_F32_SEED=1`,
+  `PTO_PARITY_FAST_FP16_SEED=1`, and
+  `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to stop after
+  the GEMM prefix. Keep this as a prefix proof, not a substitute for full
+  `avs-pto-parity` closure. Current full-row evidence reaches `sigmoid` before
+  a model timeout, while a sigmoid-prefix probe can expose an earlier
+  QEMU-pass/model crash in the `add_custom` float helper path.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
   should add `uart_tail`/`uart_count` breadcrumbs plus a
