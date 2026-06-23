@@ -381,7 +381,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   comparison-ladder helper in the Linx-only path; compiler-generated constant
   lookup tables for the same bounded values have QEMU-pass/model-timeout
   evidence, and float/half exponential belongs in a later model-backed
-  promotion.
+  promotion. Keep `other/tileop_test` and non-control `kernel/*` suites in
+  Tier 2 until their larger shape/source contracts are individually promoted;
+  keep `kernel/fusion*` rows in Tier 3 because they are model-oriented
+  long-shape workloads.
 - SuperNPUBench `kernel/gemm/matmul` MX cases `TYPE=A16W4` and
   `TYPE=HIF4_HIF4` currently pass source discovery/model-build smoke, then stop
   at compiler-contract with benchmark-owned evidence because their full MX path
