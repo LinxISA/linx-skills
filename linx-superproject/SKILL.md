@@ -410,9 +410,15 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   artifacts, then runs each ELF in QEMU and only then `gfsim -f <elf>`.
   `pto-kernel-add_custom` is promoted with a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded
-  by the oracle; `pto-kernel-unsorted_segment_sum_fp32` uses the same scoped
-  helper for positive integer-valued smoke additions. Do not generalize either
-  helper into a compiler-rt substitute.
+  by the oracle. Its oracle-side `f32_bits_from_u32` must keep the exact
+  small-value table for the current smoke range; without that table, `gfsim`
+  can time out in harness-only bit-scan conversion loops even though QEMU
+  passes. Keep the table local to `add_custom`; do not move it into shared GEMM
+  copy harnesses without rerunning `pto-kernel-gemm_basic` and
+  `pto-kernel-gemm_demo`, because the generated `.rodata` access pattern is
+  part of the model evidence. `pto-kernel-unsorted_segment_sum_fp32` uses the
+  same scoped helper for positive integer-valued smoke additions. Do not
+  generalize either helper into a compiler-rt substitute.
   `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`, and
   `pto-kernel-gemm_performance` are promoted only through their
   `PTO_QEMU_SMOKE` float bit-pattern copy-oracle branches; `gemm_performance`
