@@ -31,9 +31,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   that passes through QEMU and `gfsim`; it uses fast deterministic F32/FP16
   bit-pattern seeds and stops after `PTO_PARITY_STAGE_GEMM_PERFORMANCE`.
   Treat it as a model-green prefix proof only. The full `avs-pto-parity` row
-  still owns later float-helper-heavy maturity, with current evidence reaching
-  `sigmoid` before timeout and a separate sigmoid-prefix probe able to expose
-  an `add_custom` BFU crash after QEMU pass.
+  still owns later float-helper-heavy maturity. Current evidence reaches
+  `flash_attention_softmax` after producing `flash_attention` digest under
+  `gfsim`; keep that timeout in the model lane until the ELF exits naturally.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or
@@ -122,6 +122,15 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   enqueue `(pfi->stid, true)`. Swapping `stid` and `is_pf` can make STID0
   prefetch entries look like STID1 demand entries, escaping STID0 flushes and
   consuming demand miss capacity during long soft-float loops.
+- For BFU local-fetch crashes or F1 local-pipe stalls after QEMU pass, audit
+  stale local selection before changing compiler output. `select_info` must be
+  cleared when the selected local pipe no longer exists, its F2 slot is invalid,
+  it is not ready, or its F2 FB is null. Before `LocalPipeStall()` reserves new
+  local pipes, release occupied local pipes whose F0/F2/F3 stages are all
+  invalid and reset the static predictor pipe for the remembered STID. Full
+  `avs-pto-parity` proved this by moving from a BFU `tanh` SIGSEGV and a
+  `softmax` local-pipe stall to sustained execution through
+  `flash_attention_softmax`.
 - For queued BE nuke records that name a later local split, first look for the
   exact `(fbid, fbid_local)` in BRQ. If it is absent but the same global `fbid`
   has an older resident local split, use that resident FB only to find the
@@ -234,4 +243,4 @@ void WorkSelf() override {
 ## Closeout line
 
 - When this skill causes a material update, record:
-  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, W-form shifts, decode, store-immediate PR/PO, LDQ, BFU nuke, BHC miss queue, compressed-header, and HL immediate contracts)`
+  - `skill-evolve: update linx-model (direct-block, ADDTPC page-base, W-form shifts, decode, store-immediate PR/PO, LDQ, BFU nuke, BHC miss queue, BFU local-pipe lifetime, compressed-header, and HL immediate contracts)`

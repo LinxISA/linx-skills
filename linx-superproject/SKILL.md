@@ -401,9 +401,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_PARITY_FAST_FP16_SEED=1`, and
   `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to stop after
   the GEMM prefix. Keep this as a prefix proof, not a substitute for full
-  `avs-pto-parity` closure. Current full-row evidence reaches `sigmoid` before
-  a model timeout, while a sigmoid-prefix probe can expose an earlier
-  QEMU-pass/model crash in the `add_custom` float helper path.
+  `avs-pto-parity` closure. Current full-row evidence reaches
+  `flash_attention_softmax` after producing the `flash_attention` digest before
+  a model timeout; prior `tanh`/`softmax` BFU failures were model local-pipe
+  lifetime issues, not benchmark or compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
   should add `uart_tail`/`uart_count` breadcrumbs plus a
