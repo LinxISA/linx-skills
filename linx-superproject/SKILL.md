@@ -396,15 +396,19 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
   smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
   model-lane maturity packet when it does not exit within the selected timeout.
-  `avs-pto-parity-prefix-gemm-performance` is the Tier-1 model-green prefix
-  boundary; it uses `PTO_PARITY_FAST_F32_SEED=1`,
+  `avs-pto-parity-prefix-gemm-performance` is the fast Tier-1 model-green
+  prefix boundary; it uses `PTO_PARITY_FAST_F32_SEED=1`,
   `PTO_PARITY_FAST_FP16_SEED=1`, and
   `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to stop after
-  the GEMM prefix. Keep this as a prefix proof, not a substitute for full
-  `avs-pto-parity` closure. Current full-row evidence reaches
-  `flash_attention_softmax` after producing the `flash_attention` digest before
-  a model timeout; prior `tanh`/`softmax` BFU failures were model local-pipe
-  lifetime issues, not benchmark or compiler failures.
+  the GEMM prefix. `avs-pto-parity-prefix-flash-attention` is the deeper
+  Tier-1 model-green prefix; it stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves source, compiler, QEMU, and
+  `gfsim` through the `flash_attention` digest and pass finisher. Keep these as
+  prefix proofs, not substitutes for full `avs-pto-parity` closure. Current
+  full-row evidence reaches `flash_attention_softmax` after producing the
+  `flash_attention` digest before a model timeout; prior `tanh`/`softmax` BFU
+  failures were model local-pipe lifetime and RAS speculative write-slot issues,
+  not benchmark or compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
   should add `uart_tail`/`uart_count` breadcrumbs plus a

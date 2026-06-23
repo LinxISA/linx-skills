@@ -27,10 +27,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   Tier 1. If it times out after QEMU pass, keep the fix packet in the model lane
   with the latest BROB progress instead of relaxing the final `gfsim -f <elf>`
   target.
-- `avs-pto-parity-prefix-gemm-performance` is the current Tier-1 parity prefix
+- `avs-pto-parity-prefix-gemm-performance` is the fast Tier-1 parity prefix
   that passes through QEMU and `gfsim`; it uses fast deterministic F32/FP16
   bit-pattern seeds and stops after `PTO_PARITY_STAGE_GEMM_PERFORMANCE`.
-  Treat it as a model-green prefix proof only. The full `avs-pto-parity` row
+  `avs-pto-parity-prefix-flash-attention` is the deeper Tier-1 model-green
+  prefix; it stops after `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves the
+  current model boundary reaches the `flash_attention` digest and pass finisher
+  after QEMU. Treat both as prefix proofs only. The full `avs-pto-parity` row
   still owns later float-helper-heavy maturity. Current evidence reaches
   `flash_attention_softmax` after producing `flash_attention` digest under
   `gfsim`; keep that timeout in the model lane until the ELF exits naturally.
@@ -131,6 +134,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `avs-pto-parity` proved this by moving from a BFU `tanh` SIGSEGV and a
   `softmax` local-pipe stall to sustained execution through
   `flash_attention_softmax`.
+- For RAS crashes in call-heavy soft-float loops after QEMU pass, check the
+  speculative write-slot hazard before changing benchmark or compiler code.
+  `RAS::handleCall()` writes at `spec_wptr`; if that slot is valid, F1 must
+  stall before prediction instead of asserting on `!spec_table[spec_wptr].vld`.
+  `avs-pto-parity-prefix-flash-attention` proved this by moving from a
+  `bfu_ras.cpp:52` assertion in `softmax_inplace` to a final-green
+  `flash_attention` prefix.
 - For queued BE nuke records that name a later local split, first look for the
   exact `(fbid, fbid_local)` in BRQ. If it is absent but the same global `fbid`
   has an older resident local split, use that resident FB only to find the
