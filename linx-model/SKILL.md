@@ -36,6 +36,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - If a QEMU-passing direct-boot ELF loops in `gfsim`, record the repeated BPC,
   retired block count, ELF objdump address, and smoke log path in the fix
   packet before changing compiler or benchmark code.
+- Direct-boot AVS/PTO/SuperNPUBench ELFs commonly emit UART breadcrumbs through
+  MMIO `0x10000000` before they reach digest or finisher writes. Preserve both
+  scalar `storeData()` and direct SPE retire observation paths when adding model
+  MMIO evidence, and use `uart_tail` plus the latest BROB BPC to decide whether
+  the model reached the source stage before timing out.
 - If the repeated BPC is the post-test spin or a fail finisher path is skipped,
   inspect the objdump for `C.BSTART DIRECT,<target>` followed by a 32-bit
   in-body `BSTART.STD` / `FALL` descriptor and body stores. The model must

@@ -398,9 +398,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   model-lane maturity packet when it does not exit within the selected timeout.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
-  should add a `last_brob_bpc_disasm` window when the log exposes a latest BROB
-  BPC. Use that BPC-to-objdump linkage before changing benchmark or compiler
-  code for QEMU-passing AVS parity failures.
+  should add `uart_tail`/`uart_count` breadcrumbs plus a
+  `last_brob_bpc_disasm` window when the log exposes a latest BROB BPC. Use the
+  UART marker to confirm source-stage progress and the BPC-to-objdump linkage
+  before changing benchmark or compiler code for QEMU-passing AVS parity
+  failures.
 - PTO catalog smoke promotion currently covers `pto-kernel-tload_store`,
   `pto-kernel-gemm`, `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`,
   `pto-kernel-gemm_performance`, `pto-kernel-mamulb`,
