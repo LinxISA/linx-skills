@@ -414,7 +414,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_ATTENTION_SMOKE_QD=1`, `PTO_ATTENTION_SMOKE_VD=1`,
   `PTO_ATTENTION_SMALL_SMOKE_QD=1`, `PTO_FLASH_TILE_M=1`, and
   `PTO_FLASH_TILE_K=1` through the AVS extra-cflag hook. Keep these as prefix
-  proofs/probes, not substitutes for full `avs-pto-parity` closure. Earlier
+  proofs/probes, not substitutes for full `avs-pto-parity` closure.
+  `avs-pto-parity-prefix-flash-attention-masked` is the next model-green
+  micro-profile; it stops after `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and
+  also passes `PTO_ATTENTION_MASKED_SMOKE_SEQ=1`,
+  `PTO_ATTENTION_MASKED_SMOKE_QD=1`, and
+  `PTO_ATTENTION_MASKED_SMOKE_VD=1` through the AVS extra-cflag hook. Earlier
   full-shape softmax-prefix probes passed QEMU but timed out in
   `flash_attention_demo_f32` soft-float helper code; classify similar
   QEMU-passing full-shape timeouts as model-owned unless static legality
