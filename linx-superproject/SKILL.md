@@ -403,12 +403,15 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   the GEMM prefix. `avs-pto-parity-prefix-flash-attention` is the deeper
   Tier-1 model-green prefix; it stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves source, compiler, QEMU, and
-  `gfsim` through the `flash_attention` digest and pass finisher. Keep these as
-  prefix proofs, not substitutes for full `avs-pto-parity` closure. Current
-  full-row evidence reaches `flash_attention_softmax` after producing the
-  `flash_attention` digest before a model timeout; prior `tanh`/`softmax` BFU
-  failures were model local-pipe lifetime and RAS speculative write-slot issues,
-  not benchmark or compiler failures.
+  `gfsim` through the `flash_attention` digest and pass finisher.
+  `avs-pto-parity-prefix-flash-attention-softmax` is the current first red
+  post-flash_attention hard-break probe; it stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX`, passes source/compiler/QEMU/model
+  smoke, then times out in `gfsim` after retiring 3.66M blocks in
+  `flash_attention_demo_f32` soft-float helper code before the digest. Keep
+  these as prefix proofs/probes, not substitutes for full `avs-pto-parity`
+  closure. Prior `tanh`/`softmax` BFU failures were model local-pipe lifetime
+  and RAS speculative write-slot issues, not benchmark or compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
   should add `uart_tail`/`uart_count` breadcrumbs plus a
