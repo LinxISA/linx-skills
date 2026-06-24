@@ -422,8 +422,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_ATTENTION_MASKED_SMOKE_VD=1` through the AVS extra-cflag hook.
   `avs-pto-parity-prefix-fa-performance` reuses the same 1x attention
   micro-profile, stops after `PTO_PARITY_STAGE_FA_PERFORMANCE`, and proves the
-  `fa_performance` digest under QEMU and `gfsim`. Earlier full-shape
-  softmax-prefix probes passed QEMU but timed out in
+  `fa_performance` digest under QEMU and `gfsim`.
+  `avs-pto-parity-prefix-mla-attention` reuses that profile, stops after
+  `PTO_PARITY_STAGE_MLA_ATTENTION`, and proves the `mla_attention` digest under
+  QEMU and plain `gfsim -f <elf>`. Earlier full-shape softmax-prefix probes
+  passed QEMU but timed out in
   `flash_attention_demo_f32` soft-float helper code; classify similar
   QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
