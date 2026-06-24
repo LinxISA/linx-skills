@@ -33,22 +33,26 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `avs-pto-parity-prefix-flash-attention` is the deeper Tier-1 model-green
   prefix; it stops after `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves the
   current model boundary reaches the `flash_attention` digest and pass finisher
-  after QEMU. `avs-pto-parity-prefix-flash-attention-softmax` is the next
-  hard-break probe; it stops after
-  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX`, but current evidence keeps it
-  model-red: source, compiler, QEMU, and model smoke pass, then `gfsim` times
-  out after retiring 3.66M blocks in `flash_attention_demo_f32` soft-float
-  helper code without emitting the `flash_attention_softmax` digest. Treat these
-  as prefix proofs/probes only. The full `avs-pto-parity` row still owns later
-  float-helper-heavy maturity; keep QEMU-passing softmax-prefix timeouts in the
-  model lane until the ELF exits naturally or model throughput/correctness is
-  improved.
+  after QEMU. `avs-pto-parity-prefix-flash-attention-softmax` is the current
+  model-green softmax-prefix micro-profile; it stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX` and uses opt-in
+  `PTO_ATTENTION_*` plus `PTO_FLASH_TILE_*` shape flags so the QEMU-passing ELF
+  also exits naturally under plain `gfsim -f <elf>`. Treat these as prefix
+  proofs/probes only. The full `avs-pto-parity` row still owns later
+  float-helper-heavy maturity; keep QEMU-passing full-shape softmax timeouts in
+  the model lane until the ELF exits naturally or model throughput/correctness
+  is improved.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or
   `--stop_cycle` limits. The final target is plain `gfsim -f <linx.elf>`;
   timeout artifacts belong to the `model` lane until the model exits naturally
   or an explicit architectural stop condition is implemented.
+- Build or select the optimized bring-up binary for workload promotion:
+  `cmake -S model/LinxCoreModel -B model/LinxCoreModel/build -DOPT_LEVEL=O3
+  -DDISABLE_DEBUG_SYMBOLS=ON`, then build target `gfsim`. The AI runner uses
+  these options by default unless `--skip-model-build` selects an existing
+  binary.
 - If a QEMU-passing direct-boot ELF loops in `gfsim`, record the repeated BPC,
   retired block count, ELF objdump address, and smoke log path in the fix
   packet before changing compiler or benchmark code.

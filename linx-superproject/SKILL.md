@@ -396,6 +396,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
   smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
   model-lane maturity packet when it does not exit within the selected timeout.
+  Non-skipped model builds configure `model/LinxCoreModel/bin/gfsim` with
+  `-DOPT_LEVEL=O3 -DDISABLE_DEBUG_SYMBOLS=ON` so PR/nightly workload probes use
+  the optimized bring-up binary.
   `avs-pto-parity-prefix-gemm-performance` is the fast Tier-1 model-green
   prefix boundary; it uses `PTO_PARITY_FAST_F32_SEED=1`,
   `PTO_PARITY_FAST_FP16_SEED=1`, and
@@ -404,14 +407,20 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   Tier-1 model-green prefix; it stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves source, compiler, QEMU, and
   `gfsim` through the `flash_attention` digest and pass finisher.
-  `avs-pto-parity-prefix-flash-attention-softmax` is the current first red
-  post-flash_attention hard-break probe; it stops after
-  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX`, passes source/compiler/QEMU/model
-  smoke, then times out in `gfsim` after retiring 3.66M blocks in
-  `flash_attention_demo_f32` soft-float helper code before the digest. Keep
-  these as prefix proofs/probes, not substitutes for full `avs-pto-parity`
-  closure. Prior `tanh`/`softmax` BFU failures were model local-pipe lifetime
-  and RAS speculative write-slot issues, not benchmark or compiler failures.
+  `avs-pto-parity-prefix-flash-attention-softmax` is the current model-green
+  softmax-prefix micro-profile; it stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX` and passes
+  `PTO_ATTENTION_SMOKE_SEQ=1`, `PTO_ATTENTION_LARGE_SMOKE_SEQ=1`,
+  `PTO_ATTENTION_SMOKE_QD=1`, `PTO_ATTENTION_SMOKE_VD=1`,
+  `PTO_ATTENTION_SMALL_SMOKE_QD=1`, `PTO_FLASH_TILE_M=1`, and
+  `PTO_FLASH_TILE_K=1` through the AVS extra-cflag hook. Keep these as prefix
+  proofs/probes, not substitutes for full `avs-pto-parity` closure. Earlier
+  full-shape softmax-prefix probes passed QEMU but timed out in
+  `flash_attention_demo_f32` soft-float helper code; classify similar
+  QEMU-passing full-shape timeouts as model-owned unless static legality
+  evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
+  local-pipe lifetime and RAS speculative write-slot issues, not benchmark or
+  compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
   and relocation sidecars for `linx-qemu-tests.elf`; model timeout/crash rows
   should add `uart_tail`/`uart_count` breadcrumbs plus a
