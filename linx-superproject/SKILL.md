@@ -425,8 +425,15 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `fa_performance` digest under QEMU and `gfsim`.
   `avs-pto-parity-prefix-mla-attention` reuses that profile, stops after
   `PTO_PARITY_STAGE_MLA_ATTENTION`, and proves the `mla_attention` digest under
-  QEMU and plain `gfsim -f <elf>`. Earlier full-shape softmax-prefix probes
-  passed QEMU but timed out in
+  QEMU and plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-flash-attention-cube` adds
+  `PTO_PARITY_FLASH_CUBE_SEQ=1`, `PTO_PARITY_FLASH_CUBE_MAX_SEQ=1`,
+  `PTO_PARITY_FLASH_CUBE_DIM=1`, and `PTO_FLASH_CUBE_*` 1x tiling flags, then
+  proves the `flash_attention_cube` digest under QEMU and `gfsim`.
+  `avs-pto-parity-prefix-flash-attention-vec` adds `PTO_FLASH_VEC_*` 1x tiling
+  flags and proves the `flash_attention_vec` digest under QEMU and plain
+  `gfsim -f <elf>`. Earlier full-shape softmax-prefix probes passed QEMU but
+  timed out in
   `flash_attention_demo_f32` soft-float helper code; classify similar
   QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
