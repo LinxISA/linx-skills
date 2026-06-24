@@ -432,11 +432,14 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   proves the `flash_attention_cube` digest under QEMU and `gfsim`.
   `avs-pto-parity-prefix-flash-attention-vec` adds `PTO_FLASH_VEC_*` 1x tiling
   flags and proves the `flash_attention_vec` digest under QEMU and plain
-  `gfsim -f <elf>`. Earlier full-shape softmax-prefix probes passed QEMU but
-  timed out in
-  `flash_attention_demo_f32` soft-float helper code; classify similar
-  QEMU-passing full-shape timeouts as model-owned unless static legality
-  evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
+  `gfsim -f <elf>`. `avs-pto-parity-prefix-gqa` adds
+  `PTO_PARITY_GQA_SEQ=1`, `PTO_PARITY_GQA_Q_HEADS=1`,
+  `PTO_PARITY_GQA_KV_HEADS=1`, `PTO_PARITY_GQA_DIM=1`, and matching
+  `PTO_GQA_SMOKE_*` 1x source controls, then proves the `gqa` digest under QEMU
+  and plain `gfsim -f <elf>`. Earlier full-shape softmax-prefix probes passed
+  QEMU but timed out in `flash_attention_demo_f32` soft-float helper code;
+  classify similar QEMU-passing full-shape timeouts as model-owned unless
+  static legality evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
   local-pipe lifetime and RAS speculative write-slot issues, not benchmark or
   compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,
