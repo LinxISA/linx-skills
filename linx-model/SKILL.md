@@ -57,10 +57,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   the `flash_attention_vec` digest. `avs-pto-parity-prefix-gqa` adds matching
   `PTO_PARITY_GQA_*` and `PTO_GQA_SMOKE_*` 1x controls, stops after
   `PTO_PARITY_STAGE_GQA`, and reaches the `gqa` digest under plain
-  `gfsim -f <elf>`. The full `avs-pto-parity` row still owns later sparse and
-  full-shape maturity; keep QEMU-passing full-shape attention timeouts in the
-  model lane until the ELF exits naturally or model throughput/correctness is
-  improved.
+  `gfsim -f <elf>`. `avs-pto-parity-prefix-sparse-attention-local` adds
+  matching `PTO_PARITY_SPARSE_*` and `PTO_SPARSE_LOCAL_SMOKE_*` 1x controls,
+  stops after `PTO_PARITY_STAGE_SPARSE_ATTENTION_LOCAL`, and reaches the
+  `sparse_attention_local` digest under plain `gfsim -f <elf>`. The full
+  `avs-pto-parity` row still owns later normalization and full-shape maturity;
+  keep QEMU-passing full-shape attention timeouts in the model lane until the
+  ELF exits naturally or model throughput/correctness is improved.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or
