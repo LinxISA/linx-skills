@@ -441,6 +441,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_PARITY_SPARSE_DIM=1`, `PTO_PARITY_SPARSE_WINDOW=1`, and matching
   `PTO_SPARSE_LOCAL_SMOKE_*` 1x source controls, then proves the
   `sparse_attention_local` digest under QEMU and plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-rmsnorm` adds `PTO_PARITY_RMS_TOKENS=1`,
+  `PTO_PARITY_RMS_CHANNELS=1`, and matching `PTO_RMSNORM_SMOKE_*` 1x source
+  controls, then stops after `PTO_PARITY_STAGE_RMSNORM`. Current evidence
+  reaches QEMU PASS but times out under plain `gfsim -f <elf>` at BROB head
+  `B219 STID0 BPC 0x11dfe [STD COND]` in the UART print loop, so keep the
+  fix packet in the model lane until the model exits naturally or new static
+  legality evidence moves ownership.
   Earlier full-shape softmax-prefix probes passed
   QEMU but timed out in `flash_attention_demo_f32` soft-float helper code;
   classify similar QEMU-passing full-shape timeouts as model-owned unless
