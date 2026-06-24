@@ -43,7 +43,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and adds
   `PTO_ATTENTION_MASKED_SMOKE_*` shape flags so the QEMU-passing ELF reaches
   the `flash_attention_masked` digest and exits naturally under plain
-  `gfsim -f <elf>`. The full `avs-pto-parity` row still owns later
+  `gfsim -f <elf>`. `avs-pto-parity-prefix-fa-performance` reuses the same 1x
+  attention micro-profile, stops after `PTO_PARITY_STAGE_FA_PERFORMANCE`, and
+  reaches the `fa_performance` digest under plain `gfsim -f <elf>`. The full
+  `avs-pto-parity` row still owns later
   float-helper-heavy maturity; keep QEMU-passing full-shape softmax timeouts in
   the model lane until the ELF exits naturally or model throughput/correctness
   is improved.
