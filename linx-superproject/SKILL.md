@@ -443,15 +443,16 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `sparse_attention_local` digest under QEMU and plain `gfsim -f <elf>`.
   `avs-pto-parity-prefix-rmsnorm` adds `PTO_PARITY_RMS_TOKENS=1`,
   `PTO_PARITY_RMS_CHANNELS=1`, and matching `PTO_RMSNORM_SMOKE_*` 1x source
-  controls, then stops after `PTO_PARITY_STAGE_RMSNORM`. Current evidence
-  reaches QEMU PASS but times out under plain `gfsim -f <elf>` at BROB head
-  `B219 STID0 BPC 0x11dfe [STD COND]` in the UART print loop, so keep the
-  fix packet in the model lane until the model exits naturally or new static
-  legality evidence moves ownership.
-  Earlier full-shape softmax-prefix probes passed
-  QEMU but timed out in `flash_attention_demo_f32` soft-float helper code;
-  classify similar QEMU-passing full-shape timeouts as model-owned unless
-  static legality evidence proves otherwise. Prior `tanh`/`softmax` BFU failures were model
+  controls, then stops after `PTO_PARITY_STAGE_RMSNORM` and proves the
+  `rmsnorm` digest plus pass finisher under QEMU and plain `gfsim -f <elf>`.
+  The promotion closes the prior UART handoff timeout at BROB BPC `0x11dfe`;
+  do not keep routing this 1x prefix as a model-owned timeout unless fresh
+  evidence shows a new regression.
+  Current full `avs-pto-parity` evidence passes QEMU, reaches
+  `flash_attention_softmax`, then times out in `flash_attention_demo_f32` at
+  BROB BPC `0x17eaa`; classify similar QEMU-passing full-shape timeouts as
+  model-owned unless static legality evidence proves otherwise. Prior
+  `tanh`/`softmax` BFU failures were model
   local-pipe lifetime and RAS speculative write-slot issues, not benchmark or
   compiler failures.
   AVS compiler-pass rows should preserve objdump disassembly, symbol, section,

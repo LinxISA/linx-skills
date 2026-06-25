@@ -63,14 +63,17 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `sparse_attention_local` digest under plain `gfsim -f <elf>`.
   `avs-pto-parity-prefix-rmsnorm` adds matching `PTO_PARITY_RMS_*` and
   `PTO_RMSNORM_SMOKE_*` 1x controls, stops after
-  `PTO_PARITY_STAGE_RMSNORM`, and is currently a model-owned QEMU-pass timeout
-  packet, not a promoted green prefix. The latest evidence times out under
-  plain `gfsim -f <elf>` with BROB head
-  `B219 STID0 BPC 0x11dfe [STD COND]` in the UART print loop after many UART
-  bytes but before a final digest. The full `avs-pto-parity` row still owns
-  later normalization and full-shape maturity; keep QEMU-passing full-shape
-  attention/normalization timeouts in the model lane until the ELF exits
-  naturally or model throughput/correctness is improved.
+  `PTO_PARITY_STAGE_RMSNORM`, and reaches the `rmsnorm` digest plus pass
+  finisher under plain `gfsim -f <elf>`. The fix that promoted this prefix
+  also proves the prior `swiglu` UART handoff no longer corrupts the next stage:
+  `swiglu`, `pre_flash_attention`, all 1x attention prefixes, `gqa`,
+  `sparse_attention_local`, and `rmsnorm` now execute in sequence before
+  `PTO_STAGE done`. The full `avs-pto-parity` row still owns full-shape
+  maturity: current QEMU-passing evidence reaches `flash_attention_softmax`,
+  then times out in `flash_attention_demo_f32` with BROB BPC `0x17eaa`.
+  Keep QEMU-passing full-shape attention/normalization timeouts in the model
+  lane until the ELF exits naturally or model throughput/correctness is
+  improved.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or
