@@ -394,8 +394,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - AVS Tier-0 parity smoke is `avs-pto-parity-smoke`; it passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through `avs/qemu/run_tests.py
   --extra-cflag` and runs only the PTO `tload_store` digest path. The full
-  smoke-sized parity sequence remains `avs-pto-parity` in Tier 1 as a
-  model-lane maturity packet when it does not exit within the selected timeout.
+  smoke-sized parity sequence is split by lane: `avs-pto-parity` is the Tier-1
+  QEMU parity maturity row and is intentionally not model-eligible in PR, while
+  `avs-pto-parity-full-model` is the Tier-4 full-row LinxCoreModel closure
+  target.
   Non-skipped model builds configure `model/LinxCoreModel/bin/gfsim` with
   `-DOPT_LEVEL=O3 -DDISABLE_DEBUG_SYMBOLS=ON` so PR/nightly workload probes use
   the optimized bring-up binary.
@@ -414,7 +416,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_ATTENTION_SMOKE_QD=1`, `PTO_ATTENTION_SMOKE_VD=1`,
   `PTO_ATTENTION_SMALL_SMOKE_QD=1`, `PTO_FLASH_TILE_M=1`, and
   `PTO_FLASH_TILE_K=1` through the AVS extra-cflag hook. Keep these as prefix
-  proofs/probes, not substitutes for full `avs-pto-parity` closure.
+  proofs/probes, not substitutes for Tier-4 `avs-pto-parity-full-model`
+  closure.
   `avs-pto-parity-prefix-flash-attention-masked` is the next model-green
   micro-profile; it stops after `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and
   also passes `PTO_ATTENTION_MASKED_SMOKE_SEQ=1`,
@@ -448,9 +451,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   The promotion closes the prior UART handoff timeout at BROB BPC `0x11dfe`;
   do not keep routing this 1x prefix as a model-owned timeout unless fresh
   evidence shows a new regression.
-  Current full `avs-pto-parity` evidence passes QEMU, reaches
-  `flash_attention_softmax`, then times out in `flash_attention_demo_f32` at
-  BROB BPC `0x17eaa`; classify similar QEMU-passing full-shape timeouts as
+  Current full-row evidence passes QEMU, reaches `flash_attention_softmax`,
+  then times out in `flash_attention_demo_f32` at BROB BPC `0x17eaa`; classify
+  similar QEMU-passing Tier-4 `avs-pto-parity-full-model` timeouts as
   model-owned unless static legality evidence proves otherwise. Prior
   `tanh`/`softmax` BFU failures were model
   local-pipe lifetime and RAS speculative write-slot issues, not benchmark or
@@ -520,9 +523,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   covers `gfsim -f <elf>` smoke and workload execution.
 - Use a targeted smoke selection such as `--case avs-pto-parity-smoke --case
   avs-tile-smoke --case supernpu-tileop_api` when you need a fast
-  source-to-model green proof. Keep long full-parity ELFs in the PR/nightly
-  report as model-lane maturity packets unless they naturally exit within the
-  selected model timeout.
+  source-to-model green proof. Keep full-parity model work on the Tier-4
+  `avs-pto-parity-full-model` row; the Tier-1 `avs-pto-parity` row should
+  remain a QEMU parity report row unless the runner policy is deliberately
+  changed with matching docs and skills.
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
 - For model-lane scalar/vector select mismatches after QEMU pass, verify the

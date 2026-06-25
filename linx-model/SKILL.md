@@ -23,10 +23,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - The smoke profile includes `avs-pto-parity-smoke`, a bounded PTO parity case
   built with `-DPTO_PARITY_TLOAD_STORE_ONLY=1`. Treat it as the fast
   QEMU-to-model PTO parity handoff proof, not as full parity closure.
-- The full smoke-sized AVS PTO parity sequence remains `avs-pto-parity` in
-  Tier 1. If it times out after QEMU pass, keep the fix packet in the model lane
-  with the latest BROB progress instead of relaxing the final `gfsim -f <elf>`
-  target.
+- The full smoke-sized AVS PTO parity sequence is split by lane:
+  `avs-pto-parity` is the Tier-1 QEMU parity maturity row and is intentionally
+  not model-eligible in PR, while `avs-pto-parity-full-model` is the Tier-4
+  full-row LinxCoreModel closure target. If the Tier-4 row times out after QEMU
+  pass, keep the fix packet in the model lane with the latest BROB progress
+  instead of relaxing the final `gfsim -f <elf>` target.
 - `avs-pto-parity-prefix-gemm-performance` is the fast Tier-1 parity prefix
   that passes through QEMU and `gfsim`; it uses fast deterministic F32/FP16
   bit-pattern seeds and stops after `PTO_PARITY_STAGE_GEMM_PERFORMANCE`.
@@ -68,12 +70,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   also proves the prior `swiglu` UART handoff no longer corrupts the next stage:
   `swiglu`, `pre_flash_attention`, all 1x attention prefixes, `gqa`,
   `sparse_attention_local`, and `rmsnorm` now execute in sequence before
-  `PTO_STAGE done`. The full `avs-pto-parity` row still owns full-shape
-  maturity: current QEMU-passing evidence reaches `flash_attention_softmax`,
-  then times out in `flash_attention_demo_f32` with BROB BPC `0x17eaa`.
-  Keep QEMU-passing full-shape attention/normalization timeouts in the model
-  lane until the ELF exits naturally or model throughput/correctness is
-  improved.
+  `PTO_STAGE done`. The full `avs-pto-parity-full-model` row still owns
+  full-shape model maturity: current QEMU-passing full-row evidence reaches
+  `flash_attention_softmax`, then times out in `flash_attention_demo_f32` with
+  BROB BPC `0x17eaa`. Keep QEMU-passing full-shape attention/normalization
+  timeouts in the model lane until the Tier-4 ELF exits naturally or model
+  throughput/correctness is improved.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same
   `workloads/generated/<run-id>/ai-bringup/report.json`.
 - Do not mark model smoke/workload execution green by adding artificial `-m` or
