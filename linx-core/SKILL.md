@@ -55,6 +55,7 @@ bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator
 bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
+bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -220,6 +221,14 @@ Toolchain facts from initial Chisel bring-up:
   intent bits; and keep actual rename restore, LSU/STQ mutation, frontend
   restart payloads, and BROB pointer restoration out of `ROBFlushPrune` and
   generic top-level glue.
+- Phase 5 `STQFlushPrune` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune`. This module is
+  the first concrete LSU/STQ consumer of `RecoveryCleanupControl.intent.flush`:
+  mirror `FlushBus::match(MemReqBus)` including `stid`, optional PE/thread
+  scoping, BID-only matching, group matching with the model BID fast path, and
+  default BID+LSID matching; free only valid `STQ_WAIT` rows; and leave full
+  STQ RAM mutation, `storeCommitQ`, SCB/MDB, memory queues, and LSID rebasing
+  to the later LSU/STQ owner.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
