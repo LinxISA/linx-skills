@@ -384,9 +384,22 @@ Toolchain facts from initial Chisel bring-up:
   missing or mismatched sources rather than defaulting the local sequence. Apply
   the model `GetPrevRegSeq` adjustment only for the destination class owned by
   the flushed row: T destinations decrement only `tSeq`, U destinations
-  decrement only `uSeq`. Keep live row-snapshot wiring, direct
-  `TULinkRename` composition, relation-cmap release policy, ready-table
+  decrement only `uSeq`. Keep live row-snapshot wiring into the cleanup path,
+  relation-cmap release policy, ready-table
   mutation, and multi-PE/thread banking in later owner packets.
+- Phase 5/R54 `TULinkRecoveryCleanupPath` work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRecoveryCleanupPath`, `TULinkFlushSequencePublisher`,
+  `TULinkRename`, `RecoveryCleanupControl`, `FlushControl`, and reduced ROB
+  bookkeeping gates. The composition must wire publisher outputs directly into
+  `TULinkRename.flush*` while keeping live ROB/LSU row selection behind an
+  explicit `flushSource` input. If a non-base T/U cleanup is active but the
+  selected row source is missing or mismatched, treat that as a recovery
+  barrier: block local T/U rename, retire, and commit for the cycle instead of
+  falling through to unrelated local-register maintenance. Keep the live
+  ROB/LSU selected-row publisher, scalar GPR+T/U accepted-output composition,
+  relation-cmap release policy, ready-table mutation, and multi-PE/thread
+  banking in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
