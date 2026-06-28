@@ -39,12 +39,13 @@ wrappers rather than invoking `sbt` directly. The wrappers source
 `tools/chisel/chisel_env.sh`, which prefers Homebrew `openjdk@17` when
 `JAVA_HOME` is unset.
 
-Current Phase 0/0B/1 gate sequence:
+Current Phase 0/0B/1/2 gate sequence:
 
 ```bash
 cd /Users/zhoubot/linx-isa/rtl/LinxCore
 bash tools/chisel/build_chisel.sh
 bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles
+bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
@@ -69,9 +70,23 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles` before
   frontend/decode/rename/LSU/ROB agents consume the shared bundle packet.
   `InterfaceBundles` preserves the 4-wide/64-bit pyCircuit widths, 12-bit
-  opcode, 6-bit reg/ptag/ROB index defaults, 32-bit scalar LSID, `BK_*` order,
+  opcode, 4-bit instruction length fields, 6-bit reg/ptag/ROB index defaults,
+  32-bit scalar LSID, `BK_*` order,
   `REG_INVALID=0x3f`, `TRAP_BRU_RECOVERY_NOT_BSTART=0x0000b001`, and the split
   between model `bid/gid/rid` identity and 64-bit hardware `blockBid`.
+- Phase 2 `F4DecodeWindow` work must preserve LinxCoreModel `CheckMInstSize`
+  instruction sizing: bit 0 clear gives 2 bytes unless header bits `[3:1]` are
+  `111`, which gives 6 bytes; bit 0 set gives 4 bytes unless header bits
+  `[3:1]` are `111`, which gives 8 bytes. The Chisel gate is
+  `bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow`.
+- F4 decode-window work must keep 8-byte window slicing sequential and
+  non-compacting: a candidate that does not fit invalidates that slot and all
+  later slots; do not search forward for a later instruction. Flush masks D1
+  and all slot-valid bits. Slot UIDs are `(pktUid << 3) | slot`.
+- Full opcode decode, register/immediate extraction, macro-boundary standalone
+  behavior, and D1/D2 uop construction are deferred until the Chisel opcode
+  table/decode-owner modules exist; do not bury those behaviors in the F4
+  transport helper.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
