@@ -64,6 +64,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge
 bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
 bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
 bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
+bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -317,6 +318,15 @@ Toolchain facts from initial Chisel bring-up:
   storage, ingress/egress arbitration, DCache RAM mutation, L2/CHI queues, MDB
   conflict prediction, store-to-load forwarding, and full STQ-to-SCB
   composition in later LSU owner packets.
+- Phase 5 `SCBRowBank` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBRowBank`. This module is
+  the first registered SCB composition owner: own one row image, keep the model
+  batch gate based on pre-cycle free count, stage accepted committed-store
+  ingress before egress lookup payload generation, and keep `S_LOOKUP`/`S_MISS`
+  rows closed to same-line store coalescing. Keep raw CHI TxnID decode,
+  L2/CHI queues, DCache RAM mutation, MDB conflict prediction,
+  store-to-load forwarding, full `STQEntryBank` free wiring, and memory-event
+  trace in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -615,6 +625,12 @@ Confirmed in #linx-core (2026-02-25).
   `S_MISS`, and WriteResp/UpgradeResp decode may return only valid `S_MISS`
   rows to `S_LOOKUP`; report illegal response targets rather than silently
   freeing or reusing the row.
+- Registered SCB row-bank composition must use pre-cycle free count for the
+  model batch admission gate. Same-cycle writable-hit frees do not admit new
+  committed-store fragments in that cycle, but accepted ingress may be visible
+  in the same-cycle lookup payload. `S_LOOKUP` and `S_MISS` rows are never
+  merge targets; same-line stores must allocate a separate row when free space
+  exists.
 - If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
 - Drain arbitration: **oldest SID first**.
 
