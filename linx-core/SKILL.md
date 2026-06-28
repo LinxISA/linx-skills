@@ -612,6 +612,21 @@ Toolchain facts from initial Chisel bring-up:
   deallocation-source admission until the event is accepted or recovery
   prunes it, but do not feed that pending state into retire-command
   `commandReady`.
+- Phase 5/R69 scalar local block-commit consumer work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRecoveryCleanupPath`, `ScalarTURenameBridge`,
+  `DecodeRenameROBPath`, `TULinkRetireCommandPath`, `TULinkRename`,
+  `TULinkRelationCmap`, `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, trace-schema self-test, Chisel QEMU dry-run, diff check, and
+  LinxCoreModel SHA gates. Consume the post-clean
+  `ReportLocalRegBlockCommit` event in the live local-register owner:
+  `TULinkRetireCommandPath` keeps the event pending, `ScalarTURenameBridge`
+  forwards the handshake, and `TULinkRecoveryCleanupPath` arbitrates it behind
+  external commit and recovery-flush maintenance before pulsing
+  `TULinkRename.commit*` for the reduced T/U bank. Do not route this event
+  through the relation-cmap scheduler, scalar GPR commit path, or generic
+  top-level glue. Preserve the reduced scope until a later packet implements
+  selected-STID, both-SGPR-hand, and multi-PE fanout.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
