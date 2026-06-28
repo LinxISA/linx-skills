@@ -402,8 +402,7 @@ Toolchain facts from initial Chisel bring-up:
   explicit `flushSource` input. If a non-base T/U cleanup is active but the
   selected row source is missing or mismatched, treat that as a recovery
   barrier: block local T/U rename, retire, and commit for the cycle instead of
-  falling through to unrelated local-register maintenance. Keep the live
-  ROB/LSU selected-row publisher, scalar GPR+T/U accepted-output composition,
+  falling through to unrelated local-register maintenance. Keep
   relation-cmap release policy, ready-table mutation, and multi-PE/thread
   banking in later owner packets.
 - Phase 5/R55 `TULinkFlushSourceSelector` work must run
@@ -417,8 +416,7 @@ Toolchain facts from initial Chisel bring-up:
   not require a selected row source. If ROB and LSU both match the same
   non-base cleanup row, their payloads must agree exactly; otherwise suppress
   the selected source and let the recovery barrier block local T/U rename,
-  retire, and commit for the cycle. Keep live ROB/LSU `tSeq/uSeq` sidecars,
-  scalar GPR+T/U accepted-output composition, relation-cmap release policy,
+  retire, and commit for the cycle. Keep relation-cmap release policy,
   ready-table mutation, and multi-PE/thread banking in later owner packets.
 - Phase 5/R56 `ROBEntryBank` T/U source-sidecar work must run
   `sbt --client --error 'Test / compile'` plus affected `InterfaceBundles`,
@@ -433,12 +431,11 @@ Toolchain facts from initial Chisel bring-up:
   from row sidecars captured from the rename snapshot, not from
   `CommitTraceRow.identity`, row index, or default zero sequences. Flush and
   deallocation must clear the sidecars with the row. `DispatchROBAllocator`
-  may forward these sidecars, but reduced `DecodeRenameROBPath` must keep its
-  zero/invalid defaults explicit until a T/U rename composition owner drives
-  `SPERename`-equivalent snapshots before T/U destination rename. Keep LSU/STQ
-  source sidecars, selector-to-cleanup composition, scalar GPR+T/U
-  accepted-output composition, relation-cmap release policy, ready-table
-  mutation, and multi-PE/thread banking in later owner packets.
+  forwards these sidecars, and reduced `DecodeRenameROBPath` now drives them
+  from `ScalarTURenameBridge` live `SPERename`-equivalent snapshots before
+  T/U destination rename. Keep LSU/STQ source sidecars, selector-to-cleanup
+  composition, relation-cmap release policy, ready-table mutation, and
+  multi-PE/thread banking in later owner packets.
 - Phase 5/R58 `STQEntryBank` LSU T/U source-sidecar work must run
   `sbt --client --error 'Test / compile'` plus affected `STQEntryBank`,
   `STQFlushPrune`, `StoreDispatchToSTQ`, `StoreDispatchSTQPath`,
@@ -453,11 +450,10 @@ Toolchain facts from initial Chisel bring-up:
   first row's T/U source sidecars while filling address/data readiness, matching
   `STQ::mergeStore` and `STQueueEntryInfo::init`; do not overwrite them from a
   later complementary half. `StoreDispatchToSTQ` must preserve sidecars from
-  `StoreSplitIssuePayload`; the reduced backend may drive disabled payload
-  sidecar inputs until live T/U rename snapshots are composed.
-  Keep reduced-backend cleanup composition, live STQ-wrapper wiring, scalar
-  GPR+T/U accepted-output composition, relation-cmap release policy,
-  ready-table mutation, and multi-PE/thread banking in later owner packets.
+  `StoreSplitIssuePayload`; the reduced backend now drives live payload
+  sidecar inputs from `ScalarTURenameBridge`.
+  Keep relation-cmap release policy, ready-table mutation, and
+  multi-PE/thread banking in later owner packets.
 - Phase 5/R59 `DecodeRenameROBPath` reduced T/U cleanup source-composition
   work must run `sbt --client --error 'Test / compile'` plus affected
   `DecodeRenameROBPath`, `TULinkRecoveryCleanupPath`,
@@ -471,9 +467,9 @@ Toolchain facts from initial Chisel bring-up:
   `lsuTULinkSource` input for the future STQ wrapper producer. The emitted
   diagnostics must prove whether ROB and LSU candidates agree for the same
   `(bid,rid,stid)`, whether one matching source was selected, or whether
-  cleanup was blocked by a missing or conflicting source. Keep live STQ-bank
-  wiring and live T/U state mutation from the publisher outputs in later owner
-  packets.
+  cleanup was blocked by a missing or conflicting source. R62 moves this
+  diagnostic-only owner into `ScalarTURenameBridge`; do not reintroduce a
+  second independent T/U cleanup state owner in `DecodeRenameROBPath`.
 - Phase 5/R60 `DecodeRenameROBPath` integrated STQ-bank LSU source work must
   run `sbt --client --error 'Test / compile'` plus affected
   `DecodeRenameROBPath`, `StoreDispatchSTQPath`, `StoreDispatchToSTQ`,
@@ -487,8 +483,8 @@ Toolchain facts from initial Chisel bring-up:
   `TULinkRecoveryCleanupPath.lsuSource` from the live
   `StoreDispatchSTQPath.lsuTULinkSource` output, and expose enough STQ insert,
   occupancy, flush, and source diagnostics to prove the source came from the
-  STQ bank. Keep live T/U producer wiring into `StoreSplitPayload`, and live
-  T/U state mutation from cleanup publisher outputs, in later owner packets.
+  STQ bank. R62 moves the cleanup path under `ScalarTURenameBridge`, where the
+  publisher outputs mutate live T/U rename state.
 - Phase 5/R61 store-dispatch T/U sidecar carry work must run
   `sbt --client --error 'Test / compile'` plus affected `StoreSplitPayload`,
   `StoreDispatchQueues`, `StoreDispatchToSTQ`, `StoreDispatchSTQPath`,
@@ -502,11 +498,30 @@ Toolchain facts from initial Chisel bring-up:
   `StoreSplitIssuePayload`, copy them to valid STA/STD/ST_ALL payloads,
   preserve them in `StoreDispatchQueues`, and copy them into
   `STQStoreRequest`. Invalid payloads should expose disabled sidecars, and a
-  false `tuDstValid` must force `DestinationKind.None`. The reduced
-  `DecodeRenameROBPath` may still drive the new `StoreSplitPayload` sidecar
-  inputs disabled until `TULinkRename` is composed with scalar rename; do not
-  mistake that reduced producer default for permission to discard sidecars in
-  lower owners.
+  false `tuDstValid` must force `DestinationKind.None`. R62 composes
+  `TULinkRename` with scalar rename through `ScalarTURenameBridge`, so reduced
+  `DecodeRenameROBPath` must drive live `StoreSplitPayload` and
+  `DispatchROBAllocator` sidecars from that owner; do not reintroduce disabled
+  producer defaults or discard sidecars in lower owners.
+- Phase 5/R62 scalar/TU rename composition work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `ScalarTURenameBridge`, `DecodeRenameROBPath`, `ScalarDecodeRenameBridge`,
+  `TULinkRename`, `TULinkRecoveryCleanupPath`, `TULinkFlushSourceSelector`,
+  `StoreSplitPayload`, `StoreDispatchSTQPath`, `StoreDispatchToSTQ`,
+  `STQEntryBank`, `DispatchROBAllocator`, reduced ROB bookkeeping,
+  trace-schema self-test, Chisel QEMU dry-run, top xcheck, and LinxCoreModel
+  SHA gates. Keep `ScalarDecodeRenameBridge` scalar-GPR-only: sanitize T/U
+  operands and destinations before feeding it, reject unsupported non-P/T/U
+  operands, and overlay accepted T/U source/destination physical tags onto the
+  `RenamedUop` after scalar rename. Scalar acceptance must be gated by
+  `TULinkRecoveryCleanupPath.ready`, and `TULinkRecoveryCleanupPath.renameValid`
+  must fire only from the accepted scalar row so GPR and T/U state mutate
+  atomically. Drive `StoreSplitPayload.tSeq/uSeq/tuDst*` and
+  `DispatchROBAllocator.allocTSeq/allocUSeq/allocTUDst*` from the wrapper's
+  pre-allocation `SPERename::Rename` snapshots and accepted T/U destination
+  sidecar. Keep relation-cmap release/deallocation, old T/U physical tag
+  release accounting, ready-table mutation, and multi-PE/thread banking in
+  later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
