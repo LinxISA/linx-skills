@@ -39,11 +39,12 @@ wrappers rather than invoking `sbt` directly. The wrappers source
 `tools/chisel/chisel_env.sh`, which prefers Homebrew `openjdk@17` when
 `JAVA_HOME` is unset.
 
-Current Phase 0/0B gate sequence:
+Current Phase 0/0B/1 gate sequence:
 
 ```bash
 cd /Users/zhoubot/linx-isa/rtl/LinxCore
 bash tools/chisel/build_chisel.sh
+bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
@@ -64,6 +65,13 @@ Toolchain facts from initial Chisel bring-up:
 - Homebrew `openjdk@17` works with the wrappers.
 - Homebrew `sbt` 2.0.0 works when the project uses Scala `2.13.17`.
 - Chisel is pinned to `7.3.0` in `chisel/build.sbt`.
+- Phase 1 common interface work must run
+  `bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles` before
+  frontend/decode/rename/LSU/ROB agents consume the shared bundle packet.
+  `InterfaceBundles` preserves the 4-wide/64-bit pyCircuit widths, 12-bit
+  opcode, 6-bit reg/ptag/ROB index defaults, 32-bit scalar LSID, `BK_*` order,
+  `REG_INVALID=0x3f`, `TRAP_BRU_RECOVERY_NOT_BSTART=0x0000b001`, and the split
+  between model `bid/gid/rid` identity and 64-bit hardware `blockBid`.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
