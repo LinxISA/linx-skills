@@ -203,9 +203,10 @@ Toolchain facts from initial Chisel bring-up:
   the accepted allocation event, so ROB duplicate-identity ready calculation
   sees a stable request row without feeding allocator ready back into
   allocator valid. R44 adds the registered `dec_ren_q` owner, R45 adds the
-  reduced memory-order ID owner, and R46 adds the standalone renamed store
-  payload split owner; keep width-wide rename, enqueue-time ROB reservation,
-  full `load_id`/`sid` payload carry, store-dispatch integration, automatic
+  reduced memory-order ID owner, R46 adds the renamed store payload split
+  owner, and R47 connects generated store metadata plus reduced store-dispatch
+  handoff; keep width-wide rename, enqueue-time ROB reservation, full
+  `load_id`/`sid` payload carry, real STA/STD queue mutation, automatic
   checkpoint capture, ready-table initialization,
   T/U/SGPR/tile/vector operands, full block retire, and live top-level commit
   rows in later owner packets.
@@ -248,9 +249,9 @@ Toolchain facts from initial Chisel bring-up:
   `sid` serial-counter observability, and clear/restore counters through the
   recovery hook. This owner may expose `storeSplitIntent`, but must not clone
   STA/STD rows, rewrite PCR store sources, carry `load_id`/`sid` through common
-  uop bundles, or perform width-wide same-cycle slot-order allocation. The next
-  store packet should consume the split intent plus opcode-derived pair/cache
-  metadata and create shared-SID STA/STD payloads in a dedicated owner.
+  uop bundles, or perform width-wide same-cycle slot-order allocation. R46/R47
+  consume the split intent plus opcode-derived pair/cache/PCR metadata in the
+  store payload handoff; real store queue mutation remains a later owner.
 - Phase 5/R46 `StoreSplitPayload` work must run
   `bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload` plus
   affected `InterfaceBundles`, `DecodeLoadStoreIdAssign`,
@@ -263,9 +264,26 @@ Toolchain facts from initial Chisel bring-up:
   `bid/gid/rid/blockBid/lsid` identity; ordinary STA payloads zero source 0;
   PCR STA payloads preserve source 0 and use store data source index 1; pair
   and cache-maintain stores remain single `ST_ALL` payloads. This owner must
-  not allocate or mutate STQ/SCB/MDB state. The next store-dispatch packet
-  should connect opcode-derived PCR/pair/cache-maintain metadata from generated
-  decode and feed STA/STD payloads into dispatch/STQ boundaries.
+  not allocate or mutate STQ/SCB/MDB state. R47 integrates it behind the
+  reduced decode/rename/ROB path for payload observability only; real STA/STD
+  queues and STQ residency remain later owners.
+- Phase 5/R47 generated store metadata / reduced store-dispatch handoff work
+  must run `sbt --client --error 'Test / compile'` plus affected
+  `FrontendDecodeStage`, `DecodeLoadStoreIdAssign`, `StoreSplitPayload`,
+  `ScalarDecodeRenameBridge`, `DecodeRenameROBPath`, `DecodeRenameQueue`,
+  `InterfaceBundles`, `DispatchROBAllocator`, reduced ROB bookkeeping, top
+  xcheck, `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. Generated decode metadata now drives
+  load/store-pair, PCR-store, and cache-maintain split sidebands into the
+  reduced path. When connecting `StoreSplitPayload` behind scalar rename, compute
+  store-dispatch readiness from the queued decoded row, not from
+  `StoreSplitPayload.inReady` or the accepted renamed output. Unsplit stores
+  require only STA readiness; split stores require both STA and STD readiness;
+  gate `ScalarDecodeRenameBridge.outReady` with that readiness plus downstream
+  renamed-output readiness. `StoreSplitPayload` consumes only the accepted
+  renamed row and emits STA/STD/ST_ALL payload observability. Do not create a
+  ready/valid loop through the splitter, and do not allocate or mutate
+  STQ/SCB/MDB state in this reduced path.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
