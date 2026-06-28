@@ -60,6 +60,7 @@ bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
 bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
 bash tools/chisel/run_chisel_tests.sh --only STQCommitDrain
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitIngress
+bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -275,6 +276,16 @@ Toolchain facts from initial Chisel bring-up:
   free entry exists. Keep SCB capacity feedback into `STQCommitDrain`, DCache
   lookup/update, SCB eviction, L2/CHI request/response handling, MDB conflict
   prediction, and store-to-load forwarding in later LSU owner packets.
+- Phase 5 `SCBCommitBridge` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge`. This module
+  is the first model-aligned capacity-feedback owner between `STQCommitDrain`
+  descriptors and `SCBCommitIngress`: gate every descriptor with the
+  conservative model `SCBuffer::full()` rule (`freeCount >= requestCount`),
+  stall even structural same-line hits while that model batch gate is closed,
+  and produce final `STQEntryBank.commitFreeMask` bits only from accepted
+  descriptors with `last=1`. Keep SCB eviction, DCache/L2/CHI request/response
+  handling, MDB conflict prediction, store-to-load forwarding, and full
+  STQ-to-SCB composition in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
