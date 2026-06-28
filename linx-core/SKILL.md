@@ -62,6 +62,23 @@ python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
 ```
 
+## Chisel module agent loop
+
+Use `rtl/LinxCore/docs/chisel/agent-loop.md` as the operational runbook for
+multi-agent Chisel development. Each module packet must:
+
+- record current `rtl/LinxCore` and `model/LinxCoreModel` SHAs before edits;
+- learn behavior from LinxCoreModel C++ owner files before writing Chisel;
+- update the module Markdown spec before promotion;
+- keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
+  surface for replacement evidence;
+- run the narrow module gate plus affected cross-check gates;
+- close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
+
+Do not treat a frontend/backend Chisel module as replacement evidence merely
+because its unit test passes. It needs monitored commit/stage-owner visibility
+through the neutral cross-check path before it can displace pyCircuit evidence.
+
 Toolchain facts from initial Chisel bring-up:
 
 - Homebrew `openjdk@17` works with the wrappers.
