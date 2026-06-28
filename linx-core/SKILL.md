@@ -400,6 +400,20 @@ Toolchain facts from initial Chisel bring-up:
   ROB/LSU selected-row publisher, scalar GPR+T/U accepted-output composition,
   relation-cmap release policy, ready-table mutation, and multi-PE/thread
   banking in later owner packets.
+- Phase 5/R55 `TULinkFlushSourceSelector` work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkFlushSourceSelector`, `TULinkRecoveryCleanupPath`,
+  `TULinkFlushSequencePublisher`, `RecoveryCleanupControl`, `FlushControl`,
+  reduced ROB bookkeeping, trace-schema self-test, and Chisel QEMU dry-run
+  gates. The selector is the ROB/LSU source-selection boundary for T/U cleanup
+  sidebands; it is not the live row-storage owner. Non-base cleanup candidates
+  match by `(flush.bid, flush.rid, flush.stid)`, while base-on-BID cleanup does
+  not require a selected row source. If ROB and LSU both match the same
+  non-base cleanup row, their payloads must agree exactly; otherwise suppress
+  the selected source and let the recovery barrier block local T/U rename,
+  retire, and commit for the cycle. Keep live ROB/LSU `tSeq/uSeq` sidecars,
+  scalar GPR+T/U accepted-output composition, relation-cmap release policy,
+  ready-table mutation, and multi-PE/thread banking in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
