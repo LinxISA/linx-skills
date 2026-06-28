@@ -538,10 +538,23 @@ Toolchain facts from initial Chisel bring-up:
   from commit-trace fields. The relation-cmap command order is T pre-release
   before U pre-release, current destination mark before post-release, and
   pressure release after the fifth same-kind relation, matching
-  `SPEROB::CheckRelativeReg` and `SPEROB::ReleaseFunc`. Live wiring from the
-  ROB dealloc vector through a width-aware serializer into
-  `ScalarTURenameBridge.tuRetire*`, ready-table mutation, old T/U physical tag
-  release accounting, and multi-PE/thread banking remain later owner packets.
+  `SPEROB::CheckRelativeReg` and `SPEROB::ReleaseFunc`. Ready-table mutation,
+  old T/U physical tag release accounting, relation-cmap flush pruning, and
+  multi-PE/thread banking remain later owner packets.
+- Phase 5/R64 live relation-cmap retire wiring must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRetireCommandPath`, `TULinkRelationCmap`, `ScalarTURenameBridge`,
+  `DecodeRenameROBPath`, `ROBEntryBank`, `DispatchROBAllocator`,
+  `TULinkRename`, reduced ROB bookkeeping, trace-schema self-test, and Chisel
+  QEMU dry-run gates. Keep the ROB deallocation source serializer and
+  relation-cmap command acceptance as separate handshakes: `sourceWindowReady`
+  is full-window FIFO credit for ROB deallocation, while relation-cmap
+  `commandReady` must come from actual `TULinkRename.retireAccepted`, not a
+  predicted readiness condition. This preserves flush/commit priority inside
+  `TULinkRename` and prevents the relation-cmap from dropping a pending
+  mark/release command when maintenance wins the cycle. Preserve valid
+  no-destination block-last retire sources; they can still drain older T/U
+  relations even though they do not emit a current destination mark.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
