@@ -641,6 +641,18 @@ Toolchain facts from initial Chisel bring-up:
   ready low and expose a diagnostic until a later fanout owner explicitly
   selects or instantiates the matching STID banks across both SGPR hands and
   scalar PEs.
+- Phase 5/R71 selected-STID local block-commit fanout work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkLocalBlockCommitFanout`, `DecodeRenameROBPath`,
+  `TULinkRecoveryCleanupPath`, `ScalarTURenameBridge`,
+  `TULinkRetireCommandPath`, `TULinkRename`, `TULinkRelationCmap`,
+  `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB bookkeeping,
+  trace-schema self-test, Chisel QEMU dry-run, diff check, and LinxCoreModel
+  SHA gates. Preserve the model all-selected-PE fanout contract:
+  `ReportSGPRBlockCommit(bid, stid)` selects one STID, then updates both SGPR
+  hands for every scalar PE. A Chisel fanout owner must pulse downstream bank
+  valid only when every selected PE bank is ready; do not let a ready subset of
+  banks consume the post-clean block-commit event before the others.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
