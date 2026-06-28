@@ -62,6 +62,7 @@ bash tools/chisel/run_chisel_tests.sh --only STQCommitDrain
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitIngress
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge
 bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
+bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -296,6 +297,15 @@ Toolchain facts from initial Chisel bring-up:
   path. Keep DCache lookup/update, L2/CHI request/response state, SCB row free,
   MDB conflict prediction, store-to-load forwarding, and full STQ-to-SCB
   composition in later LSU owner packets.
+- Phase 5 `SCBLookupControl` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl`. This module
+  is the first abstract DCache/L2 outcome owner after `SCBEgressSelect`:
+  writable DCache hits emit byte-update and SCB-free intent, tag hits without
+  write permission emit upgrade ownership requests, tag misses emit write
+  ownership requests, and transaction tags use `(entryIndex << 2) | 2`.
+  Keep actual DCache RAM mutation, registered SCB row mutation,
+  WriteResp/UpgradeResp matching, MDB conflict prediction, store-to-load
+  forwarding, and full STQ-to-SCB composition in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -584,6 +594,10 @@ Confirmed in #linx-core (2026-02-25).
 - RTL egress selection must consider only model-valid SCB rows, prefer full
   cachelines, and replace the model's random not-full eviction with a
   deterministic choice before issuing a lookup descriptor.
+- DCache lookup control must preserve the model split between writable hit and
+  tag hit: writable hit updates/free locally; tag hit without write permission
+  sends an upgrade request; tag miss sends a write request; miss rows remain
+  resident until a later WriteResp/UpgradeResp returns them to lookup.
 - If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
 - Drain arbitration: **oldest SID first**.
 
