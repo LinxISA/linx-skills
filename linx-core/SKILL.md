@@ -451,9 +451,25 @@ Toolchain facts from initial Chisel bring-up:
   `STQ::mergeStore` and `STQueueEntryInfo::init`; do not overwrite them from a
   later complementary half. `StoreDispatchToSTQ` may drive disabled T/U
   sidecars until live T/U rename snapshots reach `StoreSplitIssuePayload`.
-  Keep top-level wiring into `TULinkRecoveryCleanupPath.lsuSource`, scalar
+  Keep reduced-backend cleanup composition, live STQ-wrapper wiring, scalar
   GPR+T/U accepted-output composition, relation-cmap release policy,
   ready-table mutation, and multi-PE/thread banking in later owner packets.
+- Phase 5/R59 `DecodeRenameROBPath` reduced T/U cleanup source-composition
+  work must run `sbt --client --error 'Test / compile'` plus affected
+  `DecodeRenameROBPath`, `TULinkRecoveryCleanupPath`,
+  `TULinkFlushSourceSelector`, `DispatchROBAllocator`, `StoreDispatchSTQPath`,
+  reduced ROB bookkeeping, trace-schema self-test, and Chisel QEMU dry-run
+  gates. The reduced backend may instantiate `TULinkRecoveryCleanupPath` as a
+  diagnostic composition point with rename, retire, and commit inputs tied
+  inactive until scalar and T/U rename state are merged. Drive
+  `TULinkRecoveryCleanupPath.robSource` from
+  `DispatchROBAllocator.robTULinkSource` and expose an external
+  `lsuTULinkSource` input for the future STQ wrapper producer. The emitted
+  diagnostics must prove whether ROB and LSU candidates agree for the same
+  `(bid,rid,stid)`, whether one matching source was selected, or whether
+  cleanup was blocked by a missing or conflicting source. Keep wiring from
+  `StoreDispatchSTQPath`/`STQSCBCommitPath` into that input and live T/U state
+  mutation from the publisher outputs in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
