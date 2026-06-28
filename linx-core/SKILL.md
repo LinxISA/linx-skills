@@ -49,6 +49,7 @@ bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow
 bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer
 bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress
 bash tools/chisel/run_chisel_tests.sh --only ROBID
+bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -151,6 +152,14 @@ Toolchain facts from initial Chisel bring-up:
   `CommitTraceRow` rows in commit slot order. Full flush rebasing, deallocation,
   rename cleanup, LSU/STQ side effects, and precise trap ownership remain
   deferred to integrated ROB/CMT.
+- Phase 5 integrated ROB/CMT work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus` before adding
+  ROB entry-bank state. Preserve the LinxCoreModel `PROBStatus` order:
+  `Free=0`, `Allocated=1`, `Renamed=2`, `Issued=3`, `Completed=4`,
+  `Retired=5`, `Fault=6`, `NeedFlush=7`. Commit consumes only `Completed`
+  rows and changes them to `Retired`; deallocation consumes only `Retired`
+  rows and changes them to `Free`. Do not collapse the two walks into one
+  status transition.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
