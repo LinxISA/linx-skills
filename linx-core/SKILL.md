@@ -68,6 +68,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
+bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -362,6 +363,22 @@ Toolchain facts from initial Chisel bring-up:
   `record_lu_mdb_q`, `delete_lu_mdb_q`, store wakeup, byte forwarding, BCTRL
   `bmdb`, IEX-local MDB, ROB nuke retirement, and final `FlushReq`
   publication in later owner packets.
+- Phase 5 `MDBSSIT` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only MDBSSIT`. This module is the
+  first state owner for the model MDB Store Set ID Table: apply lookup, delete,
+  and record commands in `MDB::Work` order; suppress only the first lookup on
+  the recorded nuke BID; require both confidence and weight gates before a
+  lookup stalls; reinforce same-store conflicts by raising confidence and
+  saturating weight; replace different-store conflicts only when confidence is
+  low or the new store is closer by `(bid offset, lsID offset)`; otherwise
+  decrement confidence. Delete releases an entry only when weight is already
+  zero, otherwise it decays weight and reports when the row drops below the
+  stall threshold. Chisel must initialize first-insert `lsID_off`
+  deterministically even though the C++ miss path leaves it implicit, and it
+  must report finite-table overflow rather than silently inventing replacement.
+  Keep lookup/record/delete queue wrappers, `StoreUnit::mdbCheck` wakeup, LDQ
+  `updateMDBInfo`, BCTRL `bmdb`, IEX-local MDB, byte forwarding, ROB nuke
+  retirement, and final `FlushReq` publication in later owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
