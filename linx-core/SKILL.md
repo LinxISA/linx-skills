@@ -57,6 +57,7 @@ bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator
 bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
+bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
 bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
@@ -169,6 +170,20 @@ Toolchain facts from initial Chisel bring-up:
   `src/common/decode.py`. Keep LSID allocation, D2 queueing, block header
   mutation, store split rewrite, T/U/SGPR/tile/vector operand classes,
   shift/source-type sidebands, and rename/ROB admission in later owners.
+- Phase 5/R41 `ScalarDecodeRenameBridge` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge` plus
+  affected `GPRRenameCheckpoint`, `FrontendDecodeStage`,
+  `DispatchROBAllocator`, and reduced ROB bookkeeping gates. This bridge is
+  the first D2 decode-to-rename staging owner: consume one `DecodedUop`, map
+  scalar GPR sources through `GPRRenameCheckpoint`, optionally allocate one
+  scalar GPR destination, emit a `RenamedUop`, and emit the matching
+  `CommitTraceRow` allocation request for ROB/BROB allocation. Keep
+  `dec_ren_q` registration, width-wide rename, automatic `isLastInBlock`
+  checkpoint capture, ready-table initialization, LSID allocation, store split
+  rewrite, T/U/SGPR/tile/vector rename, live top wiring, and commit side
+  effects in later owners. The bridge must reject reg6 scalar aliases outside
+  the 24-entry model GPR namespace, including fixed compressed tags 24 and 31,
+  until a later operand-classification owner maps those aliases explicitly.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -681,6 +696,10 @@ GPR rename cleanup.
   tag surfaces in dispatch/decode must be narrowed or decoded by the owner that
   handles invalid/T/U/SGPR aliases; do not silently treat those aliases as
   scalar GPRs.
+- `ScalarDecodeRenameBridge` is the first Chisel consumer that enforces this
+  boundary. It accepts only scalar GPR tags `0..23` for `OperandClass.P` /
+  `DestinationKind.Gpr`, rejects fixed compressed aliases such as reg6 `24` and
+  `31`, and reports the rejection instead of allocating a physical tag.
 - Reset state is identity for `smap` and `cmap`, with physical tags above the
   identity GPR range marked free.
 - Checkpoint capture copies the current speculative map into the slot indexed
@@ -704,6 +723,7 @@ GPR rename cleanup.
   later packets.
 - Focused gates for changes touching this owner:
   `bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint`,
+  `bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge`,
   `bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl`,
   `bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge`,
   `bash tools/chisel/run_chisel_tests.sh --only ROBID`, and
