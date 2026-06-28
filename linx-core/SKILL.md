@@ -63,6 +63,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBCommitIngress
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge
 bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
 bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
+bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -306,6 +307,16 @@ Toolchain facts from initial Chisel bring-up:
   Keep actual DCache RAM mutation, registered SCB row mutation,
   WriteResp/UpgradeResp matching, MDB conflict prediction, store-to-load
   forwarding, and full STQ-to-SCB composition in later LSU owner packets.
+- Phase 5 `SCBStateUpdate` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate`. This module
+  is the first SCB row-state transition owner after `SCBLookupControl`:
+  same-cycle accepted hit/miss masks are legal for a current `S_VALID` row,
+  writable hits clear rows, non-writable lookups move rows to `S_MISS`, and
+  decoded WriteResp/UpgradeResp targets must name valid `S_MISS` rows before
+  returning to `S_LOOKUP`. Keep raw CHI TxnID decode, registered row-bank
+  storage, ingress/egress arbitration, DCache RAM mutation, L2/CHI queues, MDB
+  conflict prediction, store-to-load forwarding, and full STQ-to-SCB
+  composition in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -598,6 +609,12 @@ Confirmed in #linx-core (2026-02-25).
   tag hit: writable hit updates/free locally; tag hit without write permission
   sends an upgrade request; tag miss sends a write request; miss rows remain
   resident until a later WriteResp/UpgradeResp returns them to lookup.
+- SCB row-state update must preserve the model lookup/response lifecycle:
+  selected `S_VALID` rows can move to `S_LOOKUP`, same-cycle writable hits
+  clear rows, same-cycle or registered non-writable lookups move rows to
+  `S_MISS`, and WriteResp/UpgradeResp decode may return only valid `S_MISS`
+  rows to `S_LOOKUP`; report illegal response targets rather than silently
+  freeing or reusing the row.
 - If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
 - Drain arbitration: **oldest SID first**.
 
