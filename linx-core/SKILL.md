@@ -598,6 +598,20 @@ Toolchain facts from initial Chisel bring-up:
   `sourceDequeued`, or ROB commit, and do not include the auto-clean pending
   latch in the retire-command `commandReady` block condition; that would
   deadlock the mark/release stream it is waiting for.
+- Phase 5/R68 scalar local block-commit event work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRetireCommandPath`, `DecodeRenameROBPath`, `TULinkRelationCmap`,
+  `TULinkRename`, `ScalarTURenameBridge`, `ROBEntryBank`,
+  `DispatchROBAllocator`, reduced ROB bookkeeping, trace-schema self-test,
+  Chisel QEMU dry-run, diff check, and LinxCoreModel SHA gates. Preserve the
+  model order `ReleaseRelative` commands, scalar `CleanCMAP`, then
+  `ReportLocalRegBlockCommit`: the post-clean local block-commit event is a
+  separate ready/valid boundary for the future SGPR local-register owner, not
+  a T/U rename `commitValid` pulse and not an SGPR mutation inside the
+  relation-cmap owner. While the local commit event is pending, block later ROB
+  deallocation-source admission until the event is accepted or recovery
+  prunes it, but do not feed that pending state into retire-command
+  `commandReady`.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
