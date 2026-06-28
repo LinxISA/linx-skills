@@ -59,6 +59,9 @@ bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only TULinkRename
+bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSequencePublisher
+bash tools/chisel/run_chisel_tests.sh --only TULinkRecoveryCleanupPath
+bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSourceSelector
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
@@ -414,6 +417,25 @@ Toolchain facts from initial Chisel bring-up:
   retire, and commit for the cycle. Keep live ROB/LSU `tSeq/uSeq` sidecars,
   scalar GPR+T/U accepted-output composition, relation-cmap release policy,
   ready-table mutation, and multi-PE/thread banking in later owner packets.
+- Phase 5/R56 `ROBEntryBank` T/U source-sidecar work must run
+  `sbt --client --error 'Test / compile'` plus affected `InterfaceBundles`,
+  `ROBEntryBank`, `DispatchROBAllocator`, `DecodeRenameROBPath`,
+  `TULinkFlushSourceSelector`, `TULinkRecoveryCleanupPath`,
+  `TULinkFlushSequencePublisher`, `RecoveryCleanupControl`, `FlushControl`,
+  reduced ROB bookkeeping, trace-schema self-test, and Chisel QEMU dry-run
+  gates. The row owner must store `stid`, row-owned `tSeq/uSeq`, and
+  T/U destination class at allocation, then publish `robTULinkSource` only for
+  an exact non-base `(flush.bid, flush.rid, flush.stid)` match. Base-on-BID
+  cleanup must publish no local sequence source. The source payload must come
+  from row sidecars captured from the rename snapshot, not from
+  `CommitTraceRow.identity`, row index, or default zero sequences. Flush and
+  deallocation must clear the sidecars with the row. `DispatchROBAllocator`
+  may forward these sidecars, but reduced `DecodeRenameROBPath` must keep its
+  zero/invalid defaults explicit until a T/U rename composition owner drives
+  `SPERename`-equivalent snapshots before T/U destination rename. Keep LSU/STQ
+  source sidecars, selector-to-cleanup composition, scalar GPR+T/U
+  accepted-output composition, relation-cmap release policy, ready-table
+  mutation, and multi-PE/thread banking in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
