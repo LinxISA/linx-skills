@@ -326,7 +326,10 @@ Toolchain facts from initial Chisel bring-up:
   candidate can insert, STD must be allowed to bypass; this preserves the model
   progress case where a full STQ rejects a new address allocation while still
   accepting a complementary data half merge. Do not force the R48 atomic
-  rename-time split pair to enter STQ atomically.
+  rename-time split pair to enter STQ atomically. R61 makes this bridge a
+  preservation owner for row-owned T/U sidecars: copy `tSeq/uSeq` and
+  `tuDst*` from `StoreSplitIssuePayload` into `STQStoreRequest`; do not
+  re-disable those fields in the bridge.
 - Phase 5/R50 `STQInsertProbe` / `StoreDispatchSTQPath` work must run
   `sbt --client --error 'Test / compile'` plus affected `STQInsertProbe`,
   `StoreDispatchSTQPath`, `StoreDispatchToSTQ`, `StoreDispatchQueues`,
@@ -449,8 +452,9 @@ Toolchain facts from initial Chisel bring-up:
   model LSU `(bid, lsId)` recovery rule. Split-store merge must preserve the
   first row's T/U source sidecars while filling address/data readiness, matching
   `STQ::mergeStore` and `STQueueEntryInfo::init`; do not overwrite them from a
-  later complementary half. `StoreDispatchToSTQ` may drive disabled T/U
-  sidecars until live T/U rename snapshots reach `StoreSplitIssuePayload`.
+  later complementary half. `StoreDispatchToSTQ` must preserve sidecars from
+  `StoreSplitIssuePayload`; the reduced backend may drive disabled payload
+  sidecar inputs until live T/U rename snapshots are composed.
   Keep reduced-backend cleanup composition, live STQ-wrapper wiring, scalar
   GPR+T/U accepted-output composition, relation-cmap release policy,
   ready-table mutation, and multi-PE/thread banking in later owner packets.
@@ -483,9 +487,26 @@ Toolchain facts from initial Chisel bring-up:
   `TULinkRecoveryCleanupPath.lsuSource` from the live
   `StoreDispatchSTQPath.lsuTULinkSource` output, and expose enough STQ insert,
   occupancy, flush, and source diagnostics to prove the source came from the
-  STQ bank. Keep live `tSeq/uSeq` and T/U destination sidecars through
-  `StoreSplitIssuePayload` / `StoreDispatchToSTQ`, and live T/U state mutation
-  from cleanup publisher outputs, in later owner packets.
+  STQ bank. Keep live T/U producer wiring into `StoreSplitPayload`, and live
+  T/U state mutation from cleanup publisher outputs, in later owner packets.
+- Phase 5/R61 store-dispatch T/U sidecar carry work must run
+  `sbt --client --error 'Test / compile'` plus affected `StoreSplitPayload`,
+  `StoreDispatchQueues`, `StoreDispatchToSTQ`, `StoreDispatchSTQPath`,
+  `DecodeRenameROBPath`, `STQEntryBank`, `TULinkRecoveryCleanupPath`,
+  `TULinkFlushSourceSelector`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, trace-schema self-test, Chisel QEMU dry-run, and top xcheck
+  gates. `SPERename::Rename` snapshots `tSeq/uSeq` before T/U destination
+  rename, `SPERename::InsertToStoreIEX` clones stores after that snapshot, and
+  `MemReqBus` carries the sequence sidecars through LSU/STQ cleanup. Preserve
+  those row-owned sidecars through every split/queue/bridge owner: add them to
+  `StoreSplitIssuePayload`, copy them to valid STA/STD/ST_ALL payloads,
+  preserve them in `StoreDispatchQueues`, and copy them into
+  `STQStoreRequest`. Invalid payloads should expose disabled sidecars, and a
+  false `tuDstValid` must force `DestinationKind.None`. The reduced
+  `DecodeRenameROBPath` may still drive the new `StoreSplitPayload` sidecar
+  inputs disabled until `TULinkRename` is composed with scalar rename; do not
+  mistake that reduced producer default for permission to discard sidecars in
+  lower owners.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
