@@ -60,6 +60,7 @@ bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
+bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
@@ -206,7 +207,7 @@ Toolchain facts from initial Chisel bring-up:
   reduced memory-order ID owner, R46 adds the renamed store payload split
   owner, and R47 connects generated store metadata plus reduced store-dispatch
   handoff; keep width-wide rename, enqueue-time ROB reservation, full
-  `load_id`/`sid` payload carry, real STA/STD queue mutation, automatic
+  `load_id`/`sid` payload carry, STA/STD execution, STQ mutation, automatic
   checkpoint capture, ready-table initialization,
   T/U/SGPR/tile/vector operands, full block retire, and live top-level commit
   rows in later owner packets.
@@ -265,8 +266,9 @@ Toolchain facts from initial Chisel bring-up:
   PCR STA payloads preserve source 0 and use store data source index 1; pair
   and cache-maintain stores remain single `ST_ALL` payloads. This owner must
   not allocate or mutate STQ/SCB/MDB state. R47 integrates it behind the
-  reduced decode/rename/ROB path for payload observability only; real STA/STD
-  queues and STQ residency remain later owners.
+  reduced decode/rename/ROB path for payload observability only; R48 adds the
+  finite STA/STD dispatch queues, while STA/STD execution and STQ residency
+  remain later owners.
 - Phase 5/R47 generated store metadata / reduced store-dispatch handoff work
   must run `sbt --client --error 'Test / compile'` plus affected
   `FrontendDecodeStage`, `DecodeLoadStoreIdAssign`, `StoreSplitPayload`,
@@ -284,6 +286,25 @@ Toolchain facts from initial Chisel bring-up:
   renamed row and emits STA/STD/ST_ALL payload observability. Do not create a
   ready/valid loop through the splitter, and do not allocate or mutate
   STQ/SCB/MDB state in this reduced path.
+- Phase 5/R48 `StoreDispatchQueues` / queue-backed store-dispatch handoff work
+  must run `sbt --client --error 'Test / compile'` plus affected
+  `StoreDispatchQueues`, `DecodeRenameROBPath`, `StoreSplitPayload`,
+  `DecodeLoadStoreIdAssign`, `ScalarDecodeRenameBridge`, `DecodeRenameQueue`,
+  `STQEntryBank`, `InterfaceBundles`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, top xcheck, `run_chisel_qemu_crosscheck.sh --dry-run`,
+  `build_chisel.sh`, and `run_chisel_verilator_lint.sh` gates.
+  `StoreDispatchQueues` is the finite queue owner for the model
+  `pe_iex_sta_array`/`pe_iex_std_array` dispatch boundary behind scalar
+  rename. Its `staReady` and `stdReady` are capacity-only and flush-qualified;
+  they must not depend on `staIn/stdIn/unsplitIn.valid` or on protocol-error
+  diagnostics, because those payload-valid bits are produced by
+  `StoreSplitPayload` from accepted rename output. Protocol-shape errors must
+  remain observable and suppress enqueue, but not feed upstream readiness.
+  Split stores enqueue STA and STD atomically or enqueue neither; unsplit
+  stores enqueue only the STA-side `ST_ALL` queue. Do not compute address/data,
+  allocate STQ rows, or mutate STQ/SCB/MDB state in this queue owner. Future
+  store-execution packets must consume queue heads and build executed STQ
+  insert requests rather than moving queue or STQ state back into rename.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
