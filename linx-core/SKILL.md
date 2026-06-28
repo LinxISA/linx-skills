@@ -32,6 +32,44 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_coremark_crosscheck_1000.sh
 bash /Users/zhoubot/linx-isa/rtl/LinxCore/tests/test_cbstop_inflation_guard.sh
 ```
 
+## Chisel lane bring-up gates
+
+For the Chisel replacement lane under `rtl/LinxCore/chisel`, use the repo-local
+wrappers rather than invoking `sbt` directly. The wrappers source
+`tools/chisel/chisel_env.sh`, which prefers Homebrew `openjdk@17` when
+`JAVA_HOME` is unset.
+
+Current Phase 0/0B gate sequence:
+
+```bash
+cd /Users/zhoubot/linx-isa/rtl/LinxCore
+bash tools/chisel/build_chisel.sh
+bash tools/chisel/run_chisel_tests.sh --only ROBID
+bash tools/chisel/run_chisel_tests.sh --only FlushControl
+bash tools/chisel/run_chisel_tests.sh --only BROB
+bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
+bash tools/chisel/run_chisel_verilator_lint.sh
+python3 tools/chisel/trace_schema_adapter.py --self-test
+bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
+```
+
+Toolchain facts from initial Chisel bring-up:
+
+- Homebrew `openjdk@17` works with the wrappers.
+- Homebrew `sbt` 2.0.0 works when the project uses Scala `2.13.17`.
+- Chisel is pinned to `7.3.0` in `chisel/build.sbt`.
+- Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
+  and ROBID bookkeeping invocation hit an SBT 2 server socket
+  `Connection refused` race, while the same gates pass sequentially.
+- Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
+  order: different `stid` never compares; same-BID BID-based priority resolves
+  before PE-replay special cases; same non-BID BID/RID conflicts resolve before
+  generic age; PE-vs-PE age only compares within one PE.
+- Packet C BROB/BID work must preserve the hardware BID contract: default BID
+  is 64 bits, 128-entry slot id is `bid[6:0]`, uniqueness/age is `bid[63:7]`,
+  `cmd_tag` is `bid[7:0]`, and BID flush keeps `bid <= flush_bid` while killing
+  `bid > flush_bid` using full BID order.
+
 Coordination requirements:
 
 - Architecture-visible changes must coordinate with `linx-isa`.
