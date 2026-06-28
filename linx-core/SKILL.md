@@ -70,6 +70,7 @@ bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
 bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
 bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout
+bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -394,6 +395,18 @@ Toolchain facts from initial Chisel bring-up:
   row has both address and data ready. Keep LDQ row mutation, STQ row PC
   sidecar integration, byte forwarding, ROB nuke retirement, and final
   `FlushReq` publication in later owner packets.
+- Phase 5 `LoadStoreForwarding` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding`. This
+  module is the first scalar store-to-load byte selector behind
+  `STQ::lookupForLoad`: build the clipped 64-byte load mask, filter same-line
+  scalar stores older than or equal to the load's allocation snapshot, select
+  the nearest older store per byte, forward only data-ready selected bytes, and
+  report a wait/replay mask when the selected store for any requested byte is
+  not data-ready. It may merge forwarded bytes over cache data, but it must not
+  mutate STQ rows, LDQ wait-store state, MDB state, DCache/SCB state, recovery
+  publication, or memory-event trace. Later LIQ/LHQ/STQ integration may
+  pipeline the E2 CAM, E3 merge, and E4 wakeup stages, but must preserve this
+  per-byte nearest-store result.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
