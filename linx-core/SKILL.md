@@ -69,6 +69,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
 bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
+bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -379,6 +380,20 @@ Toolchain facts from initial Chisel bring-up:
   Keep lookup/record/delete queue wrappers, `StoreUnit::mdbCheck` wakeup, LDQ
   `updateMDBInfo`, BCTRL `bmdb`, IEX-local MDB, byte forwarding, ROB nuke
   retirement, and final `FlushReq` publication in later owner packets.
+- Phase 5 `MDBQueueFanout` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout`. This module
+  is the first queue-boundary owner around `MDBSSIT`: own finite
+  `lookup_lu_mdb_q`, `delete_lu_mdb_q`, `record_lu_mdb_q`,
+  `lookup_mdb_lu_q`, and `lookup_mdb_su_q` equivalents; fan each lookup result
+  atomically to both LU and SU outputs; and freeze delete/record phases behind
+  a pending lookup when finite output backpressure prevents that atomic fanout.
+  Accepted records may publish BMDB report intent, but BCTRL/IEX MDB table
+  mutation remains outside this queue owner. The store-side MDB wakeup path
+  must scan the STQ row view in row order, ignore tile rows, match the
+  predicted store by `(bid, pc)`, and emit wakeup only when the first matching
+  row has both address and data ready. Keep LDQ row mutation, STQ row PC
+  sidecar integration, byte forwarding, ROB nuke retirement, and final
+  `FlushReq` publication in later owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
