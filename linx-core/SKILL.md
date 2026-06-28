@@ -236,9 +236,12 @@ Toolchain facts from initial Chisel bring-up:
   the first STQ row-state owner: allocate first-free store rows, merge
   complementary `ST_ADDR`/`ST_DATA` halves into `ST_ALL`, track resident
   `size` and WAIT/outstanding `osdSize`, mark local ready WAIT rows as
-  `STQ_COMMIT`, free committed rows only by explicit command, and apply
-  `STQFlushPrune.freeMask` to clear matched WAIT rows. Keep `storeCommitQ`
-  ordering, SCB/MDB handoff, cacheline split handling, data-array banking, load
+  `STQ_COMMIT`, free committed rows only by explicit single-index or multi-row
+  mask command, and apply `STQFlushPrune.freeMask` to clear matched WAIT rows.
+  Multi-row committed free is the bank-side target for `STQCommitQueue` issue
+  lanes: accepted committed rows decrement resident `size` once per row, and
+  WAIT/outstanding `osdSize` is unchanged. Keep `storeCommitQ` ordering,
+  SCB/MDB handoff, cacheline split handling, data-array banking, load
   forwarding, and LSID rebasing in later LSU owners.
 - Phase 5 `STQCommitQueue` work must run
   `bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue`. This module
@@ -246,9 +249,10 @@ Toolchain facts from initial Chisel bring-up:
   committed: keep committed row indices sorted by `(bid, lsId)` using
   wrap-aware `ROBID` order, issue up to the configured commit width, skip
   downstream-stalled rows while preserving them in the queue, and compact issued
-  rows. Keep SCB/MDB handoff, cacheline split handling, TTrans/tile side
-  effects, BSB window slide, data-array banking, load forwarding, and
-  committed-row free integration in later LSU owners.
+  rows. Drive `STQEntryBank.commitFreeMask` only after memory-side issue
+  succeeds. Keep SCB/MDB handoff, cacheline split handling, TTrans/tile side
+  effects, BSB window slide, data-array banking, and load forwarding in later
+  LSU owners.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
