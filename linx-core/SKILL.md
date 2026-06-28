@@ -61,6 +61,7 @@ bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
+bash tools/chisel/run_chisel_tests.sh --only StoreDispatchToSTQ
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
@@ -305,6 +306,21 @@ Toolchain facts from initial Chisel bring-up:
   allocate STQ rows, or mutate STQ/SCB/MDB state in this queue owner. Future
   store-execution packets must consume queue heads and build executed STQ
   insert requests rather than moving queue or STQ state back into rename.
+- Phase 5/R49 `StoreDispatchToSTQ` request-bridge work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `StoreDispatchToSTQ`, `StoreDispatchQueues`, `STQEntryBank`,
+  `StoreSplitPayload`, `DecodeRenameROBPath`, `InterfaceBundles`, reduced ROB
+  bookkeeping, top xcheck, `run_chisel_qemu_crosscheck.sh --dry-run`,
+  `build_chisel.sh`, and `run_chisel_verilator_lint.sh` gates.
+  `StoreDispatchToSTQ` consumes queue heads only after explicit STA/STD
+  execution results are valid and forms typed `STQStoreRequest` rows. It must
+  keep address generation and store-data selection outside the bridge. When
+  both executed candidates can insert, STA wins, matching the model's STA
+  phase before STD phase. If a present STA candidate cannot insert but the STD
+  candidate can insert, STD must be allowed to bypass; this preserves the model
+  progress case where a full STQ rejects a new address allocation while still
+  accepting a complementary data half merge. Do not force the R48 atomic
+  rename-time split pair to enter STQ atomically.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
