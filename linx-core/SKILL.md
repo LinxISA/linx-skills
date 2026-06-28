@@ -51,6 +51,7 @@ bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
+bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -85,6 +86,11 @@ Toolchain facts from initial Chisel bring-up:
   `CommitTraceRow` rows in commit slot order. Full flush rebasing, deallocation,
   rename cleanup, LSU/STQ side effects, and precise trap ownership remain
   deferred to integrated ROB/CMT.
+- `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
+  proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
+  Verilator harness, writes nested Chisel commit JSONL including an invalid
+  fixed-width slot, normalizes through `trace_schema_adapter.py`, and requires
+  zero mismatches against the QEMU-shaped reference trace.
 
 Coordination requirements:
 
