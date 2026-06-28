@@ -48,7 +48,9 @@ bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
+bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
+bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -77,6 +79,12 @@ Toolchain facts from initial Chisel bring-up:
 - Fixed-width Chisel commit trace dumps may include invalid slots, but
   `tools/chisel/trace_schema_adapter.py` must filter `valid: 0` rows before
   sequence numbering and QEMU comparison.
+- Reduced ROB harness work must preserve the LinxCoreModel commit walk: retire
+  only contiguous completed rows from the head, stop on the first invalid or
+  incomplete head, reject duplicate live `(bid,gid,rid)` identities, and emit
+  `CommitTraceRow` rows in commit slot order. Full flush rebasing, deallocation,
+  rename cleanup, LSU/STQ side effects, and precise trap ownership remain
+  deferred to integrated ROB/CMT.
 
 Coordination requirements:
 
