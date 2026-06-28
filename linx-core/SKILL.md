@@ -584,6 +584,20 @@ Toolchain facts from initial Chisel bring-up:
   from ROB commit or raw deallocation acceptance because serialized
   `TULinkRelationCmap` mark/release commands for the block-last source must be
   accepted first.
+- Phase 5/R67 scalar `CleanCMAP` scheduling work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRetireCommandPath`, `DecodeRenameROBPath`, `TULinkRelationCmap`,
+  `TULinkRename`, `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, trace-schema self-test, Chisel QEMU dry-run, diff check, and
+  LinxCoreModel SHA gates. Preserve the model order by latching the BID of the
+  accepted block-last retire source, blocking later ROB deallocation-source
+  admission while scalar block clean is pending, allowing existing
+  relation-cmap mark/release commands to keep draining, and pulsing exact-BID
+  `CleanCMAP` only after `pendingMark` and post-release state clear. Do not
+  trigger scalar block clean directly from `deallocBlockLast*`,
+  `sourceDequeued`, or ROB commit, and do not include the auto-clean pending
+  latch in the retire-command `commandReady` block condition; that would
+  deadlock the mark/release stream it is waiting for.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
