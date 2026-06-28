@@ -66,6 +66,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
 bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
+bash tools/chisel/run_chisel_tests.sh --only SCBResponseBuffer
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
 bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
@@ -355,6 +356,15 @@ Toolchain facts from initial Chisel bring-up:
   queue arbitration, DCache RAM mutation, MDB conflict prediction,
   store-to-load forwarding, BSB window-slide side effects, and memory-event
   trace in later LSU owner packets.
+- Phase 5 `SCBResponseBuffer` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBResponseBuffer` plus
+  affected `SCBResponseDecode`, `SCBRowBank`, and `STQSCBCommitPath` gates.
+  This module is the raw L2/CHI response FIFO boundary in front of
+  `SCBResponseDecode`: preserve FIFO order and ready/valid backpressure,
+  expose only the head to decode, and dequeue a head only after decode reports
+  a legal valid-`S_MISS` target. Keep the model `resp_list` retry-priority path,
+  DCache RAM mutation, MDB conflict prediction, store-to-load forwarding, BSB
+  window-slide side effects, and memory-event trace in later LSU owner packets.
 - Phase 5 `MDBConflictDetect` work must run
   `bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect`. This module
   is the first store-arrival conflict classifier behind model `detect_su_lu_q`:
@@ -778,6 +788,10 @@ Confirmed in #linx-core (2026-02-25).
   `S_MISS` before `SCBStateUpdate` may return it to `S_LOOKUP`. Wrong type,
   wrong low-bit tag, out-of-range index, and stale non-`S_MISS` targets are
   errors, not implicit drops or frees.
+- Raw SCB response buffering must preserve the model response-queue boundary:
+  keep FIFO order and backpressure in front of `SCBResponseDecode`, present
+  only the FIFO head to decode, and retain illegal or stale heads so decode
+  continues to report the failing target instead of silently dropping it.
 - Registered SCB row-bank composition must use pre-cycle free count for the
   model batch admission gate. Same-cycle writable-hit frees do not admit new
   committed-store fragments in that cycle, but accepted ingress may be visible
