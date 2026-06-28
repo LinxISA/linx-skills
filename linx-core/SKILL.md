@@ -188,9 +188,12 @@ Toolchain facts from initial Chisel bring-up:
   row in `flushPruneMask`; decrement resident and outstanding counts with the
   selector outputs; rebase `allocPtr` to the first pruned row; and rebase
   `commitPtr` when the selector reports a pruned-before-commit row or the flush
-  leaves no outstanding work. Keep native backend ROBID row metadata as the
-  next integration step; the current skeleton's 32-bit identity-sideband bridge
-  is not a final full-core contract.
+  leaves no outstanding work.
+- `ROBEntryBank` flush comparison must use native row BID/RID sidecars, not
+  `CommitTraceRow.identity` sidebands. `allocBid` is supplied by the
+  backend/BROB owner and stored in `rowBid`; RID is allocated locally from the
+  bank allocation pointer and stored in `rowRid`. `CommitTraceRow.identity`
+  remains the trace and duplicate-detection sideband.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
