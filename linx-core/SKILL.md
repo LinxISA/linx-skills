@@ -59,6 +59,7 @@ bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only TULinkRename
+bash tools/chisel/run_chisel_tests.sh --only TULinkRelationCmap
 bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSequencePublisher
 bash tools/chisel/run_chisel_tests.sh --only TULinkRecoveryCleanupPath
 bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSourceSelector
@@ -522,6 +523,25 @@ Toolchain facts from initial Chisel bring-up:
   sidecar. Keep relation-cmap release/deallocation, old T/U physical tag
   release accounting, ready-table mutation, and multi-PE/thread banking in
   later owner packets.
+- Phase 5/R63 relation-cmap retire-source work must run
+  `sbt --client --error 'Test / compile'` plus affected `InterfaceBundles`,
+  `TULinkRelationCmap`, `ROBEntryBank`, `DispatchROBAllocator`,
+  `DecodeRenameROBPath`, reduced ROB bookkeeping, trace-schema self-test, QEMU
+  dry-run, and LinxCoreModel SHA gates. Preserve the model `SPEROB` split:
+  ROB deallocation publishes width-wide row-owned retire sources, while
+  `TULinkRelationCmap` serializes those sources into mark-before-release
+  commands for `TULinkRename.retire*`. Do not collapse the ROB deallocation
+  vector into a single command before a serializer consumes it; otherwise a
+  `commitWidth > 1` dealloc cycle can drop T/U release work. Retire sources
+  must preserve native `bid/gid/rid`, `isLast`, `stid`, row-owned `tSeq/uSeq`,
+  and T/U destination ownership as sidecars rather than reconstructing them
+  from commit-trace fields. The relation-cmap command order is T pre-release
+  before U pre-release, current destination mark before post-release, and
+  pressure release after the fifth same-kind relation, matching
+  `SPEROB::CheckRelativeReg` and `SPEROB::ReleaseFunc`. Live wiring from the
+  ROB dealloc vector through a width-aware serializer into
+  `ScalarTURenameBridge.tuRetire*`, ready-table mutation, old T/U physical tag
+  release accounting, and multi-PE/thread banking remain later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
