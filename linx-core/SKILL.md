@@ -71,6 +71,7 @@ bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
 bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
 bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout
 bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding
+bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -407,6 +408,17 @@ Toolchain facts from initial Chisel bring-up:
   publication, or memory-event trace. Later LIQ/LHQ/STQ integration may
   pipeline the E2 CAM, E3 merge, and E4 wakeup stages, but must preserve this
   per-byte nearest-store result.
+- Phase 5 `LoadForwardPipeline` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
+  module is the first registered E2/E3/E4 wrapper around
+  `LoadStoreForwarding`: instantiate the selector in E2, register masks and
+  merged data to E3, form final byte-valid state in E4, classify
+  store-data-not-ready, data-incomplete, source-wait, and return-port-wait
+  outcomes, and assert wakeup only when data is complete, source responses have
+  returned, no wait-store byte remains, and the return slot is ready. Keep
+  LIQ/LHQ/LDQ row mutation, STQ/SCB/MDB mutation, ready-table updates,
+  issue-wakeup fanout, response queues, and memory-event trace in later owner
+  packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
