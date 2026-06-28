@@ -61,6 +61,7 @@ bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
 bash tools/chisel/run_chisel_tests.sh --only STQCommitDrain
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitIngress
 bash tools/chisel/run_chisel_tests.sh --only SCBCommitBridge
+bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -286,6 +287,15 @@ Toolchain facts from initial Chisel bring-up:
   descriptors with `last=1`. Keep SCB eviction, DCache/L2/CHI request/response
   handling, MDB conflict prediction, store-to-load forwarding, and full
   STQ-to-SCB composition in later LSU owner packets.
+- Phase 5 `SCBEgressSelect` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect`. This module
+  is the first SCB egress-selection owner after `SCBCommitBridge`: use
+  `SCBEntryState` to mirror model `S_EMPTY/S_VALID/S_LOOKUP/S_MISS`, consider
+  only valid rows for lookup issue, prefer full valid rows, and use a
+  deterministic first-valid not-full fallback for the model's random eviction
+  path. Keep DCache lookup/update, L2/CHI request/response state, SCB row free,
+  MDB conflict prediction, store-to-load forwarding, and full STQ-to-SCB
+  composition in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -571,6 +581,9 @@ Confirmed in #linx-core (2026-02-25).
 ### Coalescing + ordering constraints
 
 - Do not merge additional writes into an SCB entry that has already issued a CHI request and is awaiting WriteResp.
+- RTL egress selection must consider only model-valid SCB rows, prefer full
+  cachelines, and replace the model's random not-full eviction with a
+  deterministic choice before issuing a lookup descriptor.
 - If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
 - Drain arbitration: **oldest SID first**.
 
