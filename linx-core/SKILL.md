@@ -58,6 +58,7 @@ bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
 bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
+bash tools/chisel/run_chisel_tests.sh --only STQCommitDrain
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -241,7 +242,7 @@ Toolchain facts from initial Chisel bring-up:
   Multi-row committed free is the bank-side target for `STQCommitQueue` issue
   lanes: accepted committed rows decrement resident `size` once per row, and
   WAIT/outstanding `osdSize` is unchanged. Keep `storeCommitQ` ordering,
-  SCB/MDB handoff, cacheline split handling, data-array banking, load
+  memory-side request acceptance, SCB/MDB handoff, data-array banking, load
   forwarding, and LSID rebasing in later LSU owners.
 - Phase 5 `STQCommitQueue` work must run
   `bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue`. This module
@@ -253,6 +254,17 @@ Toolchain facts from initial Chisel bring-up:
   succeeds. Keep SCB/MDB handoff, cacheline split handling, TTrans/tile side
   effects, BSB window slide, data-array banking, and load forwarding in later
   LSU owners.
+- Phase 5 `STQCommitDrain` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only STQCommitDrain`. This module is
+  the first memory-side committed-store drain boundary after `STQCommitQueue`:
+  compute row readiness from committed STQ row sidecars plus downstream
+  single- or split-segment acceptance, emit one or two scalar memory request
+  descriptors using the model `AddrCrossCacheline` / `GetCrossReq` split
+  contract, preserve queue skip-around-stall behavior, and drive
+  `STQEntryBank.commitFreeMask` only for rows selected after segment
+  acceptance. Keep SCB/MDB storage, CHI completion, TTrans/tile side effects,
+  BSB window slide, data-array banking, and load forwarding in later LSU
+  owners.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
