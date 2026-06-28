@@ -58,6 +58,7 @@ bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
+bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
@@ -199,10 +200,11 @@ Toolchain facts from initial Chisel bring-up:
   `allocValid` from `ScalarDecodeRenameBridge.robAllocAttemptValid`, not from
   the accepted allocation event, so ROB duplicate-identity ready calculation
   sees a stable request row without feeding allocator ready back into
-  allocator valid. Keep registered `dec_ren_q`/D2-D3 staging, width-wide
-  rename, LSID/SID allocation, store split, automatic checkpoint capture,
-  ready-table initialization, T/U/SGPR/tile/vector operands, full block retire,
-  and live top-level commit rows in later owner packets.
+  allocator valid. R44 adds the registered `dec_ren_q` owner; keep width-wide
+  rename, enqueue-time ROB reservation, LSID/SID allocation, store split,
+  automatic checkpoint capture, ready-table initialization,
+  T/U/SGPR/tile/vector operands, full block retire, and live top-level commit
+  rows in later owner packets.
 - Phase 5/R43 `FrontendRegAliasClassify` / `FrontendOperandDecode` work must
   run `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus
   affected `ScalarDecodeRenameBridge`, `DecodeRenameROBPath`, top xcheck,
@@ -213,7 +215,22 @@ Toolchain facts from initial Chisel bring-up:
   are `DestinationKind.Gpr`, tag `31` is the T queue, and tag `30` is the U
   queue. Destination aliases intentionally do not use the source T/U ranges.
   Keep T/U queue consumption, SGPR/tile/vector operands, LSID/SID allocation,
-  store split, and D2/D3 queueing in later owners.
+  store split, and full enqueue-time ROB reservation in later owners.
+- Phase 5/R44 `DecodeRenameQueue` / `DecodeRenameROBPath` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue` plus
+  affected `DecodeRenameROBPath`, `ScalarDecodeRenameBridge`,
+  `FrontendDecodeStage`, `DispatchROBAllocator`, reduced ROB bookkeeping, top
+  xcheck, `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. `DecodeRenameQueue` is the registered
+  raw decoded-uop boundary corresponding to model `dec_ren_q`: enqueue raw
+  `DecodedUop` payloads, expose queue push/pop and occupancy observability,
+  clear on frontend/backend recovery cleanup in the reduced path, and pop only
+  when scalar rename plus ROB allocation accept. Until an enqueue-time ROB
+  reservation owner exists, stamp allocator BID/RID identity at the queue head
+  before `ScalarDecodeRenameBridge`; do not stamp or reserve allocator cursors
+  for multiple queued rows at enqueue because that duplicates identities. Later
+  top-level frontend integration must advance D1/F4 only on `decodeReady` /
+  queue acceptance.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
