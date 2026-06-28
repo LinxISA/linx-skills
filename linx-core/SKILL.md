@@ -182,9 +182,10 @@ Toolchain facts from initial Chisel bring-up:
   `dec_ren_q` registration, width-wide rename, automatic `isLastInBlock`
   checkpoint capture, ready-table initialization, LSID allocation, store split
   rewrite, T/U/SGPR/tile/vector rename, live top wiring, and commit side
-  effects in later owners. The bridge must reject reg6 scalar aliases outside
-  the 24-entry model GPR namespace, including fixed compressed tags 24 and 31,
-  until a later operand-classification owner maps those aliases explicitly.
+  effects in later owners. The bridge must reject any non-scalar-GPR operand
+  class or destination kind; `FrontendRegAliasClassify` is the decode owner
+  that maps reg6 aliases outside the 24-entry model GPR namespace before the
+  bridge sees them.
 - Phase 5/R42 `DecodeRenameROBPath` work must run
   `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath` plus
   affected `ScalarDecodeRenameBridge`, `FrontendDecodeStage`,
@@ -202,6 +203,17 @@ Toolchain facts from initial Chisel bring-up:
   rename, LSID/SID allocation, store split, automatic checkpoint capture,
   ready-table initialization, T/U/SGPR/tile/vector operands, full block retire,
   and live top-level commit rows in later owner packets.
+- Phase 5/R43 `FrontendRegAliasClassify` / `FrontendOperandDecode` work must
+  run `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus
+  affected `ScalarDecodeRenameBridge`, `DecodeRenameROBPath`, top xcheck,
+  `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. This owner preserves the model scalar
+  reg6 alias contract: source tags `0..23` are `OperandClass.P`, `24..27` are
+  `OperandClass.T`, `28..31` are `OperandClass.U`; destination tags `0..23`
+  are `DestinationKind.Gpr`, tag `31` is the T queue, and tag `30` is the U
+  queue. Destination aliases intentionally do not use the source T/U ranges.
+  Keep T/U queue consumption, SGPR/tile/vector operands, LSID/SID allocation,
+  store split, and D2/D3 queueing in later owners.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -711,13 +723,14 @@ Confirmed from `tools/model/model/bctrl/spe/GPRRename.cpp` and
 GPR rename cleanup.
 
 - The model scalar GPR owner has **24 architectural GPRs**. Wider architectural
-  tag surfaces in dispatch/decode must be narrowed or decoded by the owner that
-  handles invalid/T/U/SGPR aliases; do not silently treat those aliases as
+  tag surfaces in dispatch/decode must be classified by the decode alias owner
+  that handles invalid/T/U/SGPR aliases; do not silently treat those aliases as
   scalar GPRs.
 - `ScalarDecodeRenameBridge` is the first Chisel consumer that enforces this
   boundary. It accepts only scalar GPR tags `0..23` for `OperandClass.P` /
-  `DestinationKind.Gpr`, rejects fixed compressed aliases such as reg6 `24` and
-  `31`, and reports the rejection instead of allocating a physical tag.
+  `DestinationKind.Gpr`, rejects any source class other than `P` and any
+  destination kind other than `Gpr` until their owners exist, and reports the
+  rejection instead of allocating a scalar physical tag.
 - Reset state is identity for `smap` and `cmap`, with physical tags above the
   identity GPR range marked free.
 - Checkpoint capture copies the current speculative map into the slot indexed
@@ -750,8 +763,12 @@ GPR rename cleanup.
 ## Frontend opcode and operand decode (strict)
 
 Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
-`decode16.py`, `decode32.py`, `decode48.py`, `decode64.py`, and
-`model/LinxCoreModel/model/bctrl/spe/Decoder.cpp`.
+`decode16.py`, `decode32.py`, `decode48.py`, `decode64.py`,
+`model/LinxCoreModel/model/bctrl/spe/Decoder.cpp`,
+`model/LinxCoreModel/isa/ISACommon/GPR.h`,
+`model/LinxCoreModel/isa/ISACommon/DecodeUtiles.h`,
+`model/LinxCoreModel/isa/MInst.cpp`, and
+`model/LinxCoreModel/isa/codec/decodefiles/block16.decode`.
 
 - Chisel opcode classification must be generated from the pyCircuit opcode
   metadata catalog, not from ad-hoc low-bit slices of the raw instruction.
@@ -766,16 +783,21 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
   (`rdKind`, `rs1Kind`, `rs2Kind`, `immKind`) alongside opcode/category
   metadata; future decode packets should extend that source table rather than
   duplicating ad-hoc opcode lists.
-- `FrontendOperandDecode` owns only scalar architectural field extraction:
+- `FrontendOperandDecode` owns only scalar architectural field extraction and
+  reg6 alias classification:
   generic 16/32/48 GPR fields, fixed-destination compressed scalar forms,
   indexed-store `srcp`, macro source fields, and common scalar immediates
   (`UIMM12`, `SIMM12_*`, `SIMM17`, `SIMM25`, compressed 5/12-bit immediates,
-  `FENTRY_UIMM_HI`, `IMM20`, and `HL.LUI` `IMM32`). It emits GPR tags as
-  `OperandClass.P` / `DestinationKind.Gpr` in the reg6 namespace.
+  `FENTRY_UIMM_HI`, `IMM20`, and `HL.LUI` `IMM32`). `FrontendRegAliasClassify`
+  emits source tags `0..23` as `OperandClass.P`, `24..27` as `OperandClass.T`,
+  `28..31` as `OperandClass.U`; destination tags `0..23` as
+  `DestinationKind.Gpr`, tag `31` as `DestinationKind.T`, and tag `30` as
+  `DestinationKind.U`.
 - `FrontendOperandDecode` does not own LSID allocation, D2 queueing, block
   header mutation, store split rewrite, physical rename, ROB admission,
-  T/U/SGPR/tile/vector operand classes, shift/source-type sidebands
-  (`srcr_type`, `shamt`), or full PCR/HL payload interpretation.
+  T/U queue consumption, SGPR/tile/vector operand classes,
+  shift/source-type sidebands (`srcr_type`, `shamt`), or full PCR/HL payload
+  interpretation.
 - Regenerate the Chisel table with
   `python3 tools/chisel/gen_frontend_decode_table.py` after pyCircuit opcode
   metadata changes, then run `bash tools/chisel/run_chisel_tests.sh --only
@@ -784,7 +806,10 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
   `bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow`,
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress`, and
-  `bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles`.
+  `bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles`. If reg6
+  alias classification changed, also run `ScalarDecodeRenameBridge`,
+  `DecodeRenameROBPath`, top xcheck, QEMU dry-run cross-check, `build_chisel.sh`,
+  and Verilator lint.
 
 ## Issue Queue + speculative ready + load-miss cancel (strict)
 
