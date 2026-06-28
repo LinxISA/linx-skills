@@ -52,6 +52,7 @@ bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
 bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune
+bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -194,6 +195,13 @@ Toolchain facts from initial Chisel bring-up:
   backend/BROB owner and stored in `rowBid`; RID is allocated locally from the
   bank allocation pointer and stored in `rowRid`. `CommitTraceRow.identity`
   remains the trace and duplicate-detection sideband.
+- Phase 5 `DispatchROBAllocator` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator`. This
+  bridge is the first backend integration owner for allocation: generate the
+  full hardware BID from a block cursor, allocate `BrobMetaTracker` and
+  `ROBEntryBank` atomically, stamp `CommitTraceRow.blockBid`, convert the full
+  BID into the ring `ROBID` sidecar for `ROBEntryBank.allocBid`, and keep RID
+  allocation inside `ROBEntryBank`.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
