@@ -572,6 +572,18 @@ Toolchain facts from initial Chisel bring-up:
   enter relation-cmap, so a recovery flush cannot reintroduce pruned relation
   work. Keep ready-table side effects and live block/group commit clean event
   wiring in separate owner packets.
+- Phase 5/R66 ROB block-last deallocation boundary work must run
+  `sbt --client --error 'Test / compile'` plus affected `ROBEntryBank`,
+  `DispatchROBAllocator`, `DecodeRenameROBPath`, `TULinkRetireCommandPath`,
+  reduced ROB bookkeeping, trace-schema self-test, Chisel QEMU dry-run, diff
+  check, and LinxCoreModel SHA gates. Preserve the model `SPEROB::dealloc`
+  ordering: call relation release for each retired row, stop the deallocation
+  window after the first block-last row, and do not expose deallocation sources
+  from the next block in the same cycle. The block-last deallocation candidate
+  is only a future `CleanCMAP` scheduling source; do not fire `cleanBlock*`
+  from ROB commit or raw deallocation acceptance because serialized
+  `TULinkRelationCmap` mark/release commands for the block-last source must be
+  accepted first.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
