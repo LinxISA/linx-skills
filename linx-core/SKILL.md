@@ -48,6 +48,7 @@ bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles
 bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow
 bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer
 bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress
+bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
@@ -153,6 +154,17 @@ Toolchain facts from initial Chisel bring-up:
   `decodeReady && f4.d1.valid`, preserve no same-cycle push-to-D1 bypass,
   clear/mask both children on flush, and keep opcode decode, macro-boundary
   decode, and D1/D2 uop construction in later decode-owner modules.
+- Phase 2/R39 `FrontendDecodeStage` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus the
+  affected `F4DecodeWindow`, `FrontendDecodeIngress`, and `InterfaceBundles`
+  gates. This module is the first D1 decode-shape owner after F4 slots: use the
+  generated pyCircuit opcode metadata mask/match table, preserve the
+  most-specific-mask rule (`decode16_meta`/`decode32_meta`/`decode48_meta`/
+  `decode64_meta`), emit `DecodedUop` skeletons with slot PC/raw/len/opcode
+  and UID/checkpoint identity, and expose block/load/store sideband masks.
+  Keep operand extraction, immediate formation, LSID allocation, D2 queueing,
+  block header mutation, and rename/ROB admission in later decode/dispatch
+  owners.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -692,6 +704,33 @@ GPR rename cleanup.
   `bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge`,
   `bash tools/chisel/run_chisel_tests.sh --only ROBID`, and
   `bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob`.
+
+## Frontend opcode decode table (strict)
+
+Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
+`decode16.py`, `decode32.py`, `decode48.py`, `decode64.py`, and
+`model/LinxCoreModel/model/bctrl/spe/Decoder.cpp`.
+
+- Chisel opcode classification must be generated from the pyCircuit opcode
+  metadata catalog, not from ad-hoc low-bit slices of the raw instruction.
+- The rule selection contract is **most-specific mask wins**: among matching
+  rules for the current instruction length, choose the rule with the largest
+  `mask.bit_count()`. Equal specificity keeps source/catalog order.
+- Use F4-provided instruction length to select the 16/32/48/64-bit rule domain;
+  do not let a wider table match a shorter F4 slot.
+- `FrontendDecodeStage` owns opcode catalog ID, basic dispatch target,
+  block-boundary/stop, load, and store sideband masks. It does not own operand
+  extraction, immediate construction, LSID allocation, D2 queueing, block
+  header mutation, or rename/ROB admission.
+- Regenerate the Chisel table with
+  `python3 tools/chisel/gen_frontend_decode_table.py` after pyCircuit opcode
+  metadata changes, then run `bash tools/chisel/run_chisel_tests.sh --only
+  FrontendDecodeStage`.
+- Focused gates for changes touching this owner:
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress`, and
+  `bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles`.
 
 ## Issue Queue + speculative ready + load-miss cancel (strict)
 
