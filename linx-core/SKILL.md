@@ -58,6 +58,7 @@ bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
+bash tools/chisel/run_chisel_tests.sh --only TULinkRename
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
@@ -340,6 +341,20 @@ Toolchain facts from initial Chisel bring-up:
   Address generation, store-data selection, load-conflict probes, ready-table
   updates, memory trace side effects, and live top integration remain later
   owners.
+- Phase 5/R51 `TULinkRename` work must run
+  `sbt --client --error 'Test / compile'` plus affected `TULinkRename`,
+  `FrontendDecodeStage`, `ScalarDecodeRenameBridge`, `DecodeRenameROBPath`,
+  and reduced ROB bookkeeping gates. `TULinkRename` is a standalone scalar T/U
+  local-register rename owner, not an extension of scalar GPR rename. Preserve
+  the model `LocalRegMgr` contract for `OPD_TLINK` and `OPD_ULINK`: capture
+  `tSeq`/`uSeq` from `mapQAllocPtr[0]` before destination allocation; resolve
+  sources from `mapQAllocPtr[0] - (offset + 1)` using the frontend T/U
+  relative tag; allocate destinations from the circular scalar local
+  `allocPtr[0]`; and stall on `usedEntrySize[0] + 1 > mapSize` or
+  `usedPSize[0] + 1 > pSize`. Do not use the scalar GPR first-free physical
+  tag policy for T/U queues. Keep T/U release, ready-table mutation, flush
+  cleanup, multi-PE/thread banking, and unified renamed-uop composition in
+  later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
