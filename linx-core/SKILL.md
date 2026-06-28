@@ -53,6 +53,7 @@ bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
+bash tools/chisel/run_chisel_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -96,6 +97,11 @@ Toolchain facts from initial Chisel bring-up:
   Verilator harness, writes nested Chisel commit JSONL including an invalid
   fixed-width slot, normalizes through `trace_schema_adapter.py`, and requires
   zero mismatches against the QEMU-shaped reference trace.
+- `run_chisel_top_xcheck.sh` is the first top-level generated-RTL trace proof
+  for the Chisel lane: it emits a dedicated 8-entry, two-wide `LinxCoreTop`
+  xcheck configuration, builds the same Verilator harness against top-level IO,
+  asserts clean commit monitor outputs, and requires zero mismatches against the
+  QEMU-shaped reference trace. The default top still emits `CoreParams()`.
 
 Coordination requirements:
 
