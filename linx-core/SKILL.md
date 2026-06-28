@@ -65,6 +65,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
 bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
 bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
+bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
@@ -315,19 +316,18 @@ Toolchain facts from initial Chisel bring-up:
   same-cycle accepted hit/miss masks are legal for a current `S_VALID` row,
   writable hits clear rows, non-writable lookups move rows to `S_MISS`, and
   decoded WriteResp/UpgradeResp targets must name valid `S_MISS` rows before
-  returning to `S_LOOKUP`. Keep raw CHI TxnID decode, registered row-bank
-  storage, ingress/egress arbitration, DCache RAM mutation, L2/CHI queues, MDB
-  conflict prediction, store-to-load forwarding, and full STQ-to-SCB
-  composition in later LSU owner packets.
+  returning to `S_LOOKUP`. Keep registered row-bank storage, raw response
+  transaction-id decode, ingress/egress arbitration, DCache RAM mutation,
+  L2/CHI queues, MDB conflict prediction, store-to-load forwarding, and full
+  STQ-to-SCB composition in later LSU owner packets.
 - Phase 5 `SCBRowBank` work must run
   `bash tools/chisel/run_chisel_tests.sh --only SCBRowBank`. This module is
   the first registered SCB composition owner: own one row image, keep the model
   batch gate based on pre-cycle free count, stage accepted committed-store
   ingress before egress lookup payload generation, and keep `S_LOOKUP`/`S_MISS`
-  rows closed to same-line store coalescing. Keep raw CHI TxnID decode,
-  L2/CHI queues, DCache RAM mutation, MDB conflict prediction,
-  store-to-load forwarding, BSB window-slide side effects, and memory-event
-  trace in later LSU owner packets.
+  rows closed to same-line store coalescing. Keep L2/CHI response queues,
+  DCache RAM mutation, MDB conflict prediction, store-to-load forwarding, BSB
+  window-slide side effects, and memory-event trace in later LSU owner packets.
 - Phase 5 `STQSCBCommitPath` work must run
   `bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath`. This module
   is the first full STQ-to-SCB composition owner: wire `STQEntryBank`,
@@ -335,10 +335,18 @@ Toolchain facts from initial Chisel bring-up:
   are the only committed-row free source back into the STQ bank; gate drain
   issue with the registered SCB pre-cycle model-batch condition; suppress drain
   issue during STQ flush-prune cycles; and treat `STQCommitDrain.commitFreeMask`
-  as debug-only in the full composition. Keep raw CHI TxnID decode, L2/CHI
-  queues, DCache RAM mutation, MDB conflict prediction, store-to-load
-  forwarding, BSB window-slide side effects, and memory-event trace in later
-  LSU owner packets.
+  as debug-only in the full composition. Keep L2/CHI response queues, DCache
+  RAM mutation, MDB conflict prediction, store-to-load forwarding, BSB
+  window-slide side effects, and memory-event trace in later owner packets.
+- Phase 5 `SCBResponseDecode` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode`. This module
+  is the raw SCB WriteResp/UpgradeResp tag owner: accept only response
+  transaction ids encoded as `(entryIndex << 2) | 2`, reject absent or
+  ambiguous response types, reject out-of-range decoded indices, and suppress
+  stale responses to rows that are not valid `S_MISS`. Keep L2/CHI response
+  queue arbitration, DCache RAM mutation, MDB conflict prediction,
+  store-to-load forwarding, BSB window-slide side effects, and memory-event
+  trace in later LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -637,6 +645,12 @@ Confirmed in #linx-core (2026-02-25).
   `S_MISS`, and WriteResp/UpgradeResp decode may return only valid `S_MISS`
   rows to `S_LOOKUP`; report illegal response targets rather than silently
   freeing or reusing the row.
+- Raw SCB response decode must preserve the model tag namespace: a legal
+  WriteResp/UpgradeResp transaction id is `(entryIndex << 2) | 2`, the decoded
+  index must name an implemented SCB row, and the target row must be valid
+  `S_MISS` before `SCBStateUpdate` may return it to `S_LOOKUP`. Wrong type,
+  wrong low-bit tag, out-of-range index, and stale non-`S_MISS` targets are
+  errors, not implicit drops or frees.
 - Registered SCB row-bank composition must use pre-cycle free count for the
   model batch admission gate. Same-cycle writable-hit frees do not admit new
   committed-store fragments in that cycle, but accepted ingress may be visible
