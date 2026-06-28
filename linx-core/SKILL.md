@@ -51,6 +51,7 @@ bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
+bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -172,6 +173,16 @@ Toolchain facts from initial Chisel bring-up:
   Full flush rebasing, rename cleanup, LSU/STQ side effects, precise traps, and
   restart ownership remain future integrated ROB/CMT work; keep
   `ReducedCommitROB` as the reduced trace harness.
+- Phase 5 `ROBFlushPrune` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune`. The selector
+  preserves the prune part of LinxCoreModel `SPEROB::flush`: scan from
+  `deallocPtr`, match rows by `flush.bid <= row.bid` for base-on-BID requests
+  or `(flush.bid, flush.rid) <= (row.bid, row.rid)` otherwise, start pruning at
+  the first matching valid row, and prune every later valid row in scan order.
+  Resident decrement counts every pruned valid row; outstanding decrement counts
+  only `ROBEntryStatus.osdActive` rows. Keep pointer rebasing, row mutation,
+  rename cleanup, LSU/STQ cleanup, precise traps, and restart ownership in the
+  integrated ROB/CMT owner, not in this selector and not in `ReducedCommitROB`.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
