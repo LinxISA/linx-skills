@@ -154,17 +154,21 @@ Toolchain facts from initial Chisel bring-up:
   `decodeReady && f4.d1.valid`, preserve no same-cycle push-to-D1 bypass,
   clear/mask both children on flush, and keep opcode decode, macro-boundary
   decode, and D1/D2 uop construction in later decode-owner modules.
-- Phase 2/R39 `FrontendDecodeStage` work must run
+- Phase 2/R39/R40 `FrontendDecodeStage` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus the
   affected `F4DecodeWindow`, `FrontendDecodeIngress`, and `InterfaceBundles`
   gates. This module is the first D1 decode-shape owner after F4 slots: use the
   generated pyCircuit opcode metadata mask/match table, preserve the
   most-specific-mask rule (`decode16_meta`/`decode32_meta`/`decode48_meta`/
-  `decode64_meta`), emit `DecodedUop` skeletons with slot PC/raw/len/opcode
-  and UID/checkpoint identity, and expose block/load/store sideband masks.
-  Keep operand extraction, immediate formation, LSID allocation, D2 queueing,
-  block header mutation, and rename/ROB admission in later decode/dispatch
-  owners.
+  `decode64_meta`), emit `DecodedUop` records with slot PC/raw/len/opcode and
+  UID/checkpoint identity, and expose block/load/store sideband masks. R40 adds
+  `FrontendOperandDecode` as the scalar field owner behind this stage: it
+  consumes generated `rdKind`/`rs1Kind`/`rs2Kind`/`immKind`, emits reg6
+  architectural GPR source/destination tags in pyCircuit `srcl`/`srcr`/`srcp`
+  order, and forms the common scalar immediates already covered by
+  `src/common/decode.py`. Keep LSID allocation, D2 queueing, block header
+  mutation, store split rewrite, T/U/SGPR/tile/vector operand classes,
+  shift/source-type sidebands, and rename/ROB admission in later owners.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -705,7 +709,7 @@ GPR rename cleanup.
   `bash tools/chisel/run_chisel_tests.sh --only ROBID`, and
   `bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob`.
 
-## Frontend opcode decode table (strict)
+## Frontend opcode and operand decode (strict)
 
 Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
 `decode16.py`, `decode32.py`, `decode48.py`, `decode64.py`, and
@@ -719,9 +723,21 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
 - Use F4-provided instruction length to select the 16/32/48/64-bit rule domain;
   do not let a wider table match a shorter F4 slot.
 - `FrontendDecodeStage` owns opcode catalog ID, basic dispatch target,
-  block-boundary/stop, load, and store sideband masks. It does not own operand
-  extraction, immediate construction, LSID allocation, D2 queueing, block
-  header mutation, or rename/ROB admission.
+  block-boundary/stop, load, and store sideband masks.
+- The generated Chisel table must carry the pyCircuit operand-shape metadata
+  (`rdKind`, `rs1Kind`, `rs2Kind`, `immKind`) alongside opcode/category
+  metadata; future decode packets should extend that source table rather than
+  duplicating ad-hoc opcode lists.
+- `FrontendOperandDecode` owns only scalar architectural field extraction:
+  generic 16/32/48 GPR fields, fixed-destination compressed scalar forms,
+  indexed-store `srcp`, macro source fields, and common scalar immediates
+  (`UIMM12`, `SIMM12_*`, `SIMM17`, `SIMM25`, compressed 5/12-bit immediates,
+  `FENTRY_UIMM_HI`, `IMM20`, and `HL.LUI` `IMM32`). It emits GPR tags as
+  `OperandClass.P` / `DestinationKind.Gpr` in the reg6 namespace.
+- `FrontendOperandDecode` does not own LSID allocation, D2 queueing, block
+  header mutation, store split rewrite, physical rename, ROB admission,
+  T/U/SGPR/tile/vector operand classes, shift/source-type sidebands
+  (`srcr_type`, `shamt`), or full PCR/HL payload interpretation.
 - Regenerate the Chisel table with
   `python3 tools/chisel/gen_frontend_decode_table.py` after pyCircuit opcode
   metadata changes, then run `bash tools/chisel/run_chisel_tests.sh --only
