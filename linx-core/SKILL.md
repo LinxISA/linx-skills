@@ -626,7 +626,21 @@ Toolchain facts from initial Chisel bring-up:
   `TULinkRename.commit*` for the reduced T/U bank. Do not route this event
   through the relation-cmap scheduler, scalar GPR commit path, or generic
   top-level glue. Preserve the reduced scope until a later packet implements
-  selected-STID, both-SGPR-hand, and multi-PE fanout.
+  both-SGPR-hand and multi-PE fanout.
+- Phase 5/R70 selected-STID local block-commit work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRetireCommandPath`, `TULinkRecoveryCleanupPath`,
+  `ScalarTURenameBridge`, `DecodeRenameROBPath`, `TULinkRename`,
+  `TULinkRelationCmap`, `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, trace-schema self-test, Chisel QEMU dry-run, diff check, and
+  LinxCoreModel SHA gates. Preserve the model
+  `ReportLocalRegBlockCommit(bid, stid)` contract: the post-clean event must
+  carry the selected STID from the block-last source, and a reduced
+  local-register owner must accept only its configured local STID. Do not
+  silently drop or consume a non-local STID event in the reduced bank; keep
+  ready low and expose a diagnostic until a later fanout owner explicitly
+  selects or instantiates the matching STID banks across both SGPR hands and
+  scalar PEs.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
