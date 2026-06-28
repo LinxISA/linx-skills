@@ -67,6 +67,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseBuffer
+bash tools/chisel/run_chisel_tests.sh --only SCBResponseRetryQueue
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseRetrySelect
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
@@ -338,10 +339,12 @@ Toolchain facts from initial Chisel bring-up:
   batch gate based on pre-cycle free count, stage accepted committed-store
   ingress before egress lookup payload generation, give response-returned
   `S_LOOKUP` rows priority over ordinary valid-row eviction, and keep
-  `S_LOOKUP`/`S_MISS` rows closed to same-line store coalescing. Keep exact
-  ordered `resp_list` row-id FIFO storage, L2/CHI response queues, DCache RAM
-  mutation, MDB conflict prediction, store-to-load forwarding, BSB window-slide
-  side effects, and memory-event trace in later LSU owner packets.
+  `S_LOOKUP`/`S_MISS` rows closed to same-line store coalescing. Own the
+  accepted-response handshake into `SCBResponseRetryQueue` so raw response
+  dequeue, `S_MISS`-to-`S_LOOKUP` state update, and ordered retry enqueue share
+  one accept boundary. Keep L2/CHI response queues, DCache RAM mutation, MDB
+  conflict prediction, store-to-load forwarding, BSB window-slide side effects,
+  and memory-event trace in later LSU owner packets.
 - Phase 5 `STQSCBCommitPath` work must run
   `bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath`. This module
   is the first full STQ-to-SCB composition owner: wire `STQEntryBank`,
@@ -367,20 +370,30 @@ Toolchain facts from initial Chisel bring-up:
   This module is the raw L2/CHI response FIFO boundary in front of
   `SCBResponseDecode`: preserve FIFO order and ready/valid backpressure,
   expose only the head to decode, and dequeue a head only after decode reports
-  a legal valid-`S_MISS` target. Keep exact ordered `resp_list` row-id FIFO
-  storage, DCache RAM mutation, MDB conflict prediction, store-to-load
-  forwarding, BSB window-slide side effects, and memory-event trace in later
-  LSU owner packets.
+  a legal valid-`S_MISS` target and the downstream response retry queue can
+  accept the target row id. Keep DCache RAM mutation, MDB conflict prediction,
+  store-to-load forwarding, BSB window-slide side effects, and memory-event
+  trace in later LSU owner packets.
+- Phase 5 `SCBResponseRetryQueue` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only SCBResponseRetryQueue` plus
+  affected `SCBResponseRetrySelect`, `SCBRowBank`, `SCBResponseDecode`,
+  `SCBResponseBuffer`, and `STQSCBCommitPath` gates. This module is the exact
+  LinxCoreModel `SCBuffer::resp_list` row-id FIFO owner: push each accepted
+  WriteResp/UpgradeResp target row after legal decode, expose only the oldest
+  retry head to selection, support same-cycle pop/push, and backpressure raw
+  response dequeue when full. Keep DCache RAM mutation, MDB conflict
+  prediction, store-to-load forwarding, BSB window-slide side effects, and
+  memory-event trace in later LSU owner packets.
 - Phase 5 `SCBResponseRetrySelect` work must run
   `bash tools/chisel/run_chisel_tests.sh --only SCBResponseRetrySelect` plus
-  affected `SCBRowBank`, `SCBStateUpdate`, `SCBEgressSelect`, and
-  `STQSCBCommitPath` gates. This module is the model `resp_list` priority owner
-  after response decode/state return: valid `S_LOOKUP` rows retry before
-  ordinary `S_VALID` row eviction, and the ordinary egress selector remains
-  responsible only for full-line priority and deterministic not-full fallback.
-  Keep exact ordered `resp_list` row-id FIFO storage, DCache RAM mutation, MDB
-  conflict prediction, store-to-load forwarding, BSB window-slide side effects,
-  and memory-event trace in later LSU owner packets.
+  affected `SCBResponseRetryQueue`, `SCBRowBank`, `SCBStateUpdate`,
+  `SCBEgressSelect`, and `STQSCBCommitPath` gates. This module consumes the
+  queued `resp_list` head: only the oldest queued row may retry before ordinary
+  `S_VALID` row eviction, a stale or non-`S_LOOKUP` head blocks ordinary egress
+  and reports an error, and the ordinary egress selector remains responsible
+  only for full-line priority and deterministic not-full fallback. Keep DCache
+  RAM mutation, MDB conflict prediction, store-to-load forwarding, BSB
+  window-slide side effects, and memory-event trace in later LSU owner packets.
 - Phase 5 `MDBConflictDetect` work must run
   `bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect`. This module
   is the first store-arrival conflict classifier behind model `detect_su_lu_q`:
@@ -808,13 +821,14 @@ Confirmed in #linx-core (2026-02-25).
   keep FIFO order and backpressure in front of `SCBResponseDecode`, present
   only the FIFO head to decode, and retain illegal or stale heads so decode
   continues to report the failing target instead of silently dropping it.
-- SCB response retry selection must preserve the model `resp_list` priority:
-  valid `S_LOOKUP` rows returned by responses retry before ordinary valid-row
-  eviction. Retry rows are legal state-update finish targets only when paired
-  with hit/free or miss masks; accepted-only lookup starts still require
-  `S_VALID`. The current Chisel owner represents retry eligibility with durable
-  `S_LOOKUP` rows; add exact ordered row-id FIFO storage only in a dedicated
-  future packet.
+- SCB response retry ordering must preserve the model `resp_list` FIFO:
+  accepted WriteResp/UpgradeResp row ids enqueue in response-return order, raw
+  response consumption, `S_MISS`-to-`S_LOOKUP` state update, and retry enqueue
+  share the accepted-response handshake, and only the queued head may retry
+  before ordinary valid-row eviction. Retry rows are legal state-update finish
+  targets only when paired with hit/free or miss masks; accepted-only lookup
+  starts still require `S_VALID`. A stale or non-`S_LOOKUP` queued head is an
+  error and must block ordinary egress instead of silently falling through.
 - Registered SCB row-bank composition must use pre-cycle free count for the
   model batch admission gate. Same-cycle writable-hit frees do not admit new
   committed-store fragments in that cycle, but accepted ingress may be visible
