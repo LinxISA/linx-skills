@@ -57,6 +57,7 @@ bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
+bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -239,6 +240,15 @@ Toolchain facts from initial Chisel bring-up:
   `STQFlushPrune.freeMask` to clear matched WAIT rows. Keep `storeCommitQ`
   ordering, SCB/MDB handoff, cacheline split handling, data-array banking, load
   forwarding, and LSID rebasing in later LSU owners.
+- Phase 5 `STQCommitQueue` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue`. This module
+  is the first `storeCommitQ` ordering owner after `STQEntryBank` marks rows
+  committed: keep committed row indices sorted by `(bid, lsId)` using
+  wrap-aware `ROBID` order, issue up to the configured commit width, skip
+  downstream-stalled rows while preserving them in the queue, and compact issued
+  rows. Keep SCB/MDB handoff, cacheline split handling, TTrans/tile side
+  effects, BSB window slide, data-array banking, load forwarding, and
+  committed-row free integration in later LSU owners.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
