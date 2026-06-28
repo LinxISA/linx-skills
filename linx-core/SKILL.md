@@ -65,6 +65,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBEgressSelect
 bash tools/chisel/run_chisel_tests.sh --only SCBLookupControl
 bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
+bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -266,11 +267,11 @@ Toolchain facts from initial Chisel bring-up:
   compute row readiness from committed STQ row sidecars plus downstream
   single- or split-segment acceptance, emit one or two scalar memory request
   descriptors using the model `AddrCrossCacheline` / `GetCrossReq` split
-  contract, preserve queue skip-around-stall behavior, and drive
-  `STQEntryBank.commitFreeMask` only for rows selected after segment
-  acceptance. Keep SCB/MDB storage, CHI completion, TTrans/tile side effects,
-  BSB window slide, data-array banking, and load forwarding in later LSU
-  owners.
+  contract, preserve queue skip-around-stall behavior, and expose a standalone
+  issue/free mask only for early bring-up and debug. In the full STQ-to-SCB
+  composition, `SCBRowBank.commitFreeMask` is the final `STQEntryBank` free
+  source. Keep SCB/MDB storage, CHI completion, TTrans/tile side effects, BSB
+  window slide, data-array banking, and load forwarding in later LSU owners.
 - Phase 5 `SCBCommitIngress` work must run
   `bash tools/chisel/run_chisel_tests.sh --only SCBCommitIngress`. This module
   is the first scalar SCB ingress owner after `STQCommitDrain`: coalesce
@@ -325,8 +326,19 @@ Toolchain facts from initial Chisel bring-up:
   ingress before egress lookup payload generation, and keep `S_LOOKUP`/`S_MISS`
   rows closed to same-line store coalescing. Keep raw CHI TxnID decode,
   L2/CHI queues, DCache RAM mutation, MDB conflict prediction,
-  store-to-load forwarding, full `STQEntryBank` free wiring, and memory-event
+  store-to-load forwarding, BSB window-slide side effects, and memory-event
   trace in later LSU owner packets.
+- Phase 5 `STQSCBCommitPath` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath`. This module
+  is the first full STQ-to-SCB composition owner: wire `STQEntryBank`,
+  `STQCommitDrain`, and `SCBRowBank` so accepted `SCBRowBank` `last` fragments
+  are the only committed-row free source back into the STQ bank; gate drain
+  issue with the registered SCB pre-cycle model-batch condition; suppress drain
+  issue during STQ flush-prune cycles; and treat `STQCommitDrain.commitFreeMask`
+  as debug-only in the full composition. Keep raw CHI TxnID decode, L2/CHI
+  queues, DCache RAM mutation, MDB conflict prediction, store-to-load
+  forwarding, BSB window-slide side effects, and memory-event trace in later
+  LSU owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -631,6 +643,12 @@ Confirmed in #linx-core (2026-02-25).
   in the same-cycle lookup payload. `S_LOOKUP` and `S_MISS` rows are never
   merge targets; same-line stores must allocate a separate row when free space
   exists.
+- Full STQ-to-SCB composition must drive `STQEntryBank.commitFreeMask` only
+  from accepted `SCBRowBank` descriptors with `last=1`. The standalone
+  `STQCommitDrain.commitFreeMask` is issue/debug observability in that path,
+  not a bank mutation source. Drain issue must stay closed when the registered
+  SCB model-batch gate is closed or when `STQEntryBank` is applying a
+  flush-prune cycle.
 - If the same cacheline is written again while an outstanding entry exists, allocate a **separate** SCB entry (queue), and drain in SID order.
 - Drain arbitration: **oldest SID first**.
 
