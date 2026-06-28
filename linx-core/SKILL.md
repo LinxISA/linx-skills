@@ -355,6 +355,23 @@ Toolchain facts from initial Chisel bring-up:
   tag policy for T/U queues. Keep T/U release, ready-table mutation, flush
   cleanup, multi-PE/thread banking, and unified renamed-uop composition in
   later owner packets.
+- Phase 5/R52 `TULinkRename` cleanup work must run
+  `sbt --client --error 'Test / compile'` plus affected `TULinkRename`,
+  `FlushControl`, `RecoveryCleanupControl`, `ScalarDecodeRenameBridge`, and
+  reduced ROB bookkeeping gates. T/U cleanup must preserve the scalar
+  `LocalRegMgr` split between marking a row retired and freeing it: plain
+  `ReportRetired(seq, false)` only marks the mapQ row, direct dealloc release
+  may free only the current deallocation head, and `ReportBlockCommit(bid)`
+  releases only consecutive retired rows at the deallocation head with matching
+  BID. Flush pruning for non-base requests must use both local mapQ sequence
+  and RID ordering:
+  `(flush.bid, localSeq) <= (row.bid, row.seq)` and
+  `(flush.bid, flush.rid) <= (row.bid, row.rid)`. When the flushed instruction
+  itself owns a T/U destination, the recovery publisher must supply the
+  previous local sequence, matching model `GetPrevRegSeq`; do not infer this
+  from ROB RID alone. Keep the shared ROB/LSU sequence publisher,
+  relation-cmap release policy, ready-table mutation, and unified renamed-uop
+  composition in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
