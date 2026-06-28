@@ -372,6 +372,21 @@ Toolchain facts from initial Chisel bring-up:
   from ROB RID alone. Keep the shared ROB/LSU sequence publisher,
   relation-cmap release policy, ready-table mutation, and unified renamed-uop
   composition in later owner packets.
+- Phase 5/R53 `TULinkFlushSequencePublisher` work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkFlushSequencePublisher`, `TULinkRename`,
+  `RecoveryCleanupControl`, `FlushControl`, and reduced ROB bookkeeping gates.
+  The publisher must treat T/U local-register cleanup as a backend PE cleanup
+  sideband, not scalar stack-rename cleanup: drive commands from
+  `RecoveryCleanupIntent.backendFlushValid` plus the selected ROB/LSU row
+  snapshot. Non-base cleanup requires that source row to match
+  `(flush.bid, flush.rid, flush.stid)` and must report/suppress
+  missing or mismatched sources rather than defaulting the local sequence. Apply
+  the model `GetPrevRegSeq` adjustment only for the destination class owned by
+  the flushed row: T destinations decrement only `tSeq`, U destinations
+  decrement only `uSeq`. Keep live row-snapshot wiring, direct
+  `TULinkRename` composition, relation-cmap release policy, ready-table
+  mutation, and multi-PE/thread banking in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
