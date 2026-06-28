@@ -46,6 +46,7 @@ cd /Users/zhoubot/linx-isa/rtl/LinxCore
 bash tools/chisel/build_chisel.sh
 bash tools/chisel/run_chisel_tests.sh --only InterfaceBundles
 bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow
+bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
@@ -87,6 +88,16 @@ Toolchain facts from initial Chisel bring-up:
   behavior, and D1/D2 uop construction are deferred until the Chisel opcode
   table/decode-owner modules exist; do not bury those behaviors in the F4
   transport helper.
+- Phase 2 `FrontendInstructionBuffer` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer`.
+  The buffer is a frontend-owned FIFO for `FrontendDecodePacket` records:
+  preserve FIFO order, clear occupancy on flush, keep simultaneous push/pop
+  occupancy stable, and keep full-state backpressure based on pre-cycle
+  occupancy.
+- Chisel frontend buffers must carry `checkpointId` as packet-owned state
+  alongside PC/window/packet UID. Do not reconstruct F4/D1 packet checkpoint
+  identity from adjacent control wiring once a packet enters the Chisel
+  frontend queue.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
