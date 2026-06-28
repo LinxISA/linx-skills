@@ -55,6 +55,7 @@ bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator
 bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
+bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
 bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
@@ -240,9 +241,20 @@ Toolchain facts from initial Chisel bring-up:
   module is the first registered cleanup-intent boundary after recovery
   selection: classify global flush, global replay, and PE-scoped replay; expose
   BCTRL, rename, backend, frontend, LSU/STQ, tile, PE fanout, and ROB prune
-  intent bits; and keep actual rename restore, LSU/STQ mutation, frontend
-  restart payloads, and BROB pointer restoration out of `ROBFlushPrune` and
-  generic top-level glue.
+  intent bits; and keep actual consumer mutation in owner packets such as
+  `GPRRenameCheckpoint`, `STQFlushPrune`, frontend restart payload owners, and
+  BROB pointer restoration instead of `ROBFlushPrune` or generic top-level
+  glue.
+- Phase 5 `GPRRenameCheckpoint` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint`. This
+  module is the first scalar rename-map consumer of
+  `RecoveryCleanupControl.intent`: own scalar `smap`/`cmap`, per-BID
+  checkpoints, `renamePtr`, free physical GPR mask, and finite map queue for
+  STID0; on flush, restore from checkpoint `flush.bid - 1` when valid or from
+  `cmap` otherwise, prune map-queue rows by `baseOnBid` or BID/RID ordering,
+  and re-apply surviving same-BID non-base entries to `smap`. Treat replay as
+  observed-only here; ClockHands, T/U operands, SGPR, multithread, and full
+  dispatch/commit wiring remain later owners.
 - Phase 5 `STQFlushPrune` work must run
   `bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune`. This module is
   the first concrete LSU/STQ consumer of `RecoveryCleanupControl.intent.flush`:
@@ -642,6 +654,44 @@ These are confirmed in #linx-core (2026-02-24) and must be preserved by future c
 - [ ] Confirm flush path provides `flush_bid` and every bid-carrying module kills `bid > flush_bid`.
 - [ ] Confirm BROB keeps `bid <= flush_bid` (including current block) and handles wrap via uniq bits.
 - [ ] Update docs/skills when new edge cases are discovered.
+
+## Scalar GPR rename checkpoint cleanup (strict)
+
+Confirmed from `tools/model/model/bctrl/spe/GPRRename.cpp` and
+`SPERename.cpp`. Use this section when implementing or reviewing Chisel scalar
+GPR rename cleanup.
+
+- The model scalar GPR owner has **24 architectural GPRs**. Wider architectural
+  tag surfaces in dispatch/decode must be narrowed or decoded by the owner that
+  handles invalid/T/U/SGPR aliases; do not silently treat those aliases as
+  scalar GPRs.
+- Reset state is identity for `smap` and `cmap`, with physical tags above the
+  identity GPR range marked free.
+- Checkpoint capture copies the current speculative map into the slot indexed
+  by `bid.val` and updates `renamePtr`. In the model call path, `SPERename`
+  captures this checkpoint for `inst->isLastInBlock`.
+- Commit walks the map queue for matching BID in queue order, releases the old
+  committed physical tag for each architectural destination, updates `cmap`,
+  and clears committed rows. Same-architecture multiple writes in one block must
+  release the overwritten intermediate physical tag as well as the pre-block
+  committed tag.
+- Flush computes `restoreBid = flush.bid - 1`. If `restoreBid <= renamePtr`,
+  restore `smap` from the valid checkpoint for that BID, or from `cmap` if the
+  checkpoint is invalid, then set `renamePtr = restoreBid`.
+- Flush pruning uses `baseOnBid` to remove rows at or younger than `flush.bid`;
+  otherwise it removes rows at or younger than the `(flush.bid, flush.rid)`
+  pair. Surviving rows in the same BID must be re-applied to `smap` in map
+  queue order after the checkpoint/cmap restore.
+- `renameReplayValid` is not a scalar GPR map mutation in the first Chisel
+  owner. Keep it observable for integration, and leave SGPR, ClockHands, T/U
+  operands, multithread map banks, and full dispatch/commit wiring to explicit
+  later packets.
+- Focused gates for changes touching this owner:
+  `bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint`,
+  `bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl`,
+  `bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge`,
+  `bash tools/chisel/run_chisel_tests.sh --only ROBID`, and
+  `bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob`.
 
 ## Issue Queue + speculative ready + load-miss cancel (strict)
 
