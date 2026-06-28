@@ -73,6 +73,7 @@ bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout
 bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding
 bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline
 bash tools/chisel/run_chisel_tests.sh --only LoadInflightQueue
+bash tools/chisel/run_chisel_tests.sh --only LoadReplayWakeup
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -428,9 +429,20 @@ Toolchain facts from initial Chisel bring-up:
   `LoadForwardPipeline`, apply E4 outcomes back to row state, publish LHQ
   records only for E4 hits, hold `StoreDataNotReady` rows as wait-store
   replays, and hold incomplete bytes as `L1DcMiss`/`missPending`. Keep precise
-  `FlushBus` pruning, L2 refill queues, store/SCB wakeup replay, ready-table
-  updates, consumer bypass routing, a separate ResolveQ/LHQ queue, and
-  memory-event trace in later owner packets.
+  `FlushBus` pruning, L1/L2 refill queues, ready-table updates, consumer
+  bypass routing, a separate ResolveQ/LHQ queue, and memory-event trace in
+  later owner packets.
+- Phase 5 `LoadReplayWakeup` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only LoadReplayWakeup` and the
+  affected `LoadInflightQueue` gate. This module is the first store-unit/SCB
+  replay wakeup sidecar for resident LIQ rows: store-unit wakeups clear
+  wait-store diagnostics by store identity plus PC, store-unit data merges only
+  into same-line `L1DcMiss`/`L2Wait` rows when the store is no newer than the
+  row's allocation snapshot, and SCB data merges into working same-line rows
+  except `Repick`. Completion is a recomputed requested-byte mask fully covered
+  by the merged valid mask. Completed rows return to `Wait` for relaunch; keep
+  L1 refill, ready-table updates, consumer bypass routing, ResolveQ/LHQ queue
+  movement, precise flush, and trace emission in later owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -693,6 +705,15 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
   - each load(LID) records `youngest_sid_at_alloc` (SID+wrap).
   - each store(SID) records `youngest_lid_at_alloc` (LID+wrap).
 - Store split: STA(AGU) + STD share the same SID.
+- Store-unit replay wakeup has two separate LIQ effects:
+  - clear wait-store when the blocked row's stored store identity and PC match.
+  - merge data into `L1DcMiss`/`L2Wait` rows only when same-line and
+    `SID <= youngest_sid_at_alloc`.
+- SCB replay wakeup merges same-line byte-valid data into working LIQ rows
+  except `Repick`; when merged bytes cover the requested load mask, return the
+  row to `Wait` for the next launch rather than directly publishing an LHQ hit.
+- L1 refill wakeup is a separate owner from store/SCB replay wakeup because the
+  model also mutates miss queues and cluster cacheline data there.
 
 ## SCB (Store Coalescing Buffer) → DCache / CHI (strict)
 
