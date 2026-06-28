@@ -183,6 +183,14 @@ Toolchain facts from initial Chisel bring-up:
   only `ROBEntryStatus.osdActive` rows. Keep pointer rebasing, row mutation,
   rename cleanup, LSU/STQ cleanup, precise traps, and restart ownership in the
   integrated ROB/CMT owner, not in this selector and not in `ReducedCommitROB`.
+- When `ROBEntryBank` consumes `ROBFlushPrune`, an applied flush owns the bank
+  cycle: suppress allocation, completion, commit, and deallocation; clear every
+  row in `flushPruneMask`; decrement resident and outstanding counts with the
+  selector outputs; rebase `allocPtr` to the first pruned row; and rebase
+  `commitPtr` when the selector reports a pruned-before-commit row or the flush
+  leaves no outstanding work. Keep native backend ROBID row metadata as the
+  next integration step; the current skeleton's 32-bit identity-sideband bridge
+  is not a final full-core contract.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
