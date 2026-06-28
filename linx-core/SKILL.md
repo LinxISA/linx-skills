@@ -74,6 +74,7 @@ bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding
 bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline
 bash tools/chisel/run_chisel_tests.sh --only LoadInflightQueue
 bash tools/chisel/run_chisel_tests.sh --only LoadReplayWakeup
+bash tools/chisel/run_chisel_tests.sh --only LoadRefillWakeup
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -443,6 +444,18 @@ Toolchain facts from initial Chisel bring-up:
   by the merged valid mask. Completed rows return to `Wait` for relaunch; keep
   L1 refill, ready-table updates, consumer bypass routing, ResolveQ/LHQ queue
   movement, precise flush, and trace emission in later owner packets.
+- Phase 5 `LoadRefillWakeup` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only LoadRefillWakeup` and the
+  affected `LoadInflightQueue`/`LoadReplayWakeup` gates. This module is the
+  first read-refill wakeup sidecar for resident LIQ rows: accept only read
+  refill packets, wake working same-line scalar rows that have not already
+  recorded `l1Hit`, set a local `l1Hit` sideband, and store full-line data plus
+  a full valid mask in the row. `LoadInflightQueue` launch must use row-owned
+  `lineData`/`validMask` when present so refill- and replay-completed rows
+  relaunch through `LoadForwardPipeline` without an external base-data replay
+  input. Keep miss queue/prefetch-set ownership, full L1D/LDQ data-buffer
+  ownership, L2/CHI response queues, ready-table updates, consumer bypass,
+  precise flush, ResolveQ/LHQ movement, and trace emission in later packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -712,8 +725,17 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
 - SCB replay wakeup merges same-line byte-valid data into working LIQ rows
   except `Repick`; when merged bytes cover the requested load mask, return the
   row to `Wait` for the next launch rather than directly publishing an LHQ hit.
-- L1 refill wakeup is a separate owner from store/SCB replay wakeup because the
-  model also mutates miss queues and cluster cacheline data there.
+- L1 refill wakeup is a separate owner from store/SCB replay wakeup:
+  - accept only read refill packets.
+  - match working same-line scalar LIQ rows that have not already recorded
+    `l1Hit`.
+  - return the row to `Wait`, set local `l1Hit`, and store full-line data plus
+    full valid mask for the next launch.
+  - keep miss queue, prefetch set, full L1D/LDQ data buffer, ready-table,
+    bypass, precise flush, ResolveQ/LHQ, and trace ownership separate.
+- LIQ launch should use row-owned `lineData`/`validMask` when present before
+  falling back to external base data; this is what lets replay/refill-completed
+  rows relaunch through the normal load-forward pipeline.
 
 ## SCB (Store Coalescing Buffer) → DCache / CHI (strict)
 
