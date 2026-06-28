@@ -59,6 +59,7 @@ bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
+bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
@@ -201,10 +202,11 @@ Toolchain facts from initial Chisel bring-up:
   `allocValid` from `ScalarDecodeRenameBridge.robAllocAttemptValid`, not from
   the accepted allocation event, so ROB duplicate-identity ready calculation
   sees a stable request row without feeding allocator ready back into
-  allocator valid. R44 adds the registered `dec_ren_q` owner and R45 adds the
-  reduced memory-order ID owner; keep width-wide rename, enqueue-time ROB
-  reservation, full `load_id`/`sid` payload carry, store split cloning,
-  automatic checkpoint capture, ready-table initialization,
+  allocator valid. R44 adds the registered `dec_ren_q` owner, R45 adds the
+  reduced memory-order ID owner, and R46 adds the standalone renamed store
+  payload split owner; keep width-wide rename, enqueue-time ROB reservation,
+  full `load_id`/`sid` payload carry, store-dispatch integration, automatic
+  checkpoint capture, ready-table initialization,
   T/U/SGPR/tile/vector operands, full block retire, and live top-level commit
   rows in later owner packets.
 - Phase 5/R43 `FrontendRegAliasClassify` / `FrontendOperandDecode` work must
@@ -249,6 +251,21 @@ Toolchain facts from initial Chisel bring-up:
   uop bundles, or perform width-wide same-cycle slot-order allocation. The next
   store packet should consume the split intent plus opcode-derived pair/cache
   metadata and create shared-SID STA/STD payloads in a dedicated owner.
+- Phase 5/R46 `StoreSplitPayload` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload` plus
+  affected `InterfaceBundles`, `DecodeLoadStoreIdAssign`,
+  `ScalarDecodeRenameBridge`, `DecodeRenameROBPath`, `DecodeRenameQueue`,
+  `FrontendDecodeStage`, `DispatchROBAllocator`, reduced ROB bookkeeping, top
+  xcheck, `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. `StoreSplitPayload` consumes renamed
+  store rows carrying `storeSplitIntent`, pair/cache-maintain suppression, and
+  PCR metadata. Split stores must fire STA and STD atomically with shared
+  `bid/gid/rid/blockBid/lsid` identity; ordinary STA payloads zero source 0;
+  PCR STA payloads preserve source 0 and use store data source index 1; pair
+  and cache-maintain stores remain single `ST_ALL` payloads. This owner must
+  not allocate or mutate STQ/SCB/MDB state. The next store-dispatch packet
+  should connect opcode-derived PCR/pair/cache-maintain metadata from generated
+  decode and feed STA/STD payloads into dispatch/STQ boundaries.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
