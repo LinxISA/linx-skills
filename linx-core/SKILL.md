@@ -539,8 +539,8 @@ Toolchain facts from initial Chisel bring-up:
   before U pre-release, current destination mark before post-release, and
   pressure release after the fifth same-kind relation, matching
   `SPEROB::CheckRelativeReg` and `SPEROB::ReleaseFunc`. Ready-table mutation,
-  old T/U physical tag release accounting, relation-cmap flush pruning, and
-  multi-PE/thread banking remain later owner packets.
+  old T/U physical tag release accounting, block/group commit cleanup event
+  wiring, and multi-PE/thread banking remain later owner packets.
 - Phase 5/R64 live relation-cmap retire wiring must run
   `sbt --client --error 'Test / compile'` plus affected
   `TULinkRetireCommandPath`, `TULinkRelationCmap`, `ScalarTURenameBridge`,
@@ -555,6 +555,23 @@ Toolchain facts from initial Chisel bring-up:
   mark/release command when maintenance wins the cycle. Preserve valid
   no-destination block-last retire sources; they can still drain older T/U
   relations even though they do not emit a current destination mark.
+- Phase 5/R65 relation-cmap cleanup pruning work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkRelationCmap`, `TULinkRetireCommandPath`, `DecodeRenameROBPath`,
+  `TULinkRecoveryCleanupPath`, `TULinkRename`, `ROBEntryBank`,
+  `DispatchROBAllocator`, reduced ROB bookkeeping, trace-schema self-test,
+  Chisel QEMU dry-run, diff check, and LinxCoreModel SHA gates. Preserve the
+  model cleanup split exactly: `CleanCMAP(bid)` removes all matching
+  relation entries while preserving remaining order, `CleanGroupCMAP(bid,
+  gid)` removes all exact `(bid,gid)` matches while preserving remaining
+  order, and `FlushRelativeReg` prunes only the newest suffix of matching
+  entries. For relation-cmap flush, `baseOnBid` is inclusive
+  `flush.bid <= entry.bid`; non-base is strict BID-only
+  `flush.bid < entry.bid` and must not add RID comparison. Apply the same
+  cleanup predicates to queued ROB dealloc retire sources before they can
+  enter relation-cmap, so a recovery flush cannot reintroduce pruned relation
+  work. Keep ready-table side effects and live block/group commit clean event
+  wiring in separate owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
