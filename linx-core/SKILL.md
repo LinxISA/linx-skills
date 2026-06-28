@@ -39,7 +39,7 @@ wrappers rather than invoking `sbt` directly. The wrappers source
 `tools/chisel/chisel_env.sh`, which prefers Homebrew `openjdk@17` when
 `JAVA_HOME` is unset.
 
-Current Phase 0/0B/1/2 gate sequence:
+Current Phase 0/0B/1/2/5-prep gate sequence:
 
 ```bash
 cd /Users/zhoubot/linx-isa/rtl/LinxCore
@@ -50,6 +50,7 @@ bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer
 bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
+bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -153,13 +154,24 @@ Toolchain facts from initial Chisel bring-up:
   rename cleanup, LSU/STQ side effects, and precise trap ownership remain
   deferred to integrated ROB/CMT.
 - Phase 5 integrated ROB/CMT work must run
-  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus` before adding
-  ROB entry-bank state. Preserve the LinxCoreModel `PROBStatus` order:
+  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus` before
+  changing ROB entry-bank state. Preserve the LinxCoreModel `PROBStatus` order:
   `Free=0`, `Allocated=1`, `Renamed=2`, `Issued=3`, `Completed=4`,
   `Retired=5`, `Fault=6`, `NeedFlush=7`. Commit consumes only `Completed`
   rows and changes them to `Retired`; deallocation consumes only `Retired`
   rows and changes them to `Free`. Do not collapse the two walks into one
   status transition.
+- Phase 5 `ROBEntryBank` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank`. The entry bank
+  preserves separate `allocPtr`, `commitPtr`, and `deallocPtr` walks:
+  allocation creates `Allocated` rows and increments resident/outstanding
+  counts, completion marks eligible rows `Completed`, commit emits monitored
+  contiguous completed-head rows and changes them to `Retired`, and deallocation
+  frees only later-visible `Retired` rows. Retired rows remain resident and
+  reject duplicate `(bid,gid,rid)` identities until deallocation clears them.
+  Full flush rebasing, rename cleanup, LSU/STQ side effects, precise traps, and
+  restart ownership remain future integrated ROB/CMT work; keep
+  `ReducedCommitROB` as the reduced trace harness.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
