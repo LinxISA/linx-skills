@@ -54,6 +54,7 @@ bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
 bash tools/chisel/run_chisel_tests.sh --only ROBFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator
 bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
+bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -211,6 +212,14 @@ Toolchain facts from initial Chisel bring-up:
   full-BID-to-ring-ROBID conversion with `DispatchROBAllocator`, and keep
   rename restore, LSU/STQ cleanup, frontend redirect, PE replay fanout, and
   BROB pointer restoration in later cleanup owners.
+- Phase 5 `RecoveryCleanupControl` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl`. This
+  module is the first registered cleanup-intent boundary after recovery
+  selection: classify global flush, global replay, and PE-scoped replay; expose
+  BCTRL, rename, backend, frontend, LSU/STQ, tile, PE fanout, and ROB prune
+  intent bits; and keep actual rename restore, LSU/STQ mutation, frontend
+  restart payloads, and BROB pointer restoration out of `ROBFlushPrune` and
+  generic top-level glue.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
