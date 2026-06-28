@@ -436,6 +436,24 @@ Toolchain facts from initial Chisel bring-up:
   source sidecars, selector-to-cleanup composition, scalar GPR+T/U
   accepted-output composition, relation-cmap release policy, ready-table
   mutation, and multi-PE/thread banking in later owner packets.
+- Phase 5/R58 `STQEntryBank` LSU T/U source-sidecar work must run
+  `sbt --client --error 'Test / compile'` plus affected `STQEntryBank`,
+  `STQFlushPrune`, `StoreDispatchToSTQ`, `StoreDispatchSTQPath`,
+  `STQInsertProbe`, `STQCommitDrain`, `STQSCBCommitPath`,
+  `TULinkFlushSourceSelector`, `TULinkRecoveryCleanupPath`, reduced ROB
+  bookkeeping, trace-schema self-test, and Chisel QEMU dry-run gates. The STQ
+  request and row owners must carry the model `MemReqBus` `tSeq/uSeq` sidecars
+  plus T/U destination ownership, then publish `lsuTULinkSource` only for an
+  exact non-base `(flush.bid, flush.rid, flush.stid)` row match. Keep this
+  source separate from `STQFlushPrune`, whose pruning predicate remains the
+  model LSU `(bid, lsId)` recovery rule. Split-store merge must preserve the
+  first row's T/U source sidecars while filling address/data readiness, matching
+  `STQ::mergeStore` and `STQueueEntryInfo::init`; do not overwrite them from a
+  later complementary half. `StoreDispatchToSTQ` may drive disabled T/U
+  sidecars until live T/U rename snapshots reach `StoreSplitIssuePayload`.
+  Keep top-level wiring into `TULinkRecoveryCleanupPath.lsuSource`, scalar
+  GPR+T/U accepted-output composition, relation-cmap release policy,
+  ready-table mutation, and multi-PE/thread banking in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
