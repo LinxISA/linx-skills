@@ -72,6 +72,7 @@ bash tools/chisel/run_chisel_tests.sh --only MDBSSIT
 bash tools/chisel/run_chisel_tests.sh --only MDBQueueFanout
 bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding
 bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline
+bash tools/chisel/run_chisel_tests.sh --only LoadInflightQueue
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -419,6 +420,17 @@ Toolchain facts from initial Chisel bring-up:
   LIQ/LHQ/LDQ row mutation, STQ/SCB/MDB mutation, ready-table updates,
   issue-wakeup fanout, response queues, and memory-event trace in later owner
   packets.
+- Phase 5 `LoadInflightQueue` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only LoadInflightQueue`. This
+  module is the first registered LIQ/LHQ row owner around the forwarding
+  pipeline: allocate slot-plus-wrap `LID`s with the load's
+  `youngestStoreId` snapshot, launch only non-wait-store `Wait` rows through
+  `LoadForwardPipeline`, apply E4 outcomes back to row state, publish LHQ
+  records only for E4 hits, hold `StoreDataNotReady` rows as wait-store
+  replays, and hold incomplete bytes as `L1DcMiss`/`missPending`. Keep precise
+  `FlushBus` pruning, L2 refill queues, store/SCB wakeup replay, ready-table
+  updates, consumer bypass routing, a separate ResolveQ/LHQ queue, and
+  memory-event trace in later owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
