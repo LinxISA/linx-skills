@@ -58,6 +58,7 @@ bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
+bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
 bash tools/chisel/run_chisel_tests.sh --only STQEntryBank
 bash tools/chisel/run_chisel_tests.sh --only STQCommitQueue
@@ -184,6 +185,23 @@ Toolchain facts from initial Chisel bring-up:
   effects in later owners. The bridge must reject reg6 scalar aliases outside
   the 24-entry model GPR namespace, including fixed compressed tags 24 and 31,
   until a later operand-classification owner maps those aliases explicitly.
+- Phase 5/R42 `DecodeRenameROBPath` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath` plus
+  affected `ScalarDecodeRenameBridge`, `FrontendDecodeStage`,
+  `DispatchROBAllocator`, `GPRRenameCheckpoint`, reduced ROB bookkeeping, top
+  xcheck, and `run_chisel_qemu_crosscheck.sh --dry-run` gates. This path is
+  the first reduced frontend/backend composition owner: connect
+  `FrontendDecodeStage`, `ScalarDecodeRenameBridge`, and
+  `DispatchROBAllocator`; select one decoded slot; stamp temporary backend
+  identity from allocator cursors before rename; and allocate a real BROB/ROB
+  row. When composing with `DispatchROBAllocator`, drive allocator
+  `allocValid` from `ScalarDecodeRenameBridge.robAllocAttemptValid`, not from
+  the accepted allocation event, so ROB duplicate-identity ready calculation
+  sees a stable request row without feeding allocator ready back into
+  allocator valid. Keep registered `dec_ren_q`/D2-D3 staging, width-wide
+  rename, LSID/SID allocation, store split, automatic checkpoint capture,
+  ready-table initialization, T/U/SGPR/tile/vector operands, full block retire,
+  and live top-level commit rows in later owner packets.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
