@@ -67,6 +67,7 @@ bash tools/chisel/run_chisel_tests.sh --only SCBStateUpdate
 bash tools/chisel/run_chisel_tests.sh --only SCBRowBank
 bash tools/chisel/run_chisel_tests.sh --only SCBResponseDecode
 bash tools/chisel/run_chisel_tests.sh --only STQSCBCommitPath
+bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
@@ -347,6 +348,20 @@ Toolchain facts from initial Chisel bring-up:
   queue arbitration, DCache RAM mutation, MDB conflict prediction,
   store-to-load forwarding, BSB window-slide side effects, and memory-event
   trace in later LSU owner packets.
+- Phase 5 `MDBConflictDetect` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only MDBConflictDetect`. This module
+  is the first store-arrival conflict classifier behind model `detect_su_lu_q`:
+  scalar conflicts require address overlap plus
+  `LessEqual(store.bid, store.lsID, load.bid, load.lsID)`, resolved active LDQ
+  rows and `ResolveQ` rows are flush candidates, unresolved active rows are
+  only marked wait-store for `ST_ADDR`, tile load/store conflicts are
+  suppressed until the tile owner exists, and the selected resolved conflict is
+  the oldest load by `(bid, lsID)`. Same-BID pairs classify as inner flush;
+  cross-BID pairs classify as load-attributed nuke flush. Keep the MDB SSIT
+  table, `lookup_lu_mdb_q`, `lookup_mdb_lu_q`, `lookup_mdb_su_q`,
+  `record_lu_mdb_q`, `delete_lu_mdb_q`, store wakeup, byte forwarding, BCTRL
+  `bmdb`, IEX-local MDB, ROB nuke retirement, and final `FlushReq`
+  publication in later owner packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
   Verilator harness, writes nested Chisel commit JSONL including an invalid
@@ -707,7 +722,14 @@ Confirmed in #linx-core (2026-02-25):
 
 ## Load/store conflict → nuke flush (strict)
 
-- Address conflict triggers a **nuke** attributed to the load.
+- Store-arrival scalar conflict detection uses address overlap and
+  `LessEqual(store.bid, store.lsID, load.bid, load.lsID)`; tile load/store
+  conflicts are currently suppressed until a tile-specific owner exists.
+- Among resolved active LDQ rows plus `ResolveQ`, select the oldest conflicting
+  load by `(bid, lsID)` for MDB recording and recovery classification.
+- Unresolved active LDQ rows are marked wait-store only for `ST_ADDR` probes.
+- Cross-BID address conflict triggers a **nuke** attributed to the load;
+  same-BID address conflict is an inner flush, not a nuke.
 - LSU reports the load RID; ROB sets `entry.nuke=1` on that ROB entry.
 - Nuke triggers only when the nuke-marked load becomes ROB head:
   - do not retire that entry;
