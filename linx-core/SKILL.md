@@ -58,6 +58,7 @@ bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge
 bash tools/chisel/run_chisel_tests.sh --only RecoveryCleanupControl
 bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
+bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
@@ -200,8 +201,9 @@ Toolchain facts from initial Chisel bring-up:
   `allocValid` from `ScalarDecodeRenameBridge.robAllocAttemptValid`, not from
   the accepted allocation event, so ROB duplicate-identity ready calculation
   sees a stable request row without feeding allocator ready back into
-  allocator valid. R44 adds the registered `dec_ren_q` owner; keep width-wide
-  rename, enqueue-time ROB reservation, LSID/SID allocation, store split,
+  allocator valid. R44 adds the registered `dec_ren_q` owner and R45 adds the
+  reduced memory-order ID owner; keep width-wide rename, enqueue-time ROB
+  reservation, full `load_id`/`sid` payload carry, store split cloning,
   automatic checkpoint capture, ready-table initialization,
   T/U/SGPR/tile/vector operands, full block retire, and live top-level commit
   rows in later owner packets.
@@ -231,6 +233,22 @@ Toolchain facts from initial Chisel bring-up:
   for multiple queued rows at enqueue because that duplicates identities. Later
   top-level frontend integration must advance D1/F4 only on `decodeReady` /
   queue acceptance.
+- Phase 5/R45 `DecodeLoadStoreIdAssign` / `DecodeRenameROBPath` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign` plus
+  affected `DecodeRenameROBPath`, `DecodeRenameQueue`,
+  `ScalarDecodeRenameBridge`, `FrontendDecodeStage`,
+  `DispatchROBAllocator`, reduced ROB bookkeeping, top xcheck,
+  `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. `DecodeLoadStoreIdAssign` is the first
+  reduced STID0 memory-order ID owner after frontend decode: stamp the
+  selected decoded load/store/DCZVA row with the pre-increment 32-bit `lsID`
+  only when `DecodeRenameQueue` accepts the row, expose 64-bit `load_id` and
+  `sid` serial-counter observability, and clear/restore counters through the
+  recovery hook. This owner may expose `storeSplitIntent`, but must not clone
+  STA/STD rows, rewrite PCR store sources, carry `load_id`/`sid` through common
+  uop bundles, or perform width-wide same-cycle slot-order allocation. The next
+  store packet should consume the split intent plus opcode-derived pair/cache
+  metadata and create shared-SID STA/STD payloads in a dedicated owner.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
