@@ -45,6 +45,7 @@ Current Phase 0/0B gate sequence:
 cd /Users/zhoubot/linx-isa/rtl/LinxCore
 bash tools/chisel/build_chisel.sh
 bash tools/chisel/run_chisel_tests.sh --only ROBID
+bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
@@ -69,6 +70,13 @@ Toolchain facts from initial Chisel bring-up:
   is 64 bits, 128-entry slot id is `bid[6:0]`, uniqueness/age is `bid[63:7]`,
   `cmd_tag` is `bid[7:0]`, and BID flush keeps `bid <= flush_bid` while killing
   `bid > flush_bid` using full BID order.
+- Commit trace work must keep the LinxCoreModel `CommitInfo` identity
+  `bid/gid/rid` as 32-bit model sideband fields while preserving the hardware
+  block identity separately as 64-bit `block_bid`; do not truncate the hardware
+  BID into `CommitInfo.bid`.
+- Fixed-width Chisel commit trace dumps may include invalid slots, but
+  `tools/chisel/trace_schema_adapter.py` must filter `valid: 0` rows before
+  sequence numbering and QEMU comparison.
 
 Coordination requirements:
 
