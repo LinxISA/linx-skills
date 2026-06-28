@@ -62,6 +62,8 @@ bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchToSTQ
+bash tools/chisel/run_chisel_tests.sh --only STQInsertProbe
+bash tools/chisel/run_chisel_tests.sh --only StoreDispatchSTQPath
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameQueue
 bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath
 bash tools/chisel/run_chisel_tests.sh --only STQFlushPrune
@@ -321,6 +323,23 @@ Toolchain facts from initial Chisel bring-up:
   progress case where a full STQ rejects a new address allocation while still
   accepting a complementary data half merge. Do not force the R48 atomic
   rename-time split pair to enter STQ atomically.
+- Phase 5/R50 `STQInsertProbe` / `StoreDispatchSTQPath` work must run
+  `sbt --client --error 'Test / compile'` plus affected `STQInsertProbe`,
+  `StoreDispatchSTQPath`, `StoreDispatchToSTQ`, `StoreDispatchQueues`,
+  `STQEntryBank`, `StoreSplitPayload`, `DecodeRenameROBPath`,
+  `InterfaceBundles`, reduced ROB bookkeeping, top xcheck,
+  `run_chisel_qemu_crosscheck.sh --dry-run`, `build_chisel.sh`, and
+  `run_chisel_verilator_lint.sh` gates. `STQInsertProbe` is the shared
+  read-only STQ insert-readiness predicate over the live `STQEntryBank` row
+  image, and `STQEntryBank` must use the same predicate internally. Full
+  queue-to-STQ composition must compute STA and STD insert readiness with
+  independent probes before selecting a request; do not feed a selected-only
+  `STQEntryBank.insertReady` shortcut back into both candidates. STA still
+  wins when both executed candidates are ready, but a mergeable STD must be
+  allowed to bypass a present STA that cannot allocate into a full STQ.
+  Address generation, store-data selection, load-conflict probes, ready-table
+  updates, memory trace side effects, and live top integration remain later
+  owners.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
