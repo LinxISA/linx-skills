@@ -107,6 +107,7 @@ bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarRegisterFile
+bash tools/chisel/run_chisel_tests.sh --only ReducedScalarIssueQueue
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
@@ -807,6 +808,22 @@ Toolchain facts from initial Chisel bring-up:
   Treat `rfAllReadReady` in the R82 top as diagnostic only; do not feed an
   accepted-output readiness bit back into `ScalarDecodeRenameBridge.outReady`
   until an issue/ready-table owner exposes pre-accept source readiness.
+- Phase 5/R83 reduced scalar issue-queue work inserts
+  `ReducedScalarIssueQueue` between `DecodeRenameROBPath` and
+  `ReducedScalarAluExecute` in the RF-backed ALU trace top. Run
+  `run_chisel_tests.sh --only ReducedScalarIssueQueue`,
+  `run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop`, and
+  `run_chisel_frontend_rf_alu_trace_top_xcheck.sh` after changes to scalar
+  issue enqueue/dequeue, RF source-readiness gating, the RF-backed top, or the
+  shared frontend ALU trace-top driver. Keep
+  `run_chisel_frontend_alu_trace_top_xcheck.sh` as the R81 operand-fixture
+  regression and `run_chisel_frontend_trace_top_xcheck.sh` as the R80
+  surrogate regression. In the reduced lane, `ScalarDecodeRenameBridge`
+  acceptance must remain driven by downstream issue-queue capacity; RF
+  physical source readiness gates only queue-head issue. The R83 queue is a
+  FIFO/dequeue-on-execute-accept surrogate and does not replace full model
+  `IssueState` age select, P1/I1/I2 in-flight release, cancel, replay, or
+  bypass behavior.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
