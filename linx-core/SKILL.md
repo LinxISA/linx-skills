@@ -718,6 +718,21 @@ Toolchain facts from initial Chisel bring-up:
   packet production and multi-PE top/bank instantiation remain later owners;
   packets that do not set `peId` still reduce to PE0 through normal zero
   defaults.
+- Phase 5/R76 enqueue-time ROB reservation design must preserve the model
+  `BCtrlUnit::Work` -> `DCTop::Work` -> `SPEROB::allocROB` -> `dec_ren_q`
+  order: BROB and PE ROB identities are reserved before the row enters
+  `dec_ren_q`, not at rename acceptance. In the C++ model, the ROB row stores
+  the shared `SimInst` pointer, so later `SPERename` mutations such as
+  `tSeq/uSeq` remain visible through that pointer. Chisel ROB rows store
+  values, so an enqueue-time reservation packet must define an explicit
+  post-rename sidecar update or split reservation/update contract before
+  advancing allocator cursors at enqueue. Do not treat an early ROB allocation
+  with permanent zero T/U sequence or destination sidecars as model-equivalent.
+  Focused planning and implementation gates include `DecodeRenameROBPath`,
+  `DispatchROBAllocator`, `ROBEntryBank`, `DecodeRenameQueue`,
+  `ScalarTURenameBridge`, reduced ROB bookkeeping, top xcheck when top IO
+  changes, trace-schema self-test if commit rows change, Chisel QEMU dry-run,
+  build, Verilator lint, diff check, and LinxCoreModel SHA gates.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
