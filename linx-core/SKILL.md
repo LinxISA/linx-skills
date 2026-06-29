@@ -653,6 +653,19 @@ Toolchain facts from initial Chisel bring-up:
   hands for every scalar PE. A Chisel fanout owner must pulse downstream bank
   valid only when every selected PE bank is ready; do not let a ready subset of
   banks consume the post-clean block-commit event before the others.
+- Phase 5/R72 explicit SGPR local-bank-array work must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `TULinkLocalBankArray`, `ScalarTURenameBridge`, `DecodeRenameROBPath`,
+  `TULinkLocalBlockCommitFanout`, `TULinkRecoveryCleanupPath`,
+  `TULinkRetireCommandPath`, `TULinkRename`, `TULinkRelationCmap`,
+  `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB bookkeeping,
+  trace-schema self-test, Chisel QEMU dry-run, diff check, and LinxCoreModel
+  SHA gates. Preserve the model SGPR bank hierarchy:
+  `sgprRenameUnit[pe][stid][hand]` is the owner shape, with T and U as the two
+  hands inside each PE/STID bank group. Keep selected-STID block-commit fanout
+  inside the explicit bank-array owner, not in backend glue. Later dynamic
+  PE/STID routing must target that same bank-array boundary for rename,
+  retire, recovery cleanup, and local block commit.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
