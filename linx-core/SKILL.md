@@ -103,11 +103,13 @@ bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
+bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
 bash tools/chisel/run_chisel_top_xcheck.sh
 bash tools/chisel/run_chisel_trace_replay_xcheck.sh
+bash tools/chisel/run_chisel_frontend_trace_top_lint.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -751,6 +753,15 @@ Toolchain facts from initial Chisel bring-up:
   `LinxCoreTop` under Verilator, and require zero mismatches against the
   QEMU-shaped reference stream. Treat this as replay infrastructure only; it is
   not evidence that frontend/decode/execute/LSU generated rows from an ELF.
+- Phase 5/R79 frontend-window trace-top work adds the first emitted Chisel top
+  boundary that drives a raw `FrontendDecodePacket` window through
+  `F4DecodeWindow` and `DecodeRenameROBPath` before monitored commit export.
+  Run `run_chisel_tests.sh --only LinxCoreFrontendTraceTop` and
+  `run_chisel_frontend_trace_top_lint.sh` after changes to that
+  frontend-window-to-commit boundary. The wrapper may use an external
+  completion surrogate until execute owners exist; it is not full
+  QEMU/CoreMark evidence until a Verilator driver dumps DUT commit JSONL from
+  live frontend/decode/execute/LSU-owned rows.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -1120,6 +1131,10 @@ Toolchain facts from initial Chisel bring-up:
   commit JSONL, drives those rows through `LinxCoreTop` with the Verilator
   harness, writes DUT and QEMU-shaped reference streams, and requires zero
   mismatches through the neutral comparator.
+- `run_chisel_frontend_trace_top_lint.sh` is the first generated-RTL proof for
+  the raw frontend-window to integrated decode/rename/ROB commit boundary: it
+  emits `LinxCoreFrontendTraceTop`, compiles every sibling SystemVerilog module
+  that CIRCT emits for that target, and lints the result with Verilator.
 
 Coordination requirements:
 
