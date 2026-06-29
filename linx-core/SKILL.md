@@ -718,21 +718,30 @@ Toolchain facts from initial Chisel bring-up:
   packet production and multi-PE top/bank instantiation remain later owners;
   packets that do not set `peId` still reduce to PE0 through normal zero
   defaults.
-- Phase 5/R76 enqueue-time ROB reservation design must preserve the model
-  `BCtrlUnit::Work` -> `DCTop::Work` -> `SPEROB::allocROB` -> `dec_ren_q`
-  order: BROB and PE ROB identities are reserved before the row enters
-  `dec_ren_q`, not at rename acceptance. In the C++ model, the ROB row stores
-  the shared `SimInst` pointer, so later `SPERename` mutations such as
-  `tSeq/uSeq` remain visible through that pointer. Chisel ROB rows store
-  values, so an enqueue-time reservation packet must define an explicit
-  post-rename sidecar update or split reservation/update contract before
-  advancing allocator cursors at enqueue. Do not treat an early ROB allocation
-  with permanent zero T/U sequence or destination sidecars as model-equivalent.
-  Focused planning and implementation gates include `DecodeRenameROBPath`,
+- Phase 5/R76 enqueue-time ROB reservation is the implemented contract, not an
+  open design choice. Preserve the model `BCtrlUnit::Work` -> `DCTop::Work` ->
+  `SPEROB::allocROB` -> `dec_ren_q` order: BROB and PE ROB identities are
+  reserved before the row enters `dec_ren_q`, not at rename acceptance. In the
+  C++ model, the ROB row stores the shared `SimInst` pointer, so later
+  `SPERename` mutations such as `tSeq/uSeq` remain visible through that
+  pointer. Chisel ROB rows store values, so `DecodeRenameROBPath` reserves the
+  row before enqueue and `ROBEntryBank.renameUpdate*`, forwarded through
+  `DispatchROBAllocator`, patches the accepted rename row afterward. Do not
+  reintroduce queue-head ROB allocation, permanent zero T/U sidecars, or any
+  allocator-valid feedback loop that lets allocator readiness depend on its own
+  accepted output. Focused gates include `DecodeRenameROBPath`,
   `DispatchROBAllocator`, `ROBEntryBank`, `DecodeRenameQueue`,
   `ScalarTURenameBridge`, reduced ROB bookkeeping, top xcheck when top IO
   changes, trace-schema self-test if commit rows change, Chisel QEMU dry-run,
   build, Verilator lint, diff check, and LinxCoreModel SHA gates.
+- Phase 5/R77 gate-broadening work starts from the R76 implementation and must
+  run the full wrapper ladder before wider frontend/rename agents depend on the
+  new allocation timing: affected R76 unit specs, reduced ROB bookkeeping,
+  reduced ROB Verilator xcheck, top xcheck, trace-schema self-test, Chisel QEMU
+  dry-run, `build_chisel.sh`, and Verilator lint. R77 may repair wrapper or
+  trace payload issues found by those gates, but it must not redesign the
+  reservation/update split without first recording a concrete first-divergence
+  failure.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
