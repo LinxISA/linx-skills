@@ -104,6 +104,8 @@ bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
+bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute
+bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
@@ -111,6 +113,7 @@ bash tools/chisel/run_chisel_top_xcheck.sh
 bash tools/chisel/run_chisel_trace_replay_xcheck.sh
 bash tools/chisel/run_chisel_frontend_trace_top_lint.sh
 bash tools/chisel/run_chisel_frontend_trace_top_xcheck.sh
+bash tools/chisel/run_chisel_frontend_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -774,6 +777,19 @@ Toolchain facts from initial Chisel bring-up:
   packet to commit-row infrastructure only; it is still not CoreMark/QEMU
   architectural evidence until fetch, issue, execute, LSU, and recovery owners
   generate the retired rows and completion payloads.
+- Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
+  comparison gate where a Chisel execute owner, not an external surrogate,
+  marks a frontend-decoded ROB row complete with nonzero source, destination,
+  and writeback data. Run `run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop`, and
+  `run_chisel_frontend_alu_trace_top_xcheck.sh` after changes to scalar ALU
+  execute completion, `completeRow` payload wiring through
+  `DecodeRenameROBPath`/`DispatchROBAllocator`/`ROBEntryBank`, or the frontend
+  ALU trace-top driver. Keep the old `run_chisel_frontend_trace_top_xcheck.sh`
+  as the R80 surrogate regression gate. Treat `operandData` on the ALU trace
+  top as temporary harness input; the next replacement evidence must move
+  operand sourcing into RF/ready-table/issue owners rather than adding more
+  top-level fixture values.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -1153,6 +1169,13 @@ Toolchain facts from initial Chisel bring-up:
   frontend packets, dumps DUT commit JSONL, normalizes through
   `trace_schema_adapter.py`, and requires zero mismatches against the
   QEMU-shaped reference trace.
+- `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
+  comparison proof where frontend-decoded scalar rows complete through a
+  Chisel execute owner. It emits `LinxCoreFrontendAluTraceTop`, builds the
+  dedicated ALU trace-top Verilator harness, holds fixture operand data stable
+  until execute accepts the renamed uop, dumps DUT commit JSONL with nonzero
+  writeback fields, normalizes through `trace_schema_adapter.py`, and requires
+  zero mismatches against the QEMU-shaped reference trace.
 
 Coordination requirements:
 
