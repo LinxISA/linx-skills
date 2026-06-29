@@ -820,10 +820,19 @@ Toolchain facts from initial Chisel bring-up:
   regression and `run_chisel_frontend_trace_top_xcheck.sh` as the R80
   surrogate regression. In the reduced lane, `ScalarDecodeRenameBridge`
   acceptance must remain driven by downstream issue-queue capacity; RF
-  physical source readiness gates only queue-head issue. The R83 queue is a
-  FIFO/dequeue-on-execute-accept surrogate and does not replace full model
-  `IssueState` age select, P1/I1/I2 in-flight release, cancel, replay, or
-  bypass behavior.
+  physical source readiness gates only queue-head issue.
+- Phase 5/R84 reduced issue release work makes the RF-backed scalar issue
+  queue keep selected rows resident as issued entries until the ALU returns a
+  model-derived release identity. Run `run_chisel_tests.sh --only
+  ReducedScalarIssueQueue`, `run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop`, and
+  `run_chisel_frontend_rf_alu_trace_top_xcheck.sh` after changes to issued
+  residency, release identity, ALU W2 release, or top-level issue diagnostics.
+  In this reduced lane, execute acceptance marks the FIFO head issued; it must
+  not remove the row. Removal waits for a later `(bid, rid, stid)` release,
+  including unsupported reduced opcodes that still reached W2. The R84 queue
+  remains a head-only FIFO surrogate and does not replace full model
+  `IssueState` age select, P1/I1/I2 timing, cancel, replay, or bypass behavior.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
