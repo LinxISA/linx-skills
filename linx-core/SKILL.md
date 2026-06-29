@@ -106,6 +106,8 @@ bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop
+bash tools/chisel/run_chisel_tests.sh --only ReducedScalarRegisterFile
+bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
@@ -114,6 +116,7 @@ bash tools/chisel/run_chisel_trace_replay_xcheck.sh
 bash tools/chisel/run_chisel_frontend_trace_top_lint.sh
 bash tools/chisel/run_chisel_frontend_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_alu_trace_top_xcheck.sh
+bash tools/chisel/run_chisel_frontend_rf_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -790,6 +793,20 @@ Toolchain facts from initial Chisel bring-up:
   top as temporary harness input; the next replacement evidence must move
   operand sourcing into RF/ready-table/issue owners rather than adding more
   top-level fixture values.
+- Phase 5/R82 reduced scalar RF-backed ALU source work replaces the R81
+  top-level per-uop `operandData` fixture with persistent physical RF state for
+  dependent scalar rows. Run `run_chisel_tests.sh --only
+  ReducedScalarRegisterFile`, `run_chisel_tests.sh --only
+  ReducedScalarAluExecute`, `run_chisel_tests.sh --only
+  LinxCoreFrontendRfAluTraceTop`, and
+  `run_chisel_frontend_rf_alu_trace_top_xcheck.sh` after changes to scalar RF
+  operand sourcing, ALU physical-destination writeback metadata, or the shared
+  frontend ALU trace-top driver. Keep `run_chisel_frontend_alu_trace_top_xcheck.sh`
+  as the R81 operand-fixture regression and
+  `run_chisel_frontend_trace_top_xcheck.sh` as the R80 surrogate regression.
+  Treat `rfAllReadReady` in the R82 top as diagnostic only; do not feed an
+  accepted-output readiness bit back into `ScalarDecodeRenameBridge.outReady`
+  until an issue/ready-table owner exposes pre-accept source readiness.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
