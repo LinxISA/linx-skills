@@ -699,6 +699,25 @@ Toolchain facts from initial Chisel bring-up:
   target banks from `ScalarTURenameBridge.activePeId/activeStid`; that selector
   belongs to the current rename head. Dynamic non-zero PE production remains a
   later packet, but the sidecar must be stored, serialized, and diagnosed now.
+- Phase 5/R75 decoded/renamed scalar PE owner sidecar work must run
+  `sbt --client --error 'Test / compile'` plus affected `InterfaceBundles`,
+  `F4DecodeWindow`, `FrontendInstructionBuffer`, `FrontendDecodeIngress`,
+  `FrontendDecodeStage`, `DecodeLoadStoreIdAssign`, `DecodeRenameQueue`,
+  `ScalarDecodeRenameBridge`, `ScalarTURenameBridge`, `StoreSplitPayload`,
+  `DecodeRenameROBPath`, `TULinkLocalBankArray`, `DispatchROBAllocator`,
+  `ROBEntryBank`, reduced ROB bookkeeping, top xcheck, trace-schema
+  self-test, Chisel QEMU dry-run, build, Verilator lint, diff check, and
+  LinxCoreModel SHA gates. Preserve the model `DCTop::Work` and
+  `SPERename::Rename` ownership chain: frontend packets, decoded uops, renamed
+  uops, decode/rename queue rows, memory-ID outputs, and store-split payloads
+  must carry row-owned `peId/threadId`; reduced `DecodeRenameROBPath` must
+  drive `ScalarTURenameBridge.activePeId` and
+  `DispatchROBAllocator.allocPeId` from the queued row `peId`, while active
+  STID remains the queued row `threadId`. Do not reintroduce PE0 constants at
+  decode, rename, ROB allocation, or store payload boundaries. Nonzero PE
+  packet production and multi-PE top/bank instantiation remain later owners;
+  packets that do not set `peId` still reduce to PE0 through normal zero
+  defaults.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
