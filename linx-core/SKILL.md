@@ -123,6 +123,14 @@ python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
 ```
 
+For any non-dry-run comparison routed through
+`tools/chisel/run_chisel_qemu_crosscheck.sh`, inspect and preserve
+`<report-dir>/crosscheck_manifest.json` with the rest of the evidence bundle.
+The manifest records raw traces, normalized traces, comparator reports,
+selected QEMU binary, row counts, mismatch summary, CBSTOP summary, and
+LinxCore/superproject git context. The wrapper must still emit the manifest on
+comparator failure and then return the comparator status.
+
 ## Chisel module agent loop
 
 Use `rtl/LinxCore/docs/chisel/agent-loop.md` as the operational runbook for
@@ -134,6 +142,8 @@ multi-agent Chisel development. Each module packet must:
 - keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
   surface for replacement evidence;
 - run the narrow module gate plus affected cross-check gates;
+- inspect `crosscheck_manifest.json` for every generated-RTL or QEMU/DUT
+  comparison that routes through the common cross-check wrapper;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
 Do not treat a frontend/backend Chisel module as replacement evidence merely
