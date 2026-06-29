@@ -60,9 +60,13 @@ bash tools/chisel/run_chisel_tests.sh --only GPRRenameCheckpoint
 bash tools/chisel/run_chisel_tests.sh --only ScalarDecodeRenameBridge
 bash tools/chisel/run_chisel_tests.sh --only TULinkRename
 bash tools/chisel/run_chisel_tests.sh --only TULinkRelationCmap
+bash tools/chisel/run_chisel_tests.sh --only TULinkRetireCommandPath
 bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSequencePublisher
+bash tools/chisel/run_chisel_tests.sh --only TULinkLocalBlockCommitFanout
+bash tools/chisel/run_chisel_tests.sh --only TULinkLocalBankArray
 bash tools/chisel/run_chisel_tests.sh --only TULinkRecoveryCleanupPath
 bash tools/chisel/run_chisel_tests.sh --only TULinkFlushSourceSelector
+bash tools/chisel/run_chisel_tests.sh --only ScalarTURenameBridge
 bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign
 bash tools/chisel/run_chisel_tests.sh --only StoreSplitPayload
 bash tools/chisel/run_chisel_tests.sh --only StoreDispatchQueues
@@ -676,10 +680,25 @@ Toolchain facts from initial Chisel bring-up:
   active SGPR bank selection is by row-owned PE/STID at the
   `ScalarTURenameBridge`/`TULinkLocalBankArray` boundary. In the reduced
   backend, derive active STID from the queued decoded row `threadId` and keep
-  PE at PE0 until decode carries a PE owner. Do not claim dynamic retire
-  PE/STID routing complete until `TULinkRetireCommand` carries retired-row
-  PE/STID sidecars and mark/release commands can route independently of the
-  rename-head active selector.
+  PE at PE0 until decode carries a PE owner. Keep the active selector scoped
+  to rename and reduced external maintenance; retired-row mark/release routing
+  must use the command sidecar path described by R74, not the current
+  rename-head selector.
+- Phase 5/R74 retired-row SGPR retire-bank sidecar work must run
+  `sbt --client --error 'Test / compile'` plus affected `InterfaceBundles`,
+  `TULinkRelationCmap`, `TULinkRetireCommandPath`,
+  `TULinkLocalBankArray`, `ScalarTURenameBridge`, `ROBEntryBank`,
+  `DispatchROBAllocator`, `DecodeRenameROBPath`,
+  `TULinkRecoveryCleanupPath`, `TULinkRename`, reduced ROB bookkeeping,
+  trace-schema self-test, Chisel QEMU dry-run, diff check, and LinxCoreModel
+  SHA gates. Preserve the model `SPERename::RepLocalRetired(type, peid, ...,
+  tid)` and `SPEROB::ReleaseFunc` bank arguments: ROB deallocation sources
+  must carry row-owned `peId/stid`, relation-cmap entries must retain those
+  sidecars for later releases, and `TULinkRetireCommand` must route
+  mark/release commands by command `peId/stid`. Do not derive local retire
+  target banks from `ScalarTURenameBridge.activePeId/activeStid`; that selector
+  belongs to the current rename head. Dynamic non-zero PE production remains a
+  later packet, but the sidecar must be stored, serialized, and diagnosed now.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
