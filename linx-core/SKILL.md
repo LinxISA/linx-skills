@@ -666,6 +666,20 @@ Toolchain facts from initial Chisel bring-up:
   inside the explicit bank-array owner, not in backend glue. Later dynamic
   PE/STID routing must target that same bank-array boundary for rename,
   retire, recovery cleanup, and local block commit.
+- Phase 5/R73 active SGPR bank selector plumbing must run
+  `sbt --client --error 'Test / compile'` plus affected
+  `ScalarTURenameBridge`, `DecodeRenameROBPath`, `TULinkLocalBankArray`,
+  `TULinkRecoveryCleanupPath`, `TULinkRetireCommandPath`, `TULinkRename`,
+  `TULinkRelationCmap`, `ROBEntryBank`, `DispatchROBAllocator`, reduced ROB
+  bookkeeping, trace-schema self-test, Chisel QEMU dry-run, diff check, and
+  LinxCoreModel SHA gates. Preserve the model `SPERename::Rename` lookup:
+  active SGPR bank selection is by row-owned PE/STID at the
+  `ScalarTURenameBridge`/`TULinkLocalBankArray` boundary. In the reduced
+  backend, derive active STID from the queued decoded row `threadId` and keep
+  PE at PE0 until decode carries a PE owner. Do not claim dynamic retire
+  PE/STID routing complete until `TULinkRetireCommand` carries retired-row
+  PE/STID sidecars and mark/release commands can route independently of the
+  rename-head active selector.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
