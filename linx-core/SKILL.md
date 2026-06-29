@@ -107,6 +107,7 @@ bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
 bash tools/chisel/run_chisel_top_xcheck.sh
+bash tools/chisel/run_chisel_trace_replay_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -742,6 +743,14 @@ Toolchain facts from initial Chisel bring-up:
   trace payload issues found by those gates, but it must not redesign the
   reservation/update split without first recording a concrete first-divergence
   failure.
+- Phase 5/R78 trace replay work adds the bridge between synthetic reduced
+  smokes and future live QEMU/CoreMark comparison. Run
+  `run_chisel_trace_replay_xcheck.sh` after changes to top-level commit export,
+  `trace_schema_adapter.py`, or cross-check harness code. The gate must
+  normalize a bounded external or fixture commit JSONL, replay it through
+  `LinxCoreTop` under Verilator, and require zero mismatches against the
+  QEMU-shaped reference stream. Treat this as replay infrastructure only; it is
+  not evidence that frontend/decode/execute/LSU generated rows from an ELF.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -1106,6 +1115,11 @@ Toolchain facts from initial Chisel bring-up:
   xcheck configuration, builds the same Verilator harness against top-level IO,
   asserts clean commit monitor outputs, and requires zero mismatches against the
   QEMU-shaped reference trace. The default top still emits `CoreParams()`.
+- `run_chisel_trace_replay_xcheck.sh` is the first external-row replay proof
+  for the top-level Chisel cross-check path: it normalizes an input or fixture
+  commit JSONL, drives those rows through `LinxCoreTop` with the Verilator
+  harness, writes DUT and QEMU-shaped reference streams, and requires zero
+  mismatches through the neutral comparator.
 
 Coordination requirements:
 
