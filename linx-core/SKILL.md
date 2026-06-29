@@ -110,6 +110,7 @@ bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
 bash tools/chisel/run_chisel_top_xcheck.sh
 bash tools/chisel/run_chisel_trace_replay_xcheck.sh
 bash tools/chisel/run_chisel_frontend_trace_top_lint.sh
+bash tools/chisel/run_chisel_frontend_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -762,6 +763,17 @@ Toolchain facts from initial Chisel bring-up:
   completion surrogate until execute owners exist; it is not full
   QEMU/CoreMark evidence until a Verilator driver dumps DUT commit JSONL from
   live frontend/decode/execute/LSU-owned rows.
+- Phase 5/R80 frontend-window trace-top xcheck work adds the first generated
+  RTL comparison gate for `LinxCoreFrontendTraceTop`. Run
+  `run_chisel_frontend_trace_top_xcheck.sh` after changes to the frontend
+  trace-top driver, temporary completion surrogate, trace dump, or commit
+  export. The gate must drive raw scalar frontend packets through
+  `F4DecodeWindow` and `DecodeRenameROBPath`, use the explicit completion
+  surrogate to retire allocated ROB rows, dump DUT JSONL, and require zero
+  mismatches against a QEMU-shaped reference stream. Treat this as frontend
+  packet to commit-row infrastructure only; it is still not CoreMark/QEMU
+  architectural evidence until fetch, issue, execute, LSU, and recovery owners
+  generate the retired rows and completion payloads.
 - Do not run SBT-backed Chisel wrappers in parallel yet; a parallel ROBID test
   and ROBID bookkeeping invocation hit an SBT 2 server socket
   `Connection refused` race, while the same gates pass sequentially.
@@ -1135,6 +1147,12 @@ Toolchain facts from initial Chisel bring-up:
   the raw frontend-window to integrated decode/rename/ROB commit boundary: it
   emits `LinxCoreFrontendTraceTop`, compiles every sibling SystemVerilog module
   that CIRCT emits for that target, and lints the result with Verilator.
+- `run_chisel_frontend_trace_top_xcheck.sh` is the first generated-RTL
+  comparison proof for that boundary: it emits `LinxCoreFrontendTraceTop`,
+  builds the dedicated frontend trace-top Verilator harness, drives scalar
+  frontend packets, dumps DUT commit JSONL, normalizes through
+  `trace_schema_adapter.py`, and requires zero mismatches against the
+  QEMU-shaped reference trace.
 
 Coordination requirements:
 
