@@ -1279,6 +1279,30 @@ Toolchain facts from initial Chisel bring-up:
   after changing reduced LDI/SETC_EQ handling or bounded-capture tail-prefix
   policy. The R121 evidence compares one hundred seventy-three scalar/macro
   rows with zero mismatches.
+- Phase 5/R122 CoreMark read-only load-lookup work replaces the previous
+  zero-only `C.LDI`/`LDI` shortcut with an explicit reduced lookup bridge:
+  `ReducedScalarAluExecute` publishes `loadLookupValid/loadLookupAddr`, the
+  live RF/ALU top exposes `loadLookupData`, and the Verilator harness reads
+  eight little-endian bytes from the same sparse ELF memory image used for
+  instruction fetch. Missing bytes return zero. This is read-only harness
+  evidence, not an LSU/cache/store-forwarding implementation, and stores must
+  not mutate or depend on this image until a later packet adds explicit memory
+  mutation or connects the real LSU/STQ path. R122 also admits `OP_SETC_LTU`
+  as a no-writeback unsigned branch sideband and lets the QEMU row reducer
+  accept the observed local-alias `ADDI` to T, `C.MOVR` from local T0, and
+  `LDI` to U shapes. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r122-coremark-prefix-before-redirect-marker-470-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 470 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced read-only load lookup, SETC_LTU branch sidebands, or
+  local-alias QEMU row reduction. The R122 evidence compares 315 normalized
+  rows with zero mismatches. The next known blockers are the redirecting
+  `C.BSTART` allocation policy at `pc=0x400055d4` and the following `OP_SD`
+  indexed store at `pc=0x400055f2`; settle the marker policy before claiming a
+  larger CoreMark window, and do not promote `OP_SD` without store memory
+  mutation or LSU/STQ ownership.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
