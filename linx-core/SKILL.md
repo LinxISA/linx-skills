@@ -49,6 +49,7 @@ bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow
 bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer
 bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress
 bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage
+bash tools/chisel/run_chisel_tests.sh --only FrontendFetchPacketSource
 bash tools/chisel/run_chisel_tests.sh --only ROBID
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryStatus
 bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank
@@ -104,6 +105,7 @@ bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
+bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarRegisterFile
@@ -116,6 +118,7 @@ bash tools/chisel/run_chisel_top_xcheck.sh
 bash tools/chisel/run_chisel_trace_replay_xcheck.sh
 bash tools/chisel/run_chisel_frontend_trace_top_lint.sh
 bash tools/chisel/run_chisel_frontend_trace_top_xcheck.sh
+bash tools/chisel/run_chisel_frontend_fetch_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_rf_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
@@ -823,8 +826,9 @@ Toolchain facts from initial Chisel bring-up:
   requires a passing manifest with zero mismatches.
 - Phase 5/R92 shared commit JSONL writer work factors generated-RTL harness
   trace emission through `tools/chisel/commit_trace_jsonl.h`. Run reduced ROB,
-  top, trace replay, frontend trace, frontend ALU, and frontend RF/ALU
-  generated-RTL xchecks after changing this helper or a harness conversion.
+  top, trace replay, frontend trace, frontend fetch trace, frontend ALU, and
+  frontend RF/ALU generated-RTL xchecks after changing this helper or a
+  harness conversion.
   The writer must keep the QEMU architectural field spelling aligned with
   QEMU `target/linx/helper.c` / trace-manager output and keep DUT sidebands
   flat for `trace_schema_adapter.py`; it does not replace the adapter or the
@@ -849,6 +853,18 @@ Toolchain facts from initial Chisel bring-up:
   packet to commit-row infrastructure only; it is still not CoreMark/QEMU
   architectural evidence until fetch, issue, execute, LSU, and recovery owners
   generate the retired rows and completion payloads.
+- Phase 5/R94 live frontend fetch trace-top work adds the first generated RTL
+  comparison gate where a Chisel source, not the testbench, creates
+  `FrontendDecodePacket` rows from PC request/response handshakes. Run
+  `run_chisel_tests.sh --only FrontendFetchPacketSource`,
+  `run_chisel_tests.sh --only LinxCoreFrontendFetchTraceTop`, and
+  `run_chisel_frontend_fetch_trace_top_xcheck.sh` after changes to the live
+  frontend fetch source top, bounded memory-window fixture, source-to-F4
+  handshake, temporary completion surrogate, or commit export. The fixture may
+  expose one valid F4 slot per response while the reduced backend remains
+  one-selected-row-per-packet. Treat this as live source-to-F4-to-ROB
+  infrastructure only; it is not full QEMU/CoreMark evidence until ELF memory,
+  dense packets, real execute/LSU completion, and recovery are live.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
@@ -1287,6 +1303,13 @@ Toolchain facts from initial Chisel bring-up:
   comparison proof for that boundary: it emits `LinxCoreFrontendTraceTop`,
   builds the dedicated frontend trace-top Verilator harness, drives scalar
   frontend packets, dumps DUT commit JSONL, normalizes through
+  `trace_schema_adapter.py`, and requires zero mismatches against the
+  QEMU-shaped reference trace.
+- `run_chisel_frontend_fetch_trace_top_xcheck.sh` is the first generated-RTL
+  comparison proof for the live frontend source boundary: it emits
+  `LinxCoreFrontendFetchTraceTop`, builds the dedicated Verilator harness,
+  drives PC request/response handshakes with a bounded memory-window fixture,
+  dumps DUT commit JSONL through the shared writer, normalizes through
   `trace_schema_adapter.py`, and requires zero mismatches against the
   QEMU-shaped reference trace.
 - `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
