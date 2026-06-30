@@ -132,6 +132,13 @@ selected QEMU binary, `max_commits`, `normalize_rows`, row counts, mismatch
 summary, CBSTOP summary, and LinxCore/superproject git context. The wrapper
 must still emit the manifest on comparator failure and then return the
 comparator status.
+Generated-RTL Verilator harnesses must emit commit JSONL through
+`tools/chisel/commit_trace_jsonl.h` rather than open-coded per-harness JSON
+strings. The helper owns QEMU-shaped architectural fields and DUT sidebands
+(`valid`, `seq/cycle/slot`, `bid/gid/rid`, ROB id, and `block_bid`); harnesses
+own only top-specific pin conversion. This preserves model `CommitInfo`
+identity separately from the 64-bit hardware block BID and prevents schema
+drift before live Chisel trace writers are added.
 For QEMU trace replay, keep raw replay/normalization depth separate from the
 architectural compare depth: QEMU metadata rows may be filtered before compare,
 so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
@@ -814,6 +821,14 @@ Toolchain facts from initial Chisel bring-up:
   `tests/benchmarks/build/coremark_real.elf` with `-m 1280M`, captures 128 raw
   QEMU rows, slices 5 replay rows containing 4 architectural commits, and
   requires a passing manifest with zero mismatches.
+- Phase 5/R92 shared commit JSONL writer work factors generated-RTL harness
+  trace emission through `tools/chisel/commit_trace_jsonl.h`. Run reduced ROB,
+  top, trace replay, frontend trace, frontend ALU, and frontend RF/ALU
+  generated-RTL xchecks after changing this helper or a harness conversion.
+  The writer must keep the QEMU architectural field spelling aligned with
+  QEMU `target/linx/helper.c` / trace-manager output and keep DUT sidebands
+  flat for `trace_schema_adapter.py`; it does not replace the adapter or the
+  neutral comparator.
 - Phase 5/R79 frontend-window trace-top work adds the first emitted Chisel top
   boundary that drives a raw `FrontendDecodePacket` window through
   `F4DecodeWindow` and `DecodeRenameROBPath` before monitored commit export.
@@ -1242,9 +1257,10 @@ Toolchain facts from initial Chisel bring-up:
   precise flush, ResolveQ/LHQ movement, and trace emission in later packets.
 - `run_chisel_reduced_rob_xcheck.sh` is the first live generated-RTL trace
   proof for the Chisel lane: it emits `ReducedCommitROB` SystemVerilog, builds a
-  Verilator harness, writes nested Chisel commit JSONL including an invalid
-  fixed-width slot, normalizes through `trace_schema_adapter.py`, and requires
-  zero mismatches against the QEMU-shaped reference trace.
+  Verilator harness, writes Chisel commit JSONL through the shared writer
+  including an invalid fixed-width slot, normalizes through
+  `trace_schema_adapter.py`, and requires zero mismatches against the
+  QEMU-shaped reference trace.
 - `run_chisel_top_xcheck.sh` is the first top-level generated-RTL trace proof
   for the Chisel lane: it emits a dedicated 8-entry, two-wide `LinxCoreTop`
   xcheck configuration, builds the same Verilator harness against top-level IO,
