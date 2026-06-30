@@ -1085,6 +1085,23 @@ Toolchain facts from initial Chisel bring-up:
   after changing reduced T/U source readiness/data, SLL execute semantics, ROB
   allocation RID stamping, or live-QEMU row extraction. The R111 evidence
   compares nine scalar/macro rows with zero mismatches.
+- Phase 5/R112 CoreMark shift-family work extends the reduced live fetch RF/ALU
+  envelope through the next same-window local shift rows. Preserve the R111
+  T/U source rule, but do not assume `SLL` only writes U: the later `SLL` at
+  `pc=0x4000552a` writes T destination tag `31`, and the following `OP_SRL`
+  at `pc=0x4000552e` reads local T/U sources and writes T tag `31`. `OP_SRL`
+  computes `SrcL >> (SrcR & 0x3f)` as a 64-bit logical shift. QEMU still
+  suppresses local T/U source fields, so the reducer and Chisel completion row
+  must keep scalar source fields invalid and gate scalar RF side effects to GPR
+  destinations. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r112-coremark-sll-srl-tu-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 17 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced shift-family execute semantics, T/U destination
+  admission, or live-QEMU row extraction. The R112 evidence compares twelve
+  scalar/macro rows with zero mismatches. An 18-row probe advances the next
+  blocker to `OP_OR` at `pc=0x40005532`, `insn=0x078e3f05`, `len=4`; that row
+  reads local U0/T0 and writes U0.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
