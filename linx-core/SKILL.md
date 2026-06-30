@@ -1245,6 +1245,25 @@ Toolchain facts from initial Chisel bring-up:
   after changing conditional marker readiness, branch-decision sidebands,
   marker redirect/fallthrough allocation, or dense-drain commit buffering. The
   R119 evidence compares thirty-six scalar/macro rows with zero mismatches.
+- Phase 5/R120 CoreMark repeated-loop work extends the reduced live fetch
+  RF/ALU envelope through repeated conditional-loop body trips. If a visible
+  target-body scalar row allocates a BROB block while no marker-owned block is
+  active, `DecodeRenameROBPath` must seed active block state from that scalar
+  allocation and keep it until a matching block-last sideband or later marker
+  boundary closes it. The reduced live RF/ALU top may bypass store-dispatch
+  residency only because the ALU execute path already emits the compared
+  QEMU-shaped store sideband and this top does not yet connect STA/STD
+  execution or STQ commit/free feedback. Do not enable that bypass in full LSU
+  or backend integration paths. Run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r120-coremark-scalar-block-store-bypass-128-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 128 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing scalar-created block lifecycle, marker block cleanup,
+  store-dispatch readiness/bypass, or the reduced live RF/ALU store-sideband
+  comparison boundary. The R120 evidence compares eighty-eight scalar/macro
+  rows with zero mismatches. The next observed CoreMark frontier is unsupported
+  reduced selector row `pc=0x40005576`, `insn=0xffe13319`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
