@@ -920,7 +920,7 @@ Toolchain facts from initial Chisel bring-up:
   normalized input rows. The extractor must reject unsupported opcodes, memory
   or trap side effects, non-scalar GPR aliases, non-sequential `next_pc`, and
   writeback/result mismatches before the Verilator harness runs. This remains
-  reduced ADD/ADDI/C.MOVI/C.MOVR evidence only; dense packets, LSU,
+  reduced ADD/ADDI/ADDTPC/C.MOVI/C.MOVR evidence only; dense packets, LSU,
   trap/recovery, and live full-DUT commit generation remain later owners.
 - Phase 5/R100 live QEMU ELF capture work binds the R99 row-source path to a
   direct-boot ELF. Build the legal-entry fixture with
@@ -958,6 +958,19 @@ Toolchain facts from initial Chisel bring-up:
   row, push dec/ren, or allocate ROB for that marker, but it may overlap an
   older scalar row's issue enqueue in the same cycle. This is still not full
   width-wide ROB allocation or `BSTART`/`BSTOP` scalar_done/BROB retirement.
+- Phase 5/R106 CoreMark ADDTPC work extends the reduced live fetch RF/ALU
+  envelope with the model PC-relative constant operation. `ADDTPC` must compute
+  `(pc & ~0xfff) + imm`, where frontend operand decode has already
+  sign-extended `IMM20` and shifted it left by 12. Keep `SETRET` excluded even
+  though it overlaps the low opcode field; it has different PC semantics and
+  belongs to a later control-boundary owner. Run
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r106-coremark-addtpc-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 4 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced PC-relative execute or QEMU extraction. The R106
+  evidence compares three scalar rows (`C.MOVR`, `ADDTPC`, `ADDI`) with zero
+  mismatches and preserves `C.BSTART` as a skip marker; the next observed
+  CoreMark blocker is the 6-byte HL call marker at `pc=0x40005500`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
