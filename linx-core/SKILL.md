@@ -1205,6 +1205,25 @@ Toolchain facts from initial Chisel bring-up:
   T/U retire command terminal-response handling. The R117 evidence compares
   twenty-five scalar/macro rows with zero mismatches. The next frontier starts
   at `pc=0x4000555c`, `insn=0x13808315`, likely `ADDTPC`.
+- Phase 5/R118 CoreMark SDI store-immediate work extends the reduced live fetch
+  RF/ALU envelope through `OP_SDI` at `pc=0x4000556a`. The model/QEMU ordinary
+  store-immediate contract is: encoded `SrcL`/`src0` is store data, encoded
+  `SrcR`/`src1` is address base, decoded `simm12_7_s5_25_7` is scaled left by
+  3 for doubleword stores, and non-PCR stores use store-data source index 0.
+  Commit rows must remain no-writeback and carry one 8-byte store sideband;
+  scalar P sources are visible while local T/U bases are consumed internally and
+  suppressed to match QEMU. Do not promote live CoreMark captures that cut
+  inside a dense F4 window: 41 rows cuts inside the SDI/ADDI two-slot packet, 43
+  rows cuts inside the following three-slot branch packet, and the promoted R118
+  gate uses `--capture-rows 42`. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r118-coremark-sdi-42-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 42 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced SDI classification, store-immediate address/data
+  sidebands, no-writeback store handling, or dense-packet capture rules. The
+  R118 evidence compares thirty-one scalar/macro rows with zero mismatches. The
+  next frontier is the dense packet beginning at `pc=0x40005572` and ending at
+  the redirecting marker at `pc=0x40005574`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
