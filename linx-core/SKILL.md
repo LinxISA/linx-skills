@@ -1298,11 +1298,28 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r122-coremark-prefix-before-redirect-marker-470-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 470 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing reduced read-only load lookup, SETC_LTU branch sidebands, or
   local-alias QEMU row reduction. The R122 evidence compares 315 normalized
-  rows with zero mismatches. The next known blockers are the redirecting
-  `C.BSTART` allocation policy at `pc=0x400055d4` and the following `OP_SD`
-  indexed store at `pc=0x400055f2`; settle the marker policy before claiming a
-  larger CoreMark window, and do not promote `OP_SD` without store memory
-  mutation or LSU/STQ ownership.
+  rows with zero mismatches. A 486-row probe exposed the redirecting
+  `C.BSTART` allocation policy at `pc=0x400055d4`; settle marker policy before
+  claiming larger windows, and do not promote the following `OP_SD` indexed
+  store without store memory mutation or LSU/STQ ownership.
+- Phase 5/R123 CoreMark direct-active marker-boundary work extends the reduced
+  live fetch RF/ALU envelope through the redirecting marker at `pc=0x400055d4`.
+  Preserve the model block-kind split: an active `Direct` or `Call` marker
+  block redirects unconditionally to its recorded active target at the next
+  marker boundary and suppresses allocation of that boundary marker; an active
+  `Cond` marker block uses the SETC result directly, where false allocates
+  fallthrough and true redirects. The live RF/ALU Verilator harness must also
+  collect both slots of a legal two-row commit window in slot order before
+  comparing rows. Run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r123-coremark-redirect-marker-486-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 486 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing active marker-boundary redirect policy, live RF/ALU commit-window
+  collection, or CoreMark marker handling. The R123 evidence compares 323
+  normalized rows with zero mismatches. The next frontier is `OP_SD` at
+  `pc=0x400055f2`; do not promote it without explicit store memory mutation or
+  a real LSU/STQ path.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
