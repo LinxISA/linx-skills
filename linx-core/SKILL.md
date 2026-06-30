@@ -1389,6 +1389,37 @@ Toolchain facts from initial Chisel bring-up:
   scalar-redirect active-block lifecycle, ranged FENTRY, ADDW/SBI semantics, or
   macro/template metadata filtering. The R126 evidence compares 927 normalized
   rows with zero mismatches.
+- Phase 5/R127 CoreMark return-block cleanup work extends the reduced live
+  fetch RF/ALU envelope through a 1461-row CoreMark capture. Preserve these
+  reusable contracts: emitted `LinxCoreFrontendFetchRfAluTraceTop` uses a
+  32-entry scalar mapQ for this gate; local-overlay backpressure must be gated
+  by whether the dec/ren head actually uses T/U local sources; `FRET.STK`
+  redirects to explicit SETC target first and active-marker target second;
+  scalar execute redirects flush backend issue/execute/rename/ROB/report state
+  and full-BID BROB block state, while marker redirects remain frontend
+  restarts; scalar redirects must complete the active BROB block before
+  clearing active marker context; `FRET.STK` has no visible operands; `FENTRY`
+  uses an implicit top-owned SP shadow, clears visible source 1, and suppresses
+  ranged save store data in the reduced trace; reduced issue pick must not
+  re-cancel an already selected row because later diagnostic readiness drops;
+  BROB `Flushed` slots are non-live and allocatable; conditional marker-only
+  state with no target or no possible branch producer falls through; and a
+  marker allocation that would reuse the active slot must pre-retire that
+  active BID. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarIssueQueue`,
+  `bash tools/chisel/run_chisel_tests.sh --only BROB`,
+  `bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r127-brob-flushed-reuse-1461-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 1461 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing scalar redirect cleanup, BROB allocation readiness, FRET/FENTRY
+  macro shape, local-overlay gating, issue selected-readiness, marker
+  fallthrough/pre-retire policy, or backend redirect cleanup. The R127 evidence
+  compares 966 normalized rows with zero mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
