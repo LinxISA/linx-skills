@@ -880,6 +880,19 @@ Toolchain facts from initial Chisel bring-up:
   predecessor surfaces. Treat this as live-source RF/ALU infrastructure only;
   it is not full QEMU/CoreMark evidence until ELF memory, dense packets, full
   issue arbitration, LSU, trap/recovery, and redirect restart are live.
+- Phase 5/R97 sparse ELF fetch-memory work extends the same live fetch
+  RF/ALU gate with program-image input support. Run
+  `python3 tools/chisel/frontend_fetch_elf_memory.py --self-test` after
+  changes to ELF extraction, sparse fetch-memory format, or `FETCH_ELF`
+  wrapper routing. Use
+  `FETCH_ELF=<elf> bash tools/chisel/run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh`
+  to exercise ELF64 little-endian PT_LOAD extraction into
+  `generated/chisel-frontend-fetch-rf-alu-trace-top-xcheck/elf.fetch.mem`.
+  This proves sparse/high-address program bytes can feed the live source
+  response path, but it still uses the reduced top's expected row lengths and
+  fixed scalar reference rows. Do not claim QEMU/CoreMark equivalence until a
+  later packet binds expected rows to a bounded QEMU/ELF prefix and removes the
+  single-instruction response constraint.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
@@ -1330,10 +1343,11 @@ Toolchain facts from initial Chisel bring-up:
 - `run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh` is the generated-RTL
   comparison proof for the current highest-fidelity reduced scalar path: it
   emits `LinxCoreFrontendFetchRfAluTraceTop`, drives live fetch PC
-  request/response handshakes into F4, reduced decode/rename/ROB, RF-backed
-  issue, and ALU execute, dumps DUT commit JSONL through the shared writer,
-  normalizes through `trace_schema_adapter.py`, and requires zero mismatches
-  against the QEMU-shaped reference trace.
+  request/response handshakes into F4 from binary or sparse ELF fetch-memory
+  bytes, reduced decode/rename/ROB, RF-backed issue, and ALU execute, dumps
+  DUT commit JSONL through the shared writer, normalizes through
+  `trace_schema_adapter.py`, and requires zero mismatches against the
+  QEMU-shaped reference trace.
 - `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
   comparison proof where frontend-decoded scalar rows complete through a
   Chisel execute owner. It emits `LinxCoreFrontendAluTraceTop`, builds the
