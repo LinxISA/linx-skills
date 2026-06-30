@@ -1272,7 +1272,10 @@ Toolchain facts from initial Chisel bring-up:
   branch-decision sideband. Bounded live-QEMU captures may end inside an
   8-byte F4 window; in that case the frontend fetch RF/ALU harness may accept a
   DUT dense-packet superset only for the final captured expected row while
-  still comparing every committed row in the captured prefix. Run
+  still comparing every committed row in the captured prefix. If that final
+  packet contains post-prefix slots, stop after the compared prefix instead of
+  draining those extra slots into backend state and requiring full top idle.
+  Run
   `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
   `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r121-coremark-ldi-setceq-tail-256-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 256 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
@@ -1420,6 +1423,25 @@ Toolchain facts from initial Chisel bring-up:
   macro shape, local-overlay gating, issue selected-readiness, marker
   fallthrough/pre-retire policy, or backend redirect cleanup. The R127 evidence
   compares 966 normalized rows with zero mismatches.
+- Phase 5/R136 CoreMark LDI-local-T work extends the reduced live fetch RF/ALU
+  envelope through a 1620-row capture. Preserve the `FRET.STK` hidden SP
+  restore: on the condition-false RA-load path the visible commit row writes
+  only `x10/ra`, but architectural `x1/sp` is restored to
+  `stackPointerData + imm`; reduced tops without a real macro-retire owner
+  should keep an SP shadow and source later architectural `x1` reads from it
+  rather than adding an ad-hoc second RF write. The same packet admits
+  32-bit `OP_LDI` to local `x31/T0` while keeping scalar RF writeback limited
+  to scalar GPR destinations. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r136-ldi-t-dst-1620-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 1620 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing FRET.STK RA-load return, SP-shadow sourcing, local T/U
+  destination admission, reduced LDI load lookup, or bounded final dense-window
+  handling. The R136 evidence compares 1094 normalized rows with zero
+  mismatches; a QEMU-only 1660-row probe reaches `OP_CSEL` at `pc=0x40005d32`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
