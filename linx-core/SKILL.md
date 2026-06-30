@@ -1118,6 +1118,25 @@ Toolchain facts from initial Chisel bring-up:
   fourteen scalar/macro rows with zero mismatches. A 21-row extraction probe
   advances the next blocker to `OP_C_ADD` at `pc=0x4000553c`, `insn=0xe608`,
   `len=2`, after a supported same-window `SLL` at `pc=0x40005538`.
+- Phase 5/R114 CoreMark C.ADD work extends the reduced live fetch RF/ALU
+  envelope through compressed local-source add at `pc=0x4000553c`,
+  `insn=0xe608`, `len=2`. LinxCoreModel `block16.decode` owns the compressed
+  arithmetic contract: `@C_ARITH` reads `SrcL`/`SrcR` from bits `[10:6]` and
+  `[15:11]` and writes implicit destination tag `31`. Current QEMU commit JSONL
+  emits this exact row as a no-writeback local trace gap, so the reduced
+  expected-row extractor may synthesize only this C.ADD implicit T writeback
+  from the QEMU PC/instruction stream plus local T/U history. If QEMU emits a
+  writeback for C.ADD, require destination tag `31`; do not generalize this into
+  arbitrary QEMU trace patching without new LinxCoreModel and live-QEMU
+  evidence. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r114-coremark-c-add-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 21 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing compressed arithmetic extraction, local T/U destination
+  admission, or reduced ALU C.ADD semantics. The R114 evidence compares sixteen
+  scalar/macro rows with zero mismatches. A 22-row probe advances the next
+  blocker to `OP_SRA` at `pc=0x4000553e`, `insn=0x01ec6f85`, `len=4`; that row
+  reads local T0/U2, writes T tag `31`, and currently produces result `1`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
