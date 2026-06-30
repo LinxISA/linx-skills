@@ -121,15 +121,22 @@ bash tools/chisel/run_chisel_frontend_rf_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
+bash tools/chisel/run_chisel_qemu_trace_replay_xcheck.sh --dry-run
 ```
 
 For any non-dry-run comparison routed through
 `tools/chisel/run_chisel_qemu_crosscheck.sh`, inspect and preserve
 `<report-dir>/crosscheck_manifest.json` with the rest of the evidence bundle.
 The manifest records raw traces, normalized traces, comparator reports,
-selected QEMU binary, row counts, mismatch summary, CBSTOP summary, and
-LinxCore/superproject git context. The wrapper must still emit the manifest on
-comparator failure and then return the comparator status.
+selected QEMU binary, `max_commits`, `normalize_rows`, row counts, mismatch
+summary, CBSTOP summary, and LinxCore/superproject git context. The wrapper
+must still emit the manifest on comparator failure and then return the
+comparator status.
+For QEMU trace replay, keep raw replay/normalization depth separate from the
+architectural compare depth: QEMU metadata rows may be filtered before compare,
+so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
+slices the replay input to the smallest prefix containing the requested
+non-metadata commits.
 
 ## Chisel module agent loop
 
@@ -144,6 +151,8 @@ multi-agent Chisel development. Each module packet must:
 - run the narrow module gate plus affected cross-check gates;
 - inspect `crosscheck_manifest.json` for every generated-RTL or QEMU/DUT
   comparison that routes through the common cross-check wrapper;
+- for QEMU row replay, verify the reported `qemu-replay-raw-rows` and
+  `qemu-replay-arch-rows` before treating the manifest as evidence;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
 Do not treat a frontend/backend Chisel module as replacement evidence merely
@@ -771,6 +780,15 @@ Toolchain facts from initial Chisel bring-up:
   `LinxCoreTop` under Verilator, and require zero mismatches against the
   QEMU-shaped reference stream. Treat this as replay infrastructure only; it is
   not evidence that frontend/decode/execute/LSU generated rows from an ELF.
+- Phase 5/R90 QEMU trace replay work adds the bridge from archived or freshly
+  collected QEMU commit JSONL into the Chisel replay harness. Run
+  `run_chisel_qemu_trace_replay_xcheck.sh --dry-run`, then a bounded
+  `--qemu-trace <trace.jsonl>` or `--elf <direct-boot.elf>` replay. Use
+  `--max-commits` for architectural compare depth and `--replay-rows` only as
+  the raw search/replay cap before metadata filtering. The bridge must report
+  `qemu-replay-raw-rows`, `qemu-replay-arch-rows`, and a passing
+  `crosscheck_manifest.json`. It is not full-DUT QEMU equivalence until the
+  Chisel top emits live commit rows from real fetch/issue/execute/LSU/recovery.
 - Phase 5/R79 frontend-window trace-top work adds the first emitted Chisel top
   boundary that drives a raw `FrontendDecodePacket` window through
   `F4DecodeWindow` and `DecodeRenameROBPath` before monitored commit export.
@@ -1212,6 +1230,12 @@ Toolchain facts from initial Chisel bring-up:
   commit JSONL, drives those rows through `LinxCoreTop` with the Verilator
   harness, writes DUT and QEMU-shaped reference streams, and requires zero
   mismatches through the neutral comparator.
+- `run_chisel_qemu_trace_replay_xcheck.sh` is the first QEMU-row replay proof
+  for the Chisel cross-check path: it collects or consumes QEMU JSONL,
+  normalizes a wider raw window, slices a metadata-aware prefix with the
+  requested number of architectural rows, replays that prefix through
+  `LinxCoreTop`, and requires a passing manifest through the same neutral
+  comparator.
 - `run_chisel_frontend_trace_top_lint.sh` is the first generated-RTL proof for
   the raw frontend-window to integrated decode/rename/ROB commit boundary: it
   emits `LinxCoreFrontendTraceTop`, compiles every sibling SystemVerilog module
