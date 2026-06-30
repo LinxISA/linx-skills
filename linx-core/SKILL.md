@@ -1341,6 +1341,28 @@ Toolchain facts from initial Chisel bring-up:
   mutation, or live RF/ALU load lookup. The R124 evidence compares 357
   normalized rows with zero mismatches. The next packet should run a larger
   bounded CoreMark probe to identify the next unsupported or mismatching row.
+- Phase 5/R125 CoreMark SUBI/C.AND/C.SDI work extends the reduced live fetch
+  RF/ALU envelope through a 1024-row CoreMark capture. Preserve the reduced
+  row-source contracts: `OP_SUBI` computes `src0 - uimm12`; 32-bit `OP_ADD`
+  may validate each encoded source independently as visible scalar or
+  suppressed local T/U; compressed local `OP_C_AND` shares the `OP_C_ADD`
+  implicit T-destination contract and may synthesize the missing QEMU
+  destination/writeback only for this local arithmetic trace-gap shape; and
+  `OP_C_SDI` is a no-writeback 8-byte store with address from the encoded
+  compressed base plus signed bits `[15:11] << 3` and payload from T0. The live
+  RF/ALU harness may mutate sparse memory only after the expected committed
+  `C.SDI` store row matches the DUT row, matching the R124 committed-store
+  bridge policy and still not claiming LSU/STQ/cache/store-forwarding
+  ownership. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r125-coremark-1024-frontier-probe-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 1024 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced SUBI/C.AND/C.SDI semantics, encoded local/scalar ADD
+  row reduction, compressed local trace-gap synthesis, or committed sparse
+  memory mutation. The R125 evidence compares 665 normalized rows with zero
+  mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
