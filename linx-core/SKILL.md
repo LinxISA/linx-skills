@@ -1162,6 +1162,26 @@ Toolchain facts from initial Chisel bring-up:
   `insn=0x2608`, `len=2`: compressed `SrcL` is T0, compressed `SrcR` is scalar
   x4, QEMU emits the scalar source field, and current QEMU emits no
   destination/writeback.
+- Phase 5/R116 CoreMark mixed-source dense-packet work extends the reduced
+  live fetch RF/ALU envelope through the full 8-byte packet beginning at
+  `pc=0x40005546`: mixed local/scalar `C.ADD` (`insn=0x2608`) synthesizes the
+  implicit T writeback while preserving QEMU's scalar `src1`, the following
+  `ADDI` (`insn=0x018c0115`) reads encoded `SrcL=T0` with QEMU's local source
+  field suppressed and writes scalar x2, and `C.MOVR` (`insn=0x2806`) moves
+  scalar x0 to x5. Expected-row extraction must validate each encoded source
+  independently as either a suppressed local T/U source or a visible scalar GPR
+  source; do not keep opcode-wide assumptions such as "all C.ADD sources are
+  local" or "all ADDI src0 fields are scalar." Also avoid promoting a live
+  CoreMark gate that stops inside an 8-byte dense fetch window: a 24-row capture
+  reaches the mixed C.ADD but fails the dense-packet boundary check, while the
+  26-row gate captures the whole packet. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test` and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r116-coremark-c-add-mixed-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 26 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing encoded source validation, C.ADD trace-gap synthesis,
+  local-source ADDI extraction, or dense-packet capture rules. The R116 evidence
+  compares twenty-one scalar/macro rows with zero mismatches. A 27-row probe
+  still passes and shows the next raw row as a zero-advance `C.BSTART` artifact
+  at `pc=0x4000554e`, `insn=0x0004`, which the current marker-skip logic drops.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
