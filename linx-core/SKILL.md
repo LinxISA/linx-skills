@@ -1262,8 +1262,23 @@ Toolchain facts from initial Chisel bring-up:
   after changing scalar-created block lifecycle, marker block cleanup,
   store-dispatch readiness/bypass, or the reduced live RF/ALU store-sideband
   comparison boundary. The R120 evidence compares eighty-eight scalar/macro
-  rows with zero mismatches. The next observed CoreMark frontier is unsupported
-  reduced selector row `pc=0x40005576`, `insn=0xffe13319`.
+  rows with zero mismatches.
+- Phase 5/R121 CoreMark LDI/C.SETC_EQ work extends the reduced live fetch
+  RF/ALU envelope through the repeated-loop 256-row capture. `OP_LDI` is a
+  reduced zero-load bridge only for the current prefix: validate one 8-byte
+  non-store memory sideband at `src0 + (simm12 << 3)` and do not treat it as a
+  real LSU/data-memory implementation. `OP_C_SETC_EQ` shares the no-writeback
+  compare-row shape with `C.SETC_NE` but publishes equality on the reduced
+  branch-decision sideband. Bounded live-QEMU captures may end inside an
+  8-byte F4 window; in that case the frontend fetch RF/ALU harness may accept a
+  DUT dense-packet superset only for the final captured expected row while
+  still comparing every committed row in the captured prefix. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r121-coremark-ldi-setceq-tail-256-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 256 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced LDI/SETC_EQ handling or bounded-capture tail-prefix
+  policy. The R121 evidence compares one hundred seventy-three scalar/macro
+  rows with zero mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
