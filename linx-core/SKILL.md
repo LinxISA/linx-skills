@@ -1034,6 +1034,29 @@ Toolchain facts from initial Chisel bring-up:
   live-QEMU row extraction. The R109 evidence compares seven scalar/macro rows
   with zero mismatches. A 13-row probe advances the next blocker to `OP_HL_LUI`
   at `pc=0x4000551a`, `insn=0x1f97000e`, `len=6`.
+- Phase 5/R110 CoreMark HL.LUI work extends the reduced live fetch RF/ALU
+  envelope through that T-destination immediate row. Preserve the same local
+  register split as R109: destination tag `31` is `DestinationKind.T`, not a
+  scalar GPR. `OP_HL_LUI` materializes the sign-extended 48-bit-format IMM32
+  payload directly into the destination; frontend operand decode packs
+  `Cat(pfx16[15:4], main32[31:12])` before execute receives `imm`. The
+  expected-row reducer may accept this T-destination only for the current
+  reduced `HL.LUI` row and must continue rejecting unsupported T/U source
+  reads. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only ScalarTURenameBridge`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarIssueQueue`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r110-coremark-hl-lui-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 13 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced HL.LUI decode, execute, RF writeback gating, or
+  live-QEMU row extraction. The R110 evidence compares eight scalar/macro rows
+  with zero mismatches. A 14-row probe advances the next blocker to `OP_SLL`
+  at `pc=0x40005520`, `insn=0x01cc7f05`, `len=4`; that row reads T/U local
+  sources (`rs1=24`, `rs2=28`) and writes U destination tag `30`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
