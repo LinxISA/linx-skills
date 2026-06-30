@@ -137,6 +137,22 @@ architectural compare depth: QEMU metadata rows may be filtered before compare,
 so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
 slices the replay input to the smallest prefix containing the requested
 non-metadata commits.
+In `--elf` mode, `--replay-rows` is also the raw FIFO capture cap. The wrapper
+must kill the prefix reader and fail with an empty-trace error if QEMU exits
+before producing rows; do not leave agents blocked on a FIFO. Direct-boot
+CoreMark-style ET_DYN images currently map load segments at `0x40000000`,
+while the Linx QEMU `virt` machine defaults to 128 MiB of RAM. Use trailing
+QEMU args with explicit memory for that class of replay, for example:
+
+```bash
+bash tools/chisel/run_chisel_qemu_trace_replay_xcheck.sh \
+  --elf tests/benchmarks/build/coremark_real.elf \
+  --max-commits 4 \
+  --replay-rows 128 \
+  --max-seconds 10 \
+  -- -nographic -monitor none -machine virt -m 1280M \
+     -kernel tests/benchmarks/build/coremark_real.elf
+```
 
 ## Chisel module agent loop
 
@@ -153,6 +169,8 @@ multi-agent Chisel development. Each module packet must:
   comparison that routes through the common cross-check wrapper;
 - for QEMU row replay, verify the reported `qemu-replay-raw-rows` and
   `qemu-replay-arch-rows` before treating the manifest as evidence;
+- for CoreMark or other direct-boot benchmark ELF replay, pass explicit QEMU
+  memory if the ELF program headers map above the default 128 MiB RAM window;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
 Do not treat a frontend/backend Chisel module as replacement evidence merely
@@ -789,6 +807,13 @@ Toolchain facts from initial Chisel bring-up:
   `qemu-replay-raw-rows`, `qemu-replay-arch-rows`, and a passing
   `crosscheck_manifest.json`. It is not full-DUT QEMU equivalence until the
   Chisel top emits live commit rows from real fetch/issue/execute/LSU/recovery.
+- Phase 5/R91 live-ELF replay prefix work hardens the same bridge for
+  long-running benchmark ELFs. The FIFO reader must terminate when QEMU exits
+  early, and direct-boot benchmark images at high physical addresses must pass
+  explicit QEMU memory. The current CoreMark prefix evidence uses
+  `tests/benchmarks/build/coremark_real.elf` with `-m 1280M`, captures 128 raw
+  QEMU rows, slices 5 replay rows containing 4 architectural commits, and
+  requires a passing manifest with zero mismatches.
 - Phase 5/R79 frontend-window trace-top work adds the first emitted Chisel top
   boundary that drives a raw `FrontendDecodePacket` window through
   `F4DecodeWindow` and `DecodeRenameROBPath` before monitored commit export.
@@ -1235,7 +1260,9 @@ Toolchain facts from initial Chisel bring-up:
   normalizes a wider raw window, slices a metadata-aware prefix with the
   requested number of architectural rows, replays that prefix through
   `LinxCoreTop`, and requires a passing manifest through the same neutral
-  comparator.
+  comparator. For `--elf` replay, `--replay-rows` bounds live FIFO capture;
+  high-address benchmark ELFs such as the current CoreMark build require
+  trailing QEMU memory args, for example `-m 1280M`.
 - `run_chisel_frontend_trace_top_lint.sh` is the first generated-RTL proof for
   the raw frontend-window to integrated decode/rename/ROB commit boundary: it
   emits `LinxCoreFrontendTraceTop`, compiles every sibling SystemVerilog module
