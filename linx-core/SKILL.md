@@ -1057,6 +1057,34 @@ Toolchain facts from initial Chisel bring-up:
   with zero mismatches. A 14-row probe advances the next blocker to `OP_SLL`
   at `pc=0x40005520`, `insn=0x01cc7f05`, `len=4`; that row reads T/U local
   sources (`rs1=24`, `rs2=28`) and writes U destination tag `30`.
+- Phase 5/R111 CoreMark SLL local-source work extends the reduced live fetch
+  RF/ALU envelope through that first T/U-source row. Preserve the model/QEMU
+  alias split: source tags `24..27` are T local links, source tags `28..31`
+  are U local links, and they must not be read as scalar RF tags. Reduced
+  issue must sample `localTReadyMask`/`localUReadyMask`, carry selected source
+  `operandClass` and `relTag` sidebands, and let the live top feed operand
+  data from the current reduced local-value overlay until full local-bank data
+  execution exists. `OP_SLL` computes `SrcL << (SrcR & 0x3f)`. QEMU suppresses
+  local T/U source fields in the commit row, so `ReducedScalarAluExecute` must
+  emit source fields only for scalar `OperandClass.P` operands while still
+  carrying the U destination/writeback fields. Also preserve native ROB RID
+  wrap: the `SLL` row is the ninth scalar allocation in the generated 8-entry
+  reduced top, so `DecodeRenameROBPath` must stamp queued `rid.wrap` from
+  `DispatchROBAllocator.allocRobWrap`; a slot-only false-wrap RID makes
+  `ROBEntryBank.renameUpdateReady` reject the post-rename update. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarIssueQueue`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryBank`,
+  `bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r111-coremark-sll-tu-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 14 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced T/U source readiness/data, SLL execute semantics, ROB
+  allocation RID stamping, or live-QEMU row extraction. The R111 evidence
+  compares nine scalar/macro rows with zero mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
