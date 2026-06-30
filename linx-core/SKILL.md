@@ -1182,6 +1182,29 @@ Toolchain facts from initial Chisel bring-up:
   compares twenty-one scalar/macro rows with zero mismatches. A 27-row probe
   still passes and shows the next raw row as a zero-advance `C.BSTART` artifact
   at `pc=0x4000554e`, `insn=0x0004`, which the current marker-skip logic drops.
+- Phase 5/R117 CoreMark C.MOVR/C.LDI/C.SETC work extends the reduced live fetch
+  RF/ALU envelope through the marker at `pc=0x4000554e` and the packet ending
+  at `C.BSTART.STD.FALL` (`pc=0x4000555a`). `C.MOVR` may write T destination
+  alias `31`; `C.LDI` must validate its encoded base as scalar or suppressed
+  local T/U and must use signed bits `[15:11] << 3` as a byte offset, so
+  `FrontendOperandDecode` overrides generic `ImmSIMM5_11_S5` for `OP_C_LDI`.
+  `C.SETC_NE` (`key=0x36`) is a no-writeback compare row: the observed
+  CoreMark row has suppressed local `SrcL=T0`, visible scalar `SrcR=x5`, and
+  no destination/writeback. The reduced `DecodeRenameROBPath` must feed
+  marker/block-retire scalar commit feedback into scalar rename mapQ release,
+  and its T/U retire serializer must drain terminal responses
+  (`accepted|miss|releaseMismatch|unsupported`) so stale retire commands do
+  not deadlock later local-source packets. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r117-coremark-c-movr-c-ldi-setc-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 34 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing C.MOVR T-destination admission, C.LDI immediate/base
+  extraction, C.SETC_NE no-writeback handling, scalar block-retire feedback, or
+  T/U retire command terminal-response handling. The R117 evidence compares
+  twenty-five scalar/macro rows with zero mismatches. The next frontier starts
+  at `pc=0x4000555c`, `insn=0x13808315`, likely `ADDTPC`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
