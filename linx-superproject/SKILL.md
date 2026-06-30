@@ -530,9 +530,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - First failing hard-break stage owns the fix lane:
   `benchmark`, `compiler`, `emulator`, `model`, or `docs-skills`.
 - For model-lane scalar/vector select mismatches after QEMU pass, verify the
-  `csel`/`psel` contract before changing benchmark or compiler code:
-  `SrcP != 0` selects `SrcR`; `SrcP == 0` selects `SrcL`, matching
-  Linx LLVM/QEMU.
+  `csel`/`psel` contract before changing benchmark or compiler code, and do
+  not treat QEMU as model truth until the contract is reconciled. Current R137
+  Chisel evidence shows Sail and LinxCoreModel scalar `CSEL` select `SrcL`
+  when `SrcP != 0`, while Linx QEMU selects `SrcR`.
 - In SuperNPUBench compile logs, classify missing `*_Impl` tile API coverage,
   unsupported Linx tile runtime contracts (`__vbuf__`, `blkv_get_*`, `Tr` asm
   constraints, boxed layout static asserts, MATMUL unboxed/ACC static asserts), and

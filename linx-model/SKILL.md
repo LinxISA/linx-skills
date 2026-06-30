@@ -126,8 +126,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   sequence: QEMU passed, but a model high-half materialization made the loop
   counter start at `-1` and never reach the pass finisher.
 - For scalar/vector select divergence after QEMU pass, verify the `csel`/`psel`
-  source order before changing compiler or workload code. Linx LLVM/QEMU use
-  `SrcP != 0` to select `SrcR` and `SrcP == 0` to select `SrcL`.
+  source order before changing compiler or workload code, and do not treat
+  QEMU as model truth until the contract is reconciled. Current R137 Chisel
+  evidence shows Sail and LinxCoreModel scalar `CSEL` select `SrcL` when
+  `SrcP != 0`, while Linx QEMU selects `SrcR`.
 - For 48-bit load decode failures after QEMU pass, check the decode table
   before changing compiler output. `LWU_PCR` uses selector `110` in the
   BlockISA model, matching the Linx QEMU/LLVM contract.

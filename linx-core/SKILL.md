@@ -1442,6 +1442,11 @@ Toolchain facts from initial Chisel bring-up:
   destination admission, reduced LDI load lookup, or bounded final dense-window
   handling. The R136 evidence compares 1094 normalized rows with zero
   mismatches; a QEMU-only 1660-row probe reaches `OP_CSEL` at `pc=0x40005d32`.
+  R137 classifies that frontier as a model/QEMU source-order divergence, not a
+  reduced RTL implementation target: Sail and LinxCoreModel select `SrcL` when
+  `SrcP != 0`, while current QEMU selects `SrcR`. Do not add reduced Chisel
+  `OP_CSEL` support by copying QEMU until the architecture/model/QEMU contract
+  is resolved.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
