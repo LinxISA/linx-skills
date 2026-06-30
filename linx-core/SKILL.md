@@ -1137,6 +1137,31 @@ Toolchain facts from initial Chisel bring-up:
   scalar/macro rows with zero mismatches. A 22-row probe advances the next
   blocker to `OP_SRA` at `pc=0x4000553e`, `insn=0x01ec6f85`, `len=4`; that row
   reads local T0/U2, writes T tag `31`, and currently produces result `1`.
+- Phase 5/R115 CoreMark SRA/SLLI work extends the reduced live fetch RF/ALU
+  envelope through `OP_SRA` at `pc=0x4000553e` and the same dense-packet
+  `OP_SLLI` at `pc=0x40005542`. LinxCoreModel `block32.decode` maps `SRA` to
+  `@shift` and `SLLI` to `@shift_i`; `SRA` uses signed 64-bit arithmetic right
+  shift by `SrcR & 0x3f`, while `SLLI` uses `shamt_20_25`. The generated
+  Chisel opcode table currently marks shift-immediate rows as `ImmNONE`, so
+  `FrontendOperandDecode` must explicitly carry `shamt_20_25` for
+  `OP_SLLI`/`OP_SRLI`/`OP_SRAI`. The reduced live top must also keep same-packet
+  local T/U consumers ordered behind pending local producers; a previous
+  per-source ready block created a ready/output combinational cycle through
+  `DecodeRenameROBPath`, so keep the coarse acyclic local-producer stall until
+  a real local-bank scheduler carries per-entry dependency versions. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r115-coremark-sra-slli-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 23 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing shift-immediate operand decode, reduced SRA/SLLI semantics,
+  local T/U producer ordering, or live-QEMU row extraction. The R115 evidence
+  compares eighteen scalar/macro rows with zero mismatches. A 24-row probe
+  advances the next frontier to mixed local/scalar `C.ADD` at `pc=0x40005546`,
+  `insn=0x2608`, `len=2`: compressed `SrcL` is T0, compressed `SrcR` is scalar
+  x4, QEMU emits the scalar source field, and current QEMU emits no
+  destination/writeback.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
