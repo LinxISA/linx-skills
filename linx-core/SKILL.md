@@ -893,6 +893,17 @@ Toolchain facts from initial Chisel bring-up:
   fixed scalar reference rows. Do not claim QEMU/CoreMark equivalence until a
   later packet binds expected rows to a bounded QEMU/ELF prefix and removes the
   single-instruction response constraint.
+- Phase 5/R98 external expected-row source work splits live fetch RF/ALU
+  expected rows from the C++ harness. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_fixture_rows.py --self-test`
+  after changing the default row fixture. The wrapper emits
+  `generated/chisel-frontend-fetch-rf-alu-trace-top-xcheck/fixture.expected.jsonl`
+  unless `FETCH_EXPECTED_ROWS=<rows.jsonl>` points at another QEMU-shaped row
+  stream, then passes `--expected-rows` to the Verilator harness and sizes the
+  comparator window from the expected row count. This is a row-source contract
+  for reduced scalar live-fetch rows, not full QEMU/CoreMark equivalence:
+  automatic QEMU/ELF prefix extraction, dense packets, LSU, trap/recovery, and
+  live full-DUT commit generation remain later owners.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
