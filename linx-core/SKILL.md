@@ -904,6 +904,20 @@ Toolchain facts from initial Chisel bring-up:
   for reduced scalar live-fetch rows, not full QEMU/CoreMark equivalence:
   automatic QEMU/ELF prefix extraction, dense packets, LSU, trap/recovery, and
   live full-DUT commit generation remain later owners.
+- Phase 5/R99 strict QEMU trace expected-row extraction work feeds that same
+  row-source boundary from an existing QEMU commit JSONL. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test` after
+  changes to the extractor, and use
+  `FETCH_QEMU_TRACE=<qemu.jsonl> bash tools/chisel/run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh`
+  to normalize and validate a strict sequential reduced-scalar prefix into
+  `generated/chisel-frontend-fetch-rf-alu-trace-top-xcheck/qemu.expected.jsonl`.
+  `FETCH_QEMU_MAX_ROWS=<n>` caps the extracted row count, while `0` means all
+  normalized input rows. The extractor must reject unsupported opcodes, memory
+  or trap side effects, non-scalar GPR aliases, non-sequential `next_pc`, and
+  writeback/result mismatches before the Verilator harness runs. This remains
+  reduced ADD/ADDI/C.MOVI/C.MOVR evidence only; live QEMU capture automation,
+  dense packets, LSU, trap/recovery, and live full-DUT commit generation remain
+  later owners.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
