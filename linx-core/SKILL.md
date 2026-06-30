@@ -945,8 +945,19 @@ Toolchain facts from initial Chisel bring-up:
   marker diagnostics, and require no ROB allocation or issue enqueue. The
   comparator still receives only non-skip scalar commit rows. Treat this as
   reduced marker-consume evidence, not dense packet support and not full
-  `BSTART`/`BSTOP` scalar_done/BROB retirement semantics. Mixed marker+scalar
-  packets must remain unconsumed until a multi-slot enqueue owner exists.
+  `BSTART`/`BSTOP` scalar_done/BROB retirement semantics.
+- Phase 5/R102 reduced dense F4 slot work lets the same live fetch RF/ALU gate
+  feed natural 8-byte F4 windows instead of one instruction per response. The
+  reduced bridge must preserve every valid F4 slot from the window in order,
+  keep each slot's original slot index, and drain one slot per cycle into the
+  existing serialized decode/ROB path. Build the fixture with
+  `bash tools/chisel/build_frontend_fetch_rf_alu_qemu_fixture_elf.sh --out-dir generated/r102-live-qemu-fixture`,
+  then run
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r102-dense-qemu-elf-xcheck --elf generated/r102-live-qemu-fixture/frontend_fetch_rf_alu_qemu_fixture.elf --expected-rows 0 --capture-rows 5 --allow-block-markers --max-seconds 5`.
+  Marker-slot checks are marker-owned: a marker drain must not select a scalar
+  row, push dec/ren, or allocate ROB for that marker, but it may overlap an
+  older scalar row's issue enqueue in the same cycle. This is still not full
+  width-wide ROB allocation or `BSTART`/`BSTOP` scalar_done/BROB retirement.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
@@ -1407,8 +1418,8 @@ Toolchain facts from initial Chisel bring-up:
   direct-boot ELF, validates the strict scalar subset or preserves legal block
   markers as skip rows, pairs it with the ELF fetch bytes, and preserves the
   common comparator manifest. Treat it as reduced live fetch RF/ALU evidence
-  only until dense packets, LSU, trap/recovery, and real full-DUT commit
-  generation are live.
+  only until width-wide ROB allocation, LSU, trap/recovery, and real full-DUT
+  commit generation are live.
 - `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
   comparison proof where frontend-decoded scalar rows complete through a
   Chisel execute owner. It emits `LinxCoreFrontendAluTraceTop`, builds the
