@@ -1363,6 +1363,32 @@ Toolchain facts from initial Chisel bring-up:
   row reduction, compressed local trace-gap synthesis, or committed sparse
   memory mutation. The R125 evidence compares 665 normalized rows with zero
   mismatches.
+- Phase 5/R126 CoreMark PCR-return and byte-store work extends the reduced
+  live fetch RF/ALU envelope through a 1415-row CoreMark capture. Preserve the
+  reduced row-source contracts: 32-bit PCR load immediates are unshifted signed
+  bits `[31:15]`; 48-bit `HL.*.PCR` loads use unshifted
+  `Cat(pfx16[15:4], main32[31:15])`; `BSTART` immediates remain shifted
+  branch targets; `C.SETC.TGT`/`SETC.TGT` publish a live dynamic target;
+  `FRET.STK` is a no-writeback scalar redirect row whose `next_pc` must be
+  compared; and `DecodeRenameROBPath` must clear active marker target state on
+  execute-owned scalar redirects so the return target body seeds a fresh
+  scalar-created block. Ranged `FENTRY` save addresses use the encoded save
+  count, `ADDW` sign-extends the low-32-bit sum, and `SBI` emits a
+  no-writeback 1-byte store at `base + unscaled_split_imm`. The comparator
+  must treat side-effect-free macro/template rows as metadata only when they
+  are sequential; non-sequential rows such as `FRET.STK` stay in the compare
+  stream. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r126-coremark-fret-scalar-redirect-1415-qemu-elf-xcheck-pass --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 1415 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing PCR load immediates, SETC target/FRET redirect handling,
+  scalar-redirect active-block lifecycle, ranged FENTRY, ADDW/SBI semantics, or
+  macro/template metadata filtering. The R126 evidence compares 927 normalized
+  rows with zero mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
