@@ -1224,6 +1224,27 @@ Toolchain facts from initial Chisel bring-up:
   R118 evidence compares thirty-one scalar/macro rows with zero mismatches. The
   next frontier is the dense packet beginning at `pc=0x40005572` and ending at
   the redirecting marker at `pc=0x40005574`.
+- Phase 5/R119 CoreMark conditional-BSTART work extends the reduced live fetch
+  RF/ALU envelope through the loop edge at `pc=0x40005574` and one fall-through
+  iteration. `OP_C_SETC_NE` now publishes a validity-masked branch-decision
+  sideband; the live top latches that decision until the following marker
+  boundary; and `DecodeRenameROBPath` must stall marker-only conditional
+  boundaries until the decision is valid. A false decision allocates the
+  fallthrough marker block, while a true decision redirects to the active
+  conditional target and suppresses new marker allocation. The live harness must
+  collect commit rows while dense slots drain; otherwise ROB retire pulses can
+  disappear before the later compare phase. Do not promote the 48-row probe
+  because it cuts inside the post-redirect dense window; the promoted R119 gate
+  uses `--capture-rows 50`. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPath`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r119-coremark-cond-bstart-50-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 50 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing conditional marker readiness, branch-decision sidebands,
+  marker redirect/fallthrough allocation, or dense-drain commit buffering. The
+  R119 evidence compares thirty-six scalar/macro rows with zero mismatches.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
