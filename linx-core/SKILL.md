@@ -1102,6 +1102,22 @@ Toolchain facts from initial Chisel bring-up:
   scalar/macro rows with zero mismatches. An 18-row probe advances the next
   blocker to `OP_OR` at `pc=0x40005532`, `insn=0x078e3f05`, `len=4`; that row
   reads local U0/T0 and writes U0.
+- Phase 5/R113 CoreMark OR/C.LDI work extends the reduced live fetch RF/ALU
+  envelope through `OP_OR` at `pc=0x40005532` and a narrow `C.LDI` row at
+  `pc=0x40005536`. `OP_OR` reads local U0/T0, writes U0, suppresses local
+  source fields in the QEMU-shaped row, and keeps scalar RF side effects gated
+  to GPR destinations. The current `C.LDI` support is intentionally limited to
+  the observed zero-load prefix row: scalar source x4, T destination tag `31`,
+  8-byte load sideband, `mem_rdata=0`, and result zero. Do not generalize this
+  into a load/LSU implementation without adding a real data-memory source. Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r113-coremark-or-c-ldi-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 19 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced OR semantics, the C.LDI zero-load sideband, T/U local
+  destination admission, or live-QEMU row extraction. The R113 evidence compares
+  fourteen scalar/macro rows with zero mismatches. A 21-row extraction probe
+  advances the next blocker to `OP_C_ADD` at `pc=0x4000553c`, `insn=0xe608`,
+  `len=2`, after a supported same-window `SLL` at `pc=0x40005538`.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
