@@ -123,6 +123,11 @@ bash tools/chisel/run_chisel_frontend_fetch_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_rf_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh
+bash tools/chisel/build_frontend_fetch_rf_alu_qemu_fixture_elf.sh --out-dir generated/r100-live-qemu-fixture
+bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh \
+  --elf generated/r100-live-qemu-fixture/frontend_fetch_rf_alu_qemu_fixture.elf \
+  --expected-rows 3 --capture-rows 3 --pc-lo 0x10002 --pc-hi 0x1000b \
+  --max-seconds 5
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -902,8 +907,8 @@ Toolchain facts from initial Chisel bring-up:
   stream, then passes `--expected-rows` to the Verilator harness and sizes the
   comparator window from the expected row count. This is a row-source contract
   for reduced scalar live-fetch rows, not full QEMU/CoreMark equivalence:
-  automatic QEMU/ELF prefix extraction, dense packets, LSU, trap/recovery, and
-  live full-DUT commit generation remain later owners.
+  broader QEMU/ELF prefixes, dense packets, LSU, trap/recovery, and live
+  full-DUT commit generation remain later owners.
 - Phase 5/R99 strict QEMU trace expected-row extraction work feeds that same
   row-source boundary from an existing QEMU commit JSONL. Run
   `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test` after
@@ -915,9 +920,21 @@ Toolchain facts from initial Chisel bring-up:
   normalized input rows. The extractor must reject unsupported opcodes, memory
   or trap side effects, non-scalar GPR aliases, non-sequential `next_pc`, and
   writeback/result mismatches before the Verilator harness runs. This remains
-  reduced ADD/ADDI/C.MOVI/C.MOVR evidence only; live QEMU capture automation,
-  dense packets, LSU, trap/recovery, and live full-DUT commit generation remain
-  later owners.
+  reduced ADD/ADDI/C.MOVI/C.MOVR evidence only; dense packets, LSU,
+  trap/recovery, and live full-DUT commit generation remain later owners.
+- Phase 5/R100 live QEMU ELF capture work binds the R99 row-source path to a
+  direct-boot ELF. Build the legal-entry fixture with
+  `bash tools/chisel/build_frontend_fetch_rf_alu_qemu_fixture_elf.sh --out-dir generated/r100-live-qemu-fixture`,
+  then run
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --elf generated/r100-live-qemu-fixture/frontend_fetch_rf_alu_qemu_fixture.elf --expected-rows 3 --capture-rows 3 --pc-lo 0x10002 --pc-hi 0x1000b --max-seconds 5`.
+  The wrapper captures bounded QEMU rows through a FIFO, validates them with
+  `frontend_fetch_rf_alu_qemu_rows.py`, extracts matching bytes through
+  `FETCH_ELF`, and runs the live fetch RF/ALU comparator. Use `--pc-lo` /
+  `--pc-hi` to skip legal entry `BSTART` until block-header execution is live
+  in the DUT. A signal-15 QEMU termination after bounded capture is expected
+  only when the manifest reports `status: "pass"`. The Verilator harness must
+  derive initial RF preloads from first expected source reads; do not re-add
+  synthetic-only hardcoded source values.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
@@ -1373,6 +1390,12 @@ Toolchain facts from initial Chisel bring-up:
   DUT commit JSONL through the shared writer, normalizes through
   `trace_schema_adapter.py`, and requires zero mismatches against the
   QEMU-shaped reference trace.
+- `run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh` is the reduced
+  live-QEMU proof for that path: it captures a bounded commit prefix from a
+  direct-boot ELF, validates the strict scalar subset, pairs it with the ELF
+  fetch bytes, and preserves the common comparator manifest. Treat it as
+  reduced live fetch RF/ALU evidence only until block headers, dense packets,
+  LSU, trap/recovery, and real full-DUT commit generation are live.
 - `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
   comparison proof where frontend-decoded scalar rows complete through a
   Chisel execute owner. It emits `LinxCoreFrontendAluTraceTop`, builds the
