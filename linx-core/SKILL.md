@@ -994,6 +994,24 @@ Toolchain facts from initial Chisel bring-up:
   marker-stop redirect wiring, or live-QEMU row extraction. The R107 evidence
   compares four scalar rows with zero mismatches and advances the next
   CoreMark blocker to the row after `pc=0x4000550e`.
+- Phase 5/R108 CoreMark FENTRY work extends the reduced live fetch RF/ALU
+  envelope through the first single-save macro prologue row. Treat this as a
+  narrow reduced FENTRY shape only: map the saved GPR field to an internal RF
+  read, map old SP (`x1`) to another internal RF read, mark SP (`x1`) as the
+  reduced destination, write `SP - imm`, and emit the one QEMU-shaped 8-byte
+  store sideband while suppressing those internal source fields in the commit
+  row. The expected-row reducer must preserve FENTRY memory fields and should
+  reject multi-register FENTRY until stack-template/LSU semantics are owned.
+  Run
+  `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r108-coremark-fentry-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 11 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing reduced FENTRY decode, execute, memory sideband comparison, or
+  QEMU extraction. The next observed 12-row CoreMark blocker is an `ADDI`
+  writing architectural tag `30`, outside the reduced scalar GPR namespace.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
