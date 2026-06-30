@@ -111,6 +111,7 @@ bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendAluTraceTop
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarRegisterFile
 bash tools/chisel/run_chisel_tests.sh --only ReducedScalarIssueQueue
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendRfAluTraceTop
+bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --robid-only
 bash tools/chisel/run_chisel_rob_bookkeeping.sh --reduced-rob
 bash tools/chisel/run_chisel_reduced_rob_xcheck.sh
@@ -121,6 +122,7 @@ bash tools/chisel/run_chisel_frontend_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_fetch_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_frontend_rf_alu_trace_top_xcheck.sh
+bash tools/chisel/run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh
 bash tools/chisel/run_chisel_verilator_lint.sh
 python3 tools/chisel/trace_schema_adapter.py --self-test
 bash tools/chisel/run_chisel_qemu_crosscheck.sh --dry-run
@@ -865,6 +867,19 @@ Toolchain facts from initial Chisel bring-up:
   one-selected-row-per-packet. Treat this as live source-to-F4-to-ROB
   infrastructure only; it is not full QEMU/CoreMark evidence until ELF memory,
   dense packets, real execute/LSU completion, and recovery are live.
+- Phase 5/R95 live frontend fetch RF-backed ALU trace-top work composes the
+  live fetch source with the reduced RF-backed issue and ALU completion path.
+  Run `run_chisel_tests.sh --only FrontendFetchPacketSource`,
+  `run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`, and
+  `run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh` after changes to the
+  live fetch source to RF/issue/ALU top, bounded memory-window fixture,
+  source-to-F4 handshake, source PC advance, issue enqueue, RF source
+  readiness, ALU completion, RF writeback, or commit export. Keep
+  `run_chisel_frontend_fetch_trace_top_xcheck.sh` and
+  `run_chisel_frontend_rf_alu_trace_top_xcheck.sh` as regressions for the two
+  predecessor surfaces. Treat this as live-source RF/ALU infrastructure only;
+  it is not full QEMU/CoreMark evidence until ELF memory, dense packets, full
+  issue arbitration, LSU, trap/recovery, and redirect restart are live.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,
@@ -1312,6 +1327,13 @@ Toolchain facts from initial Chisel bring-up:
   dumps DUT commit JSONL through the shared writer, normalizes through
   `trace_schema_adapter.py`, and requires zero mismatches against the
   QEMU-shaped reference trace.
+- `run_chisel_frontend_fetch_rf_alu_trace_top_xcheck.sh` is the generated-RTL
+  comparison proof for the current highest-fidelity reduced scalar path: it
+  emits `LinxCoreFrontendFetchRfAluTraceTop`, drives live fetch PC
+  request/response handshakes into F4, reduced decode/rename/ROB, RF-backed
+  issue, and ALU execute, dumps DUT commit JSONL through the shared writer,
+  normalizes through `trace_schema_adapter.py`, and requires zero mismatches
+  against the QEMU-shaped reference trace.
 - `run_chisel_frontend_alu_trace_top_xcheck.sh` is the first generated-RTL
   comparison proof where frontend-decoded scalar rows complete through a
   Chisel execute owner. It emits `LinxCoreFrontendAluTraceTop`, builds the
