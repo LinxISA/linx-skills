@@ -39,8 +39,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   model-green softmax-prefix micro-profile; it stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX` and uses opt-in
   `PTO_ATTENTION_*` plus `PTO_FLASH_TILE_*` shape flags so the QEMU-passing ELF
-  also exits naturally under plain `gfsim -f <elf>`. Treat these as prefix
-  proofs/probes only. `avs-pto-parity-prefix-flash-attention-masked` is the
+  also exits naturally under plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-flash-attention-softmax-2x` uses the same stop point
+  with `PTO_ATTENTION_*` set to `2` and `PTO_FLASH_TILE_*` set to `1`, proving
+  a larger scalar soft-float softmax prefix through QEMU and plain
+  `gfsim -f <elf>`. Treat these as prefix proofs/probes only.
+  `avs-pto-parity-prefix-flash-attention-masked` is the
   next promoted micro-profile; it stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and adds
   `PTO_ATTENTION_MASKED_SMOKE_*` shape flags so the QEMU-passing ELF reaches
@@ -73,7 +77,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_STAGE done`. The full `avs-pto-parity-full-model` row still owns
   full-shape model maturity: current QEMU-passing full-row evidence reaches
   `flash_attention_softmax`, then times out in `flash_attention_demo_f32` with
-  BROB BPC `0x17eaa`. Keep QEMU-passing full-shape attention/normalization
+  BROB BPC `0x18348`. Keep QEMU-passing full-shape attention/normalization
   timeouts in the model lane until the Tier-4 ELF exits naturally or model
   throughput/correctness is improved.
 - Only run `gfsim` on ELFs that have already passed the QEMU stage in the same

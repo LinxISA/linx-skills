@@ -417,7 +417,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   `PTO_ATTENTION_SMALL_SMOKE_QD=1`, `PTO_FLASH_TILE_M=1`, and
   `PTO_FLASH_TILE_K=1` through the AVS extra-cflag hook. Keep these as prefix
   proofs/probes, not substitutes for Tier-4 `avs-pto-parity-full-model`
-  closure.
+  closure. `avs-pto-parity-prefix-flash-attention-softmax-2x` uses the same
+  stop point with `PTO_ATTENTION_*` set to `2` and `PTO_FLASH_TILE_*` set to
+  `1`, proving a larger scalar soft-float softmax prefix through QEMU and
+  plain `gfsim -f <elf>`.
   `avs-pto-parity-prefix-flash-attention-masked` is the next model-green
   micro-profile; it stops after `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and
   also passes `PTO_ATTENTION_MASKED_SMOKE_SEQ=1`,
@@ -452,7 +455,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   do not keep routing this 1x prefix as a model-owned timeout unless fresh
   evidence shows a new regression.
   Current full-row evidence passes QEMU, reaches `flash_attention_softmax`,
-  then times out in `flash_attention_demo_f32` at BROB BPC `0x17eaa`; classify
+  then times out in `flash_attention_demo_f32` at BROB BPC `0x18348`; classify
   similar QEMU-passing Tier-4 `avs-pto-parity-full-model` timeouts as
   model-owned unless static legality evidence proves otherwise. Prior
   `tanh`/`softmax` BFU failures were model
