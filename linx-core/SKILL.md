@@ -1451,18 +1451,22 @@ Toolchain facts from initial Chisel bring-up:
   owner into `DecodeRenameROBPath` only behind `useMarkerDecodeContext=true`;
   R178 adds `LinxCoreFrontendFetchRfAluMarkerRowsTraceTop` as the named
   non-default top wrapper with `skipBlockMarkers=false` and
-  `useMarkerDecodeContext=true`.
+  `useMarkerDecodeContext=true`; R179 adds
+  `run_chisel_frontend_fetch_rf_alu_marker_rows_smoke.sh` as the first
+  generated-RTL proof that the wrapper admits a CoreMark `C.BSTART` marker row
+  and makes the following scalar row reuse that marker's selected BID.
   Preserve the separate `decodeValid` candidate decision and `decodeFire` state
   update; collapsing them creates allocator-ready feedback through
   `allocUsesExistingBlock`. Do not wire the live top out of
   `skipBlockMarkers=true` in the same packet unless the C++ harness and
   QEMU/DUT comparator also stop treating legal markers as skip rows. The next
-  marker-row promotion packet should add a generated-RTL marker-row smoke for
-  the R178 wrapper before changing the default live CoreMark top. Run
+  marker-row promotion packet should add a marker-aware comparator policy for
+  admitted marker rows before changing the default live CoreMark top. Run
   `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec`,
   `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycleSpec`,
   `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPathSpec`,
   `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTopSpec`,
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_marker_rows_smoke.sh`,
   and
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r178-marker-row-harness-prep-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing decode-time marker active context, selected block-BID choice,
