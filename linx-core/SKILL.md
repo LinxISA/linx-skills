@@ -2692,9 +2692,17 @@ After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
   `gprMapQFree=0` in the 1024-row admitted-marker CoreMark probe. R196 split
   `gprMapQDepth = 256` from local T/U `mapQDepth = 32`.
 - A naive 256-depth `GPRRenameCheckpoint` can become a Verilator front-end
-  bottleneck. R197 reduced release/live-mask fanout, but the exact 1024-row
-  marker-row top still needs a structural shrink or partition before the
-  generated 256-depth model is practical.
+  bottleneck. R198 split the largest per-architecture replay and commit scans
+  into helper modules (`GPRRenameReplaySurvivorSelect` and
+  `GPRRenameCommitArchSelect`), which makes the 256-depth marker-row top reach
+  Verilator build and DUT comparison. Do not inline those scans back into the
+  parent checkpoint without rerunning the model-sized marker-row smoke and
+  1024-row gate.
+- After R198, a 1024-row admitted-marker CoreMark failure at
+  `pc=0x400055be` with expected `x6 = 296` and observed `x6 = 0` is a
+  source-value/RF readiness or forwarding issue, not scalar GGPR mapQ capacity.
+  Start from RF writeback/read diagnostics and source physical tags before
+  changing `gprMapQDepth` again.
 
 ## Skill evolve loop (mandatory closeout)
 
