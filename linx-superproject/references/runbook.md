@@ -23,6 +23,13 @@
   directory; concurrent runs can race on `avs/qemu/out`.
 - If Linux `ctx_tq_irq_smoke.py` fails with `irq0_delta=0`, archive
   `/proc/interrupts` and `/proc/stat` snapshots before deciding FAIL vs BLOCKED.
+- For bounded all-row SPECint gates, use `tools/bringup/run_specint_fast_gate.py`
+  without a routine `--transports` override. The wrapper keeps all supported
+  rows in `test-all`/`train-all`, but splits large payload rows such as
+  `525.x264_r` into `*-large-9p` shards so the gate records benchmark liveness
+  instead of the known oversized-initramfs VFS-root panic. Pass
+  `--transports initramfs` only when intentionally reproducing transport
+  behavior.
 
 ## Reporting
 
