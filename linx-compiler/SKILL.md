@@ -77,12 +77,21 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
    the repro then passes, treat the failure as a candidate for an
    object-scoped kernel workaround (`CFLAGS_<obj>.o += -fno-vectorize
    -fno-slp-vectorize`) before widening LLVM backend changes.
-6. Keep active compatibility MC coverage out of `legacy-*` naming. Historical
+6. When a Linx runtime trap maps into compiler-rt `__atomic_*` helpers, inspect
+   the linked object before changing workload code. Current Linx lowering can
+   route C11 atomics used inside compiler-rt (`__c11_atomic_*`) back to the same
+   public `__atomic_*` symbols, producing self-recursion such as
+   `__atomic_load_1 -> __atomic_load_1`. A valid bring-up fallback must compile
+   `compiler-rt/lib/builtins/atomic.c` for `linx64-unknown-linux-musl` and show
+   no `__atomic_*` or `__c11` self-recursive relocations in `llvm-objdump -r`;
+   disassembly should show direct load/store bodies for
+   `__atomic_load_{1,2,4,8}` until native Linx atomic lowering is implemented.
+7. Keep active compatibility MC coverage out of `legacy-*` naming. Historical
    baselines may stay archived, but any still-supported syntax/reloc surface
    should live under normal compatibility-oriented test names.
-7. Run both linx64 and linx32 compile/coverage gates.
-8. Confirm no cross-stack call/ret regressions.
-9. Handoff gate evidence to integration owner before repin.
+8. Run both linx64 and linx32 compile/coverage gates.
+9. Confirm no cross-stack call/ret regressions.
+10. Handoff gate evidence to integration owner before repin.
 
 ## Skill evolve loop (mandatory closeout)
 
