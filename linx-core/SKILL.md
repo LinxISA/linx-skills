@@ -104,6 +104,7 @@ bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
+bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerRetireSourceSerializer
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
@@ -1441,6 +1442,23 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r175-marker-row-completion-shell-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing marker-row rename consumption, internal marker completion,
   external completion arbitration, or the live marker-skip regression surface.
+- Phase 5/R176 marker decode context splits following-row BID assignment from
+  retire-time marker effects. `BlockMarkerDecodeContext` is the decode-time
+  owner: decoded `BSTART` rows must use the allocator's new full BID even when
+  an older active context exists, following scalar rows must reuse that new BID,
+  decoded `BSTOP` rows must reuse and clear the active BID, and
+  flush/redirect/ROB block-last cleanup must stay STID-scoped. Do not wire the
+  live top out of `skipBlockMarkers=true` in the same packet unless the C++
+  harness and QEMU/DUT comparator also stop treating legal markers as skip
+  rows. Run
+  `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycleSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPathSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTopSpec`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r176-marker-decode-context-prep-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing decode-time marker active context, selected block-BID choice,
+  marker lifecycle split wiring, or marker-row harness migration.
 - Phase 5/R127 CoreMark return-block cleanup work extends the reduced live
   fetch RF/ALU envelope through a 1461-row CoreMark capture. Preserve these
   reusable contracts: emitted `LinxCoreFrontendFetchRfAluTraceTop` uses a
