@@ -2187,6 +2187,15 @@ GPR rename cleanup.
 - Flush computes `restoreBid = flush.bid - 1`. If `restoreBid <= renamePtr`,
   restore `smap` from the valid checkpoint for that BID, or from `cmap` if the
   checkpoint is invalid, then set `renamePtr = restoreBid`.
+- For block-stop redirects that preserve the just-finished block, the cleanup
+  BID presented to scalar GPR rename must be the **next** block BID. Passing
+  the current block BID makes `restoreBid = flush.bid - 1` restore the
+  checkpoint before the block and can lose adjacent `C.SETRET` / source maps
+  after the block has already committed its mapQ rows.
+- Until exact `isLastInBlock` checkpoint capture is owned in Chisel, the
+  reduced in-order marker-row path refreshes the scalar GPR checkpoint after
+  each accepted row with the post-rename map. Do not remove that approximation
+  without rerunning the 1024-row admitted-marker CoreMark QEMU/DUT gate.
 - Flush pruning uses `baseOnBid` to remove rows at or younger than `flush.bid`;
   otherwise it removes rows at or younger than the `(flush.bid, flush.rid)`
   pair. Surviving rows must be re-applied to `smap` in BID/RID order after the
@@ -2698,11 +2707,15 @@ After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
   Verilator build and DUT comparison. Do not inline those scans back into the
   parent checkpoint without rerunning the model-sized marker-row smoke and
   1024-row gate.
-- After R198, a 1024-row admitted-marker CoreMark failure at
-  `pc=0x400055be` with expected `x6 = 296` and observed `x6 = 0` is a
-  source-value/RF readiness or forwarding issue, not scalar GGPR mapQ capacity.
-  Start from RF writeback/read diagnostics and source physical tags before
-  changing `gprMapQDepth` again.
+- R202 closed the post-R198 stale source-value failure as scalar GPR checkpoint
+  restore, not RF readiness. If a marker-row/CoreMark gate shows an architectural
+  source using an older physical tag while the arch last-writer diagnostic has a
+  newer tag, inspect block-stop cleanup BID selection and checkpoint refresh
+  before changing RF, forwarding, or `gprMapQDepth`.
+- The passing R202 baseline is
+  `generated/r202-marker-stop-restore-qemu-elf-xcheck`: 1024 raw QEMU rows,
+  953 expected rows, 288 admitted marker commits filtered, 665 compared rows,
+  and zero mismatches.
 
 ## Skill evolve loop (mandatory closeout)
 
