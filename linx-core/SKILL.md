@@ -1463,7 +1463,13 @@ Toolchain facts from initial Chisel bring-up:
   scalar reference format unchanged. The first proof admits one marker row,
   filters one marker commit, compares the following three scalar rows, and
   passes with zero mismatches; the default top regression on the same prefix
-  stays in skip mode with zero admitted marker rows.
+  stays in skip mode with zero admitted marker rows. R192 extends marker-row
+  mode through the 128-row repeated-loop CoreMark window: while an admitted
+  marker drain barrier holds dense slots, backend decode inputs must be
+  invalidated; a retired redirect boundary can complete the previous active BID
+  and still own a marker-only BROB entry that needs its own later scalar-done
+  pulse; and redirect cleanup must not cancel an already pending
+  `BlockScalarDoneSequencer` retire/free pulse.
   Preserve the separate `decodeValid` candidate decision and `decodeFire` state
   update; collapsing them creates allocator-ready feedback through
   `allocUsesExistingBlock`. Do not wire the live top out of
@@ -1477,6 +1483,8 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_marker_rows_smoke.sh`,
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r180-marker-row-filtered-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 3 --capture-rows 16 --allow-block-markers --marker-rows --max-seconds 10 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r180-default-skip-regression-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 3 --capture-rows 16 --allow-block-markers --max-seconds 10 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r192-marker-row-brob-retire-drain-128-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 128 --allow-block-markers --allow-block-loop-reentry --marker-rows --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r192-default-skip-regression-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 3 --capture-rows 16 --allow-block-markers --max-seconds 10 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
   and
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r178-marker-row-harness-prep-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing decode-time marker active context, selected block-BID choice,
@@ -2174,8 +2182,11 @@ GPR rename cleanup.
   checkpoint is invalid, then set `renamePtr = restoreBid`.
 - Flush pruning uses `baseOnBid` to remove rows at or younger than `flush.bid`;
   otherwise it removes rows at or younger than the `(flush.bid, flush.rid)`
-  pair. Surviving rows in the same BID must be re-applied to `smap` in map
-  queue order after the checkpoint/cmap restore.
+  pair. Surviving rows must be re-applied to `smap` in BID/RID order after the
+  checkpoint/cmap restore, including older surviving rows from wrapped BIDs
+  when no valid checkpoint exists. Do not rebuild only from `cmap` or only from
+  same-BID survivors; that loses speculative mappings that are still older than
+  the cleanup point.
 - `renameReplayValid` is not a scalar GPR map mutation in the first Chisel
   owner. Keep it observable for integration, and leave SGPR, ClockHands, T/U
   operands, multithread map banks, and full dispatch/commit wiring to explicit
