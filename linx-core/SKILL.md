@@ -183,7 +183,9 @@ multi-agent Chisel development. Each module packet must:
   surface for replacement evidence;
 - run the narrow module gate plus affected cross-check gates;
 - inspect `crosscheck_manifest.json` for every generated-RTL or QEMU/DUT
-  comparison that routes through the common cross-check wrapper;
+  comparison that routes through the common cross-check wrapper; R151 and later
+  manifests must include `git.linxcore`, `git.linxcore_model`, `git.qemu`, and
+  `git.superproject` before the run is cited as replacement evidence;
 - for QEMU row replay, verify the reported `qemu-replay-raw-rows` and
   `qemu-replay-arch-rows` before treating the manifest as evidence;
 - for CoreMark or other direct-boot benchmark ELF replay, pass explicit QEMU
