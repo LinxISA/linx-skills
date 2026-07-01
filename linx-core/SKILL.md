@@ -1425,6 +1425,22 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r174-stid-marker-lifecycle-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing marker active-state lane selection, scalar redirect cleanup,
   scalar-created block seeding, or retired-marker lifecycle STID routing.
+- Phase 5/R175 marker-row ROB-admission shell lets unskipped `BSTART`/`BSTOP`
+  rows rename-update their reserved ROB row, stay off the reduced scalar
+  issue/ALU path, and complete internally through the ROB completion port.
+  Preserve the boundary: this is not the full live marker lifecycle switch.
+  Full marker-row replacement still needs a decode/retire split, or equivalent
+  proof, so following scalar rows receive the new boundary BID before the
+  marker row retires while retire-time scalar-done/redirect semantics do not
+  double-close the same block. The live CoreMark top remains in
+  `skipBlockMarkers=true` mode until that split is implemented. Run
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPathSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTopSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocatorSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only ROBEntryBankSpec`, and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r175-marker-row-completion-shell-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing marker-row rename consumption, internal marker completion,
+  external completion arbitration, or the live marker-skip regression surface.
 - Phase 5/R127 CoreMark return-block cleanup work extends the reduced live
   fetch RF/ALU envelope through a 1461-row CoreMark capture. Preserve these
   reusable contracts: emitted `LinxCoreFrontendFetchRfAluTraceTop` uses a
