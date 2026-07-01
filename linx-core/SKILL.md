@@ -1469,7 +1469,13 @@ Toolchain facts from initial Chisel bring-up:
   invalidated; a retired redirect boundary can complete the previous active BID
   and still own a marker-only BROB entry that needs its own later scalar-done
   pulse; and redirect cleanup must not cancel an already pending
-  `BlockScalarDoneSequencer` retire/free pulse.
+  `BlockScalarDoneSequencer` retire/free pulse. R194 extends the filtered
+  marker-row comparator through a 512-row CoreMark capture and fixes a
+  generated-RTL harness tail-prefix rule: when a bounded expected stream ends on
+  an admitted marker row, the driver must keep draining marker-shaped commits
+  until those expected marker rows are filtered, while still failing on any
+  scalar commit past the captured prefix. The proof admits and filters 161
+  marker commits and compares 337 scalar/macro rows with zero mismatches.
   Preserve the separate `decodeValid` candidate decision and `decodeFire` state
   update; collapsing them creates allocator-ready feedback through
   `allocUsesExistingBlock`. Do not wire the live top out of
@@ -1485,6 +1491,7 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r180-default-skip-regression-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 3 --capture-rows 16 --allow-block-markers --max-seconds 10 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r192-marker-row-brob-retire-drain-128-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 128 --allow-block-markers --allow-block-loop-reentry --marker-rows --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r192-default-skip-regression-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 3 --capture-rows 16 --allow-block-markers --max-seconds 10 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r194-marker-row-scale-512-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 512 --allow-block-markers --allow-block-loop-reentry --marker-rows --max-seconds 20 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`,
   and
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r178-marker-row-harness-prep-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing decode-time marker active context, selected block-BID choice,
