@@ -2678,6 +2678,24 @@ After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
 
 - In the LinxISA superproject checkout, update the `rtl/LinxCore` submodule pointer on `main`, PR + merge.
 
+## Scalar GGPR mapQ capacity triage
+
+- LinxCoreModel sizes scalar GGPR rename with independent model knobs:
+  `ggpr_count = 128` and `ggpr_mapq_depth = 256` in `configs/core.toml`.
+- Do not tie Chisel scalar GPR mapQ capacity to local T/U `mapQDepth`.
+  Local T/U `mapQDepth` controls compact ROBID sequence plumbing; scalar
+  `gprMapQDepth` controls GGPR rename pressure.
+- If a marker-row/CoreMark gate stops with `decodeBlockedByRename=1`,
+  nonzero `gprFree`, and `gprMapQFree=0`, check scalar `gprMapQDepth` against
+  LinxCoreModel before debugging ROB/BID ordering.
+- The known R195 symptom was `pc=0x4000557a`, `gprFree=63`,
+  `gprMapQFree=0` in the 1024-row admitted-marker CoreMark probe. R196 split
+  `gprMapQDepth = 256` from local T/U `mapQDepth = 32`.
+- A naive 256-depth `GPRRenameCheckpoint` can become a Verilator front-end
+  bottleneck. R197 reduced release/live-mask fanout, but the exact 1024-row
+  marker-row top still needs a structural shrink or partition before the
+  generated 256-depth model is practical.
+
 ## Skill evolve loop (mandatory closeout)
 
 - At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
