@@ -190,12 +190,16 @@ multi-agent Chisel development. Each module packet must:
   `qemu-replay-arch-rows` before treating the manifest as evidence;
 - for CoreMark or other direct-boot benchmark ELF replay, pass explicit QEMU
   memory if the ELF program headers map above the default 128 MiB RAM window;
-- for reduced BFU body-cut work after R152, treat `ReducedBfuBodyCutArm`
-  mismatches as diagnostic while the external `reducedBfu*` replay row still
-  serves as resolved-event source, cut-arm candidate, and oracle. Only accepted
-  arm rows enable `ReducedBfuBodyCutPredictor`; do not make
-  comparable-but-unaccepted arm rows fatal until a real branch/BFU resolver
-  owns that source;
+- for reduced BFU body-cut work after R153, do not arm body cuts from static
+  boundary geometry alone. A conditional `BSTART` can close the previous model
+  body but still fall through at runtime, so cut-eligible prediction must come
+  from accepted resolved body-end evidence or the local window trained by that
+  evidence. Use the resolved body-end row as the same-cycle cold-cut fallback
+  because `ReducedBfuGeometryPredictionLatch` is registered. Keep
+  `ReducedBfuBodyCutArm` as diagnostic/oracle comparison until a real
+  branch/BFU resolver replaces the external replay source. Drive local
+  body-window F4 scans from registered F4 validity rather than source out-fire
+  to avoid body-cut/source-advance combinational cycles;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
 Do not treat a frontend/backend Chisel module as replacement evidence merely
