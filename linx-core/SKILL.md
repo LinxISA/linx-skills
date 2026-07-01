@@ -102,6 +102,9 @@ bash tools/chisel/run_chisel_tests.sh --only LoadRefillWakeup
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
+bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
+bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
+bash tools/chisel/run_chisel_tests.sh --only BlockMarkerRetireSourceSerializer
 bash tools/chisel/run_chisel_tests.sh --only ReducedCommitROB
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreTop
 bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendTraceTop
@@ -1404,6 +1407,24 @@ Toolchain facts from initial Chisel bring-up:
   scalar-redirect active-block lifecycle, ranged FENTRY, ADDW/SBI semantics, or
   macro/template metadata filtering. The R126 evidence compares 927 normalized
   rows with zero mismatches.
+- Phase 5/R174 block-marker lifecycle work makes active block context
+  STID-indexed instead of global. Preserve the model ownership shape:
+  `BRQ::stashH[stid]`, `BRQ::brq[stid]`, `BCtrlUnit::currentBID[stid]`,
+  `BlockROB::current/next[stid]`, and `DCTop::lastHeader[stid]` are per
+  scalar thread. In Chisel, `BlockMarkerLifecycle` must use `markerStid` for
+  decode-time marker-only rows, `retiredMarker.stid` for serialized retired
+  marker sources, `activeQueryStid` for scalar row BID reuse/diagnostics,
+  `scalarBlockStartStid` for scalar-created active blocks, and
+  `scalarRedirectStid` for execute-owned redirect cleanup. A scalar redirect
+  must clear only the redirecting STID lane; ROB block-last may clear by full
+  BID match across active lanes because full block BIDs are global. Run
+  `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycleSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPathSpec`,
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTopSpec`,
+  and
+  `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r174-stid-marker-lifecycle-6000-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 6000 --allow-block-markers --allow-block-loop-reentry --max-seconds 16 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
+  after changing marker active-state lane selection, scalar redirect cleanup,
+  scalar-created block seeding, or retired-marker lifecycle STID routing.
 - Phase 5/R127 CoreMark return-block cleanup work extends the reduced live
   fetch RF/ALU envelope through a 1461-row CoreMark capture. Preserve these
   reusable contracts: emitted `LinxCoreFrontendFetchRfAluTraceTop` uses a
