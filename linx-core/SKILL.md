@@ -2471,6 +2471,11 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
   preserves this all-row pre-increment LSID, not only from committed memory
   rows. Keep the sidecar out of `CommitTraceRow` unless the architectural trace
   schema intentionally grows.
+- ResolveQ precise flush producers are also MemReq-shaped: for scalar
+  redirects, drive queue pruning from the redirecting row's all-row LSID
+  snapshot converted to the reduced `ROBID` shape, not from ROB RID and not from
+  a disabled LSID. Marker-only cleanup without a real LSID should stay on the
+  conservative hard-clear path until a recovery owner provides a valid LSID.
 - Replace `ldq` naming with:
   - `LIQ` (Load Inflight Queue) — load pipeline + miss/restart/repick.
   - `LHQ` (Load Hit Queue) — stores resolved load info for load/store address conflict checks.
