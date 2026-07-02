@@ -1942,8 +1942,8 @@ Toolchain facts from initial Chisel bring-up:
   mutation remains outside this queue owner. The store-side MDB wakeup path
   must scan the STQ row view in row order, ignore tile rows, match the
   predicted store by `(bid, pc)`, and emit wakeup only when the first matching
-  row has both address and data ready. Keep LDQ row mutation, STQ row PC
-  sidecar integration, byte forwarding, ROB nuke retirement, and final
+  row has both address and data ready. Keep LDQ row mutation, MDB consumption
+  of STQ PC sidecars, byte forwarding, ROB nuke retirement, and final
   `FlushReq` publication in later owner packets.
 - Phase 5 `LoadStoreForwarding` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding`. This
@@ -1967,13 +1967,14 @@ Toolchain facts from initial Chisel bring-up:
   adapter from resident `StoreDispatchSTQPath` rows into `LoadStoreForwarding`:
   convert raw load LSID with the same reduced `ROBID` shape as
   `StoreDispatchToSTQ`, apply ready resident store bytes after
-  `ReducedStoreMemoryOverlay`, and expose forward/wait/eligible diagnostics.
-  Ready resident hits may feed execute. Wait-hit loads must hold execute rather
-  than retiring committed-overlay pass-through data; cross-line resident cases
-  still pass through the committed-overlay load data. Until LIQ/LDQ replay
-  control exists, keep LDQ wait-store mutation, replay wakeup consumption,
-  cross-line resident forwarding, store PC sidecars, MDB publication, and
-  memory-event trace in later owner packets.
+  `ReducedStoreMemoryOverlay`, and expose forward/wait/eligible diagnostics
+  plus the selected wait-store `(storeId, storeLsId, pc)` identity. Ready
+  resident hits may feed execute. Wait-hit loads must hold execute rather than
+  retiring committed-overlay pass-through data; cross-line resident cases still
+  pass through the committed-overlay load data. Until LIQ/LDQ replay control
+  exists, keep LDQ wait-store mutation, replay wakeup consumption, cross-line
+  resident forwarding, MDB publication, and memory-event trace in later owner
+  packets.
 - Phase 5 `LoadForwardPipeline` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
   module is the first registered E2/E3/E4 wrapper around
