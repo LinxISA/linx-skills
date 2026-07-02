@@ -1382,6 +1382,21 @@ Toolchain facts from initial Chisel bring-up:
   evidence: 240 raw CoreMark QEMU rows compare 162 normalized rows with zero
   mismatches, and a direct replay of the 726-row R252 expected stream emits 495
   architectural rows with zero neutral-comparator mismatches.
+- Phase 5/R259 reduced-store overlay visibility work fixes the next
+  no-harness-mutation load failure after R258. Reusable triage rule:
+  store-visible load data in a reduced memory overlay must include
+  ROB-committed or `storeCommitQ`-equivalent store fragments before SCB
+  acceptance. LinxCoreModel `STQ::lookupForLoad` can use committed
+  `storeCommitQ` state before `STQ::commit` drains that store into SCB, so an
+  overlay fed only by `SCBRowBank.acceptedMask` can be too late. Preserve the
+  R253 model-identity mark/free rule, and keep SCB accepted `last` fragments as
+  the STQ free source; the commit-row feed is a reduced load-visibility bridge,
+  not a new free owner. Run
+  `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`
+  plus a `FETCH_DISABLE_STORE_MEMORY_MUTATION=1` reduced-store replay after
+  changing this path. The R259 2048-row replay compares 1467 rows with zero
+  mismatches in
+  `generated/r259-reduced-store-overlay-commit-row-2048-trace-xcheck/report/crosscheck_manifest.json`.
 - Phase 5/R125 CoreMark SUBI/C.AND/C.SDI work extends the reduced live fetch
   RF/ALU envelope through a 1024-row CoreMark capture. Preserve the reduced
   row-source contracts: `OP_SUBI` computes `src0 - uimm12`; 32-bit `OP_ADD`
