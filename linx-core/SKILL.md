@@ -1341,16 +1341,19 @@ Toolchain facts from initial Chisel bring-up:
   a real LSU/STQ path.
 - Phase 5/R124 CoreMark indexed-store work extends the reduced live fetch
   RF/ALU envelope through the `OP_SD` row at `pc=0x400055f2` and a 544-row
-  capture. Preserve the model source mapping: `SrcL`/`rs1` is the address
-  base, `SrcR`/`rs2` is the scaled index, and `SrcD`/bits `[31:27]` is the
-  store payload. The reduced execute owner may emit a no-writeback 8-byte store
-  sideband with `addr = base + (index << 3)` and `wdata = srcData(2)`. The
-  current QEMU row schema still has only `src0` and `src1`, so admit `OP_SD`
-  only where the payload source is a local T/U value or where a future packet
-  extends the trace schema or routes through LSU/STQ. The live RF/ALU harness
-  may mutate the sparse memory image only after the expected committed 8-byte
-  store row matches the DUT row; this is a program-order reduced-load bridge,
-  not store forwarding, cache state, or a real STQ. Run
+  capture. Preserve the model source mapping exactly:
+  `src0=SrcD`/bits `[31:27]` is the store payload, `src1=SrcL`/`rs1` is the
+  address base, and `src2=SrcR`/`rs2` is the scaled index. The reduced execute
+  owner emits a no-writeback 8-byte store sideband with
+  `addr = srcData(1) + (srcData(2) << 3)` and `wdata = srcData(0)`. The current
+  QEMU row schema still has only `src0` and `src1`, so the completion row
+  projects visible base/index as QEMU sources while keeping the payload-first
+  model order internally. Admit `OP_SD` only where that projection is valid or
+  where a future packet extends the trace schema or routes through LSU/STQ. The
+  live RF/ALU harness may mutate the sparse memory image only after the
+  expected committed 8-byte store row matches the DUT row; this is a
+  program-order reduced-load bridge, not store forwarding, cache state, or a
+  real STQ. Run
   `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
   `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
   `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`,
@@ -1360,6 +1363,25 @@ Toolchain facts from initial Chisel bring-up:
   mutation, or live RF/ALU load lookup. The R124 evidence compares 357
   normalized rows with zero mismatches. The next packet should run a larger
   bounded CoreMark probe to identify the next unsupported or mismatching row.
+- Phase 5/R253 reduced-store STQ pressure work fixes the opt-in
+  `--reduced-store-dispatch-stq` CoreMark path after the R247-R252 failures.
+  Reusable triage rules: do not match `ReducedStoreCommitFreeOwner` by physical
+  ROB sideband; match committed store rows to STQ rows by model
+  `CommitTrace.identity` (`bid/gid/rid`) plus STID. If a committed store is
+  observed before the split-store path has inserted a ready `ST_ALL` row, buffer
+  that committed-store identity and mark the STQ row when it later becomes
+  resident and markable. Split-store rows may bypass local T/U source sequence
+  lookup at `ScalarTURenameBridge` while preserving the sidecars for store/STQ
+  owners; otherwise reduced OP_SD/SDI paths can falsely underflow the local
+  sequence before full T/U store execution exists. Run
+  `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedScalarAluExecute`,
+  `bash tools/chisel/run_chisel_tests.sh --only ScalarTURenameBridge`,
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedStoreCommitFreeOwner`,
+  and the reduced-store QEMU ELF wrapper after changing these contracts. R253
+  evidence: 240 raw CoreMark QEMU rows compare 162 normalized rows with zero
+  mismatches, and a direct replay of the 726-row R252 expected stream emits 495
+  architectural rows with zero neutral-comparator mismatches.
 - Phase 5/R125 CoreMark SUBI/C.AND/C.SDI work extends the reduced live fetch
   RF/ALU envelope through a 1024-row CoreMark capture. Preserve the reduced
   row-source contracts: `OP_SUBI` computes `src0 - uimm12`; 32-bit `OP_ADD`
