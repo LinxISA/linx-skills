@@ -2192,6 +2192,14 @@ GPR rename cleanup.
   the current block BID makes `restoreBid = flush.bid - 1` restore the
   checkpoint before the block and can lose adjacent `C.SETRET` / source maps
   after the block has already committed its mapQ rows.
+- Default skip-marker marker-only redirects are frontend restarts, not
+  backend/rename cleanup events. When `skipBlockMarkers=true`, a marker stop
+  redirect has no valid marker retire source; do not synthesize scalar GPR
+  cleanup from `robMarkerRetireSource` or equivalent invalid metadata. Execute
+  redirects still own backend cleanup, and admitted marker-row mode may use
+  marker-retire metadata after the marker row has actually entered and retired
+  through the backend. The R243 reduced-store CoreMark failure proved this by
+  losing the x10 physical mapping before an `FENTRY` save store.
 - Until exact `isLastInBlock` checkpoint capture is owned in Chisel, the
   reduced in-order marker-row path refreshes the scalar GPR checkpoint after
   each accepted row with the post-rename map. Do not remove that approximation
