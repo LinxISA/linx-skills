@@ -1960,6 +1960,19 @@ Toolchain facts from initial Chisel bring-up:
   publication, or memory-event trace. Later LIQ/LHQ/STQ integration may
   pipeline the E2 CAM, E3 merge, and E4 wakeup stages, but must preserve this
   per-byte nearest-store result.
+- Phase 5 `ReducedStoreResidentForward` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedStoreResidentForward`
+  plus the affected `LoadStoreForwarding` and
+  `LinxCoreFrontendFetchRfAluTraceTop` gates. This module is the reduced-top
+  adapter from resident `StoreDispatchSTQPath` rows into `LoadStoreForwarding`:
+  convert raw load LSID with the same reduced `ROBID` shape as
+  `StoreDispatchToSTQ`, apply ready resident store bytes after
+  `ReducedStoreMemoryOverlay`, and expose forward/wait/eligible diagnostics.
+  Until LIQ/LDQ replay control exists, wait-hit or cross-line resident cases
+  must pass through the committed-overlay load data instead of feeding partial
+  forwarded bytes to execute. Keep execute backpressure, LDQ wait-store
+  mutation, replay wakeup consumption, cross-line resident forwarding, store PC
+  sidecars, MDB publication, and memory-event trace in later owner packets.
 - Phase 5 `LoadForwardPipeline` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
   module is the first registered E2/E3/E4 wrapper around
