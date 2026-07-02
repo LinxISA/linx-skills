@@ -1949,10 +1949,13 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_tests.sh --only LoadStoreForwarding`. This
   module is the first scalar store-to-load byte selector behind
   `STQ::lookupForLoad`: build the clipped 64-byte load mask, filter same-line
-  scalar stores older than or equal to the load's allocation snapshot, select
-  the nearest older store per byte, forward only data-ready selected bytes, and
-  report a wait/replay mask when the selected store for any requested byte is
-  not data-ready. It may merge forwarded bytes over cache data, but it must not
+  scalar stores older than or equal to the load's `(BID, LSID)` allocation
+  snapshot, select the nearest older store per byte using model `(BID, LSID)`
+  order, forward only data-ready selected bytes, and report a wait/replay mask
+  when the selected store for any requested byte is not data-ready. Do not use
+  ROBID/BID-only ordering here; R264 found same-BID stores must compare LSID
+  through `STQCommitQueue.lessEqualBidLs` to match `STQ::lookupForLoad`. It
+  may merge forwarded bytes over cache data, but it must not
   mutate STQ rows, LDQ wait-store state, MDB state, DCache/SCB state, recovery
   publication, or memory-event trace. Later LIQ/LHQ/STQ integration may
   pipeline the E2 CAM, E3 merge, and E4 wakeup stages, but must preserve this
@@ -1972,8 +1975,9 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_tests.sh --only LoadInflightQueue`. This
   module is the first registered LIQ/LHQ row owner around the forwarding
   pipeline: allocate slot-plus-wrap `LID`s with the load's
-  `youngestStoreId` snapshot, launch only non-wait-store `Wait` rows through
-  `LoadForwardPipeline`, apply E4 outcomes back to row state, publish LHQ
+  `(youngestStoreId, youngestStoreLsId)` snapshot, launch only non-wait-store
+  `Wait` rows through `LoadForwardPipeline`, apply E4 outcomes back to row
+  state, publish LHQ
   records only for E4 hits, hold `StoreDataNotReady` rows as wait-store
   replays, and hold incomplete bytes as `L1DcMiss`/`missPending`. Keep precise
   `FlushBus` pruning, L1/L2 refill queues, ready-table updates, consumer
@@ -1983,10 +1987,11 @@ Toolchain facts from initial Chisel bring-up:
   `bash tools/chisel/run_chisel_tests.sh --only LoadReplayWakeup` and the
   affected `LoadInflightQueue` gate. This module is the first store-unit/SCB
   replay wakeup sidecar for resident LIQ rows: store-unit wakeups clear
-  wait-store diagnostics by store identity plus PC, store-unit data merges only
-  into same-line `L1DcMiss`/`L2Wait` rows when the store is no newer than the
-  row's allocation snapshot, and SCB data merges into working same-line rows
-  except `Repick`. Completion is a recomputed requested-byte mask fully covered
+  wait-store diagnostics by `(storeId, storeLsId, pc)`, store-unit data merges
+  only into same-line `L1DcMiss`/`L2Wait` rows when `(storeId, storeLsId)` is no
+  newer than the row's `(youngestStoreId, youngestStoreLsId)` allocation
+  snapshot, and SCB data merges into working same-line rows except `Repick`.
+  Completion is a recomputed requested-byte mask fully covered
   by the merged valid mask. Completed rows return to `Wait` for relaunch; keep
   L1 refill, ready-table updates, consumer bypass routing, ResolveQ/LHQ queue
   movement, precise flush, and trace emission in later owner packets.
