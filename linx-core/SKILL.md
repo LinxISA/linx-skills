@@ -1984,9 +1984,24 @@ Toolchain facts from initial Chisel bring-up:
   row to still match `(storeId, storeLsId, pc)`, require scalar
   address/data-ready non-cross-line state, and publish source=`StoreUnit`,
   line address, byte-valid mask, and line-positioned store data. Do not invent
-  a second replay-wakeup shape for reduced-top work. Until LIQ/LDQ integration
-  exists, this producer is diagnostic-only and must not clear wait-store state,
-  relaunch a load, or wake consumers.
+  a second replay-wakeup shape for reduced-top work. In the integrated reduced
+  top, feed this producer from a registered wait-store key, not directly from
+  the live forwarder: once the store data becomes ready, the live forwarder no
+  longer reports a wait, so the key must already be held by the load-side
+  replay owner. Until LIQ/LDQ integration exists, this producer must not
+  relaunch a load or wake consumers.
+- Phase 5 `ReducedLoadWaitReplaySlot` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ReducedLoadWaitReplaySlot`
+  plus `ResidentStoreReplayWakeup`, `LoadReplayWakeup`,
+  `ReducedScalarAluExecute`, `ReducedStoreResidentForward`, and
+  `LinxCoreFrontendFetchRfAluTraceTop` gates. This reduced-top diagnostic
+  bridge captures the held E-stage load and selected wait-store key while
+  `ReducedStoreResidentForward` reports a wait hit, feeds the registered key
+  back to `ResidentStoreReplayWakeup`, and consumes the typed wakeup through
+  the existing `LoadReplayWakeup` wait-store matcher. It may clear only its
+  own diagnostic slot. It must not relaunch the load, wake dependents, mutate
+  full LIQ/LDQ state, or bypass `LoadReplayWakeup` with ad hoc BID/LSID/PC
+  matching.
 - Phase 5 `LoadForwardPipeline` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
   module is the first registered E2/E3/E4 wrapper around
