@@ -1975,6 +1975,18 @@ Toolchain facts from initial Chisel bring-up:
   exists, keep LDQ wait-store mutation, replay wakeup consumption, cross-line
   resident forwarding, MDB publication, and memory-event trace in later owner
   packets.
+- Phase 5 `ResidentStoreReplayWakeup` work must run
+  `bash tools/chisel/run_chisel_tests.sh --only ResidentStoreReplayWakeup`
+  plus the affected `ReducedStoreResidentForward`, `LoadReplayWakeup`, and
+  `LinxCoreFrontendFetchRfAluTraceTop` gates. This module is the producer-side
+  bridge from resident STQ wait-store diagnostics to the generic
+  `LoadReplayWakeupRequest`: select the `waitStore.storeIndex` row, require the
+  row to still match `(storeId, storeLsId, pc)`, require scalar
+  address/data-ready non-cross-line state, and publish source=`StoreUnit`,
+  line address, byte-valid mask, and line-positioned store data. Do not invent
+  a second replay-wakeup shape for reduced-top work. Until LIQ/LDQ integration
+  exists, this producer is diagnostic-only and must not clear wait-store state,
+  relaunch a load, or wake consumers.
 - Phase 5 `LoadForwardPipeline` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
   module is the first registered E2/E3/E4 wrapper around
