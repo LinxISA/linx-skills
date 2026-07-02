@@ -1391,7 +1391,14 @@ Toolchain facts from initial Chisel bring-up:
   overlay fed only by `SCBRowBank.acceptedMask` can be too late. Preserve the
   R253 model-identity mark/free rule, and keep SCB accepted `last` fragments as
   the STQ free source; the commit-row feed is a reduced load-visibility bridge,
-  not a new free owner. Run
+  not a new free owner. R262 adds the lane-order companion rule: same-cycle
+  reduced overlay store request lanes must be presented old-to-young because
+  `ReducedStoreMemoryOverlay` applies lanes sequentially and later lanes
+  overwrite overlapping bytes. Current SCB accepted fragments selected from
+  registered `STQCommitQueue` state are older than current ROB commit-row
+  bypass fragments, so route SCB accepted lanes before current commit-row lanes
+  while preserving R259 visibility and keeping SCB accepted `last` as the only
+  STQ free source. Run
   `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTop`
   plus a `FETCH_DISABLE_STORE_MEMORY_MUTATION=1` reduced-store replay after
   changing this path. The R259 2048-row replay compares 1467 rows with zero
