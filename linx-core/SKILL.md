@@ -1962,17 +1962,18 @@ Toolchain facts from initial Chisel bring-up:
   per-byte nearest-store result.
 - Phase 5 `ReducedStoreResidentForward` work must run
   `bash tools/chisel/run_chisel_tests.sh --only ReducedStoreResidentForward`
-  plus the affected `LoadStoreForwarding` and
+  plus the affected `LoadStoreForwarding`, `ReducedScalarAluExecute`, and
   `LinxCoreFrontendFetchRfAluTraceTop` gates. This module is the reduced-top
   adapter from resident `StoreDispatchSTQPath` rows into `LoadStoreForwarding`:
   convert raw load LSID with the same reduced `ROBID` shape as
   `StoreDispatchToSTQ`, apply ready resident store bytes after
   `ReducedStoreMemoryOverlay`, and expose forward/wait/eligible diagnostics.
-  Until LIQ/LDQ replay control exists, wait-hit or cross-line resident cases
-  must pass through the committed-overlay load data instead of feeding partial
-  forwarded bytes to execute. Keep execute backpressure, LDQ wait-store
-  mutation, replay wakeup consumption, cross-line resident forwarding, store PC
-  sidecars, MDB publication, and memory-event trace in later owner packets.
+  Ready resident hits may feed execute. Wait-hit loads must hold execute rather
+  than retiring committed-overlay pass-through data; cross-line resident cases
+  still pass through the committed-overlay load data. Until LIQ/LDQ replay
+  control exists, keep LDQ wait-store mutation, replay wakeup consumption,
+  cross-line resident forwarding, store PC sidecars, MDB publication, and
+  memory-event trace in later owner packets.
 - Phase 5 `LoadForwardPipeline` work must run
   `bash tools/chisel/run_chisel_tests.sh --only LoadForwardPipeline`. This
   module is the first registered E2/E3/E4 wrapper around
