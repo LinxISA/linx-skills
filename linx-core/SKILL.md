@@ -2465,6 +2465,12 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
 ## LIQ/LHQ + load/store ids (strict)
 
 - Decode allocates mem-order ids with D1 apply / D2 grant, in slot order (slot0→slot3) to define same-cycle ordering.
+- Scalar decode stamps the current LSID snapshot on every valid row before
+  only load/store/DCZVA rows increment the LSID counter. ResolveQ retire
+  watermarks must therefore come from a ROB commit memory-order sidecar that
+  preserves this all-row pre-increment LSID, not only from committed memory
+  rows. Keep the sidecar out of `CommitTraceRow` unless the architectural trace
+  schema intentionally grows.
 - Replace `ldq` naming with:
   - `LIQ` (Load Inflight Queue) — load pipeline + miss/restart/repick.
   - `LHQ` (Load Hit Queue) — stores resolved load info for load/store address conflict checks.
