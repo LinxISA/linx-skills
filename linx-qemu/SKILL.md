@@ -193,6 +193,17 @@ For recovered historical lines, insert one extra step before implementation:
   and the SPEC runner records them under `heartbeat_frame_stats`. Use this to
   rule frame fallback stores or return-cache misses in/out before reopening
   frame-store, restore-load, or BSTART return-target experiments.
+- For SPEC frame restore-load experiments, keep
+  `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
+  opt-in and normally drive it through the SPEC runner's
+  `--qemu-frame-restore-host-load` or
+  `LINX_SPEC_QEMU_FRAME_RESTORE_HOST_LOAD=1`. The fast path uses a
+  same-page, non-faulting host-pointer hit probe for restore slots and falls
+  back to the existing faulting load on misses. Use it only with
+  `--qemu-frame-stats` so `fr_restore_host` and `fr_restore_fallback` prove
+  whether the run actually used the path. As of 2026-07-04 it improved a
+  focused `531.deepsjeng_r` train sample but did not close the all-row train
+  gate and does not replace the data-memory/TLB lane for `505`.
 - For SPEC frame-template dispatch experiments, keep
   `LINX_QEMU_TEMPLATE_CHAIN=1` opt-in until an all-row train comparison proves
   it. The 2026-07-04 focused `523.xalancbmk_r` probe with
