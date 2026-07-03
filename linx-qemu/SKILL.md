@@ -191,7 +191,11 @@ For recovered historical lines, insert one extra step before implementation:
   The 2026-07-03 focused `505.mcf_r` probe had `tbs_flush=0`, stable
   miss/generation counts, and only about 36 MiB of roughly 1 GiB code-buffer
   use, so larger TB cache was rejected; route similar evidence toward per-TB
-  dispatch/JIT transition and soft-MMU lookup work instead.
+  dispatch/JIT transition and soft-MMU lookup work instead. A simple
+  per-thread TLS guard around `qemu_thread_jit_execute()` /
+  `qemu_thread_jit_write()` was also rejected on 2026-07-03: it preserved 999
+  correctness but lowered the comparable no-stats 505 count to about 30B
+  instructions in 120s, below the clean 34B baseline.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
