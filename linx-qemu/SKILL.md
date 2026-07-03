@@ -164,11 +164,12 @@ For recovered historical lines, insert one extra step before implementation:
   benchmark execution before changing QEMU TLB behavior.
 - For SPEC demand page-walk attribution, use `LINX_QEMU_TLB_FILL_STATS=1`
   before enabling full `LINX_QEMU_TLB_FILL_TRACE=1`. The fill-stats path adds
-  `tlbf_total`, fetch/load/store/probe/ok/fault counts, and last-fill
-  PC/BPC/VA/PA/access/MMU/prot/cause/ACR fields to `LINX_HEARTBEAT`; the SPEC
-  runner records them under `heartbeat_tlb_fill` and prints compact `tlbf=`
-  liveness tags in matrix markdown. Use full fill traces only after the
-  aggregate counters identify a row/window worth narrowing.
+  `tlbf_total`, fetch/load/store/probe/ok/fault counts, user/kernel/other
+  MMU-index splits, and last-fill PC/BPC/VA/PA/access/MMU/prot/cause/ACR
+  fields to `LINX_HEARTBEAT`; the SPEC runner records them under
+  `heartbeat_tlb_fill` and prints compact `tlbf=` liveness tags in matrix
+  markdown. Use full fill traces only after the aggregate counters identify a
+  row/window worth narrowing.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
