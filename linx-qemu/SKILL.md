@@ -182,6 +182,16 @@ For recovered historical lines, insert one extra step before implementation:
   and the SPEC runner records them under `heartbeat_frame_stats`. Use this to
   rule frame fallback stores or return-cache misses in/out before reopening
   frame-store, restore-load, or BSTART return-target experiments.
+- For SPEC TCG dispatch/cache-pressure attribution, use
+  `LINX_QEMU_TB_STATS=1` or the SPEC runner's `--qemu-tb-stats` before changing
+  TCG `tb-size`, cache policy, or dispatch behavior. QEMU appends `tbs_`
+  counters to `LINX_HEARTBEAT`, and the SPEC runner records them under
+  `heartbeat_tb_stats`. Use this after host profiles implicate
+  `cpu_tb_exec`, `pthread_jit_write_protect_np`, or TB lookup/codegen pressure.
+  The 2026-07-03 focused `505.mcf_r` probe had `tbs_flush=0`, stable
+  miss/generation counts, and only about 36 MiB of roughly 1 GiB code-buffer
+  use, so larger TB cache was rejected; route similar evidence toward per-TB
+  dispatch/JIT transition and soft-MMU lookup work instead.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
