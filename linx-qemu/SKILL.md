@@ -176,6 +176,12 @@ For recovered historical lines, insert one extra step before implementation:
   companion lines with a small hot-page sketch; the SPEC runner records
   `heartbeat_tlb_fill_hot` and prints compact `tlbf-hot=` tags with the
   hottest page/access/MMU tuple and eviction pressure.
+- For SPEC frame-template attribution, use `LINX_QEMU_FRAME_STATS=1` or the
+  SPEC runner's `--qemu-frame-stats` before enabling full `LINX_FENTRY_TRACE`
+  / `LINX_FRET_STK_TRACE`. QEMU appends `fr_` counters to `LINX_HEARTBEAT`,
+  and the SPEC runner records them under `heartbeat_frame_stats`. Use this to
+  rule frame fallback stores or return-cache misses in/out before reopening
+  frame-store, restore-load, or BSTART return-target experiments.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
