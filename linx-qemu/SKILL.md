@@ -169,6 +169,12 @@ For recovered historical lines, insert one extra step before implementation:
   runner records them under `heartbeat_tlb_fill` and prints compact `tlbf=`
   liveness tags in matrix markdown. Use full fill traces only after the
   aggregate counters identify a row/window worth narrowing.
+- For host-side SPEC profiling, prefer
+  `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
+  parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
+  generated `qemu.log`, then samples only a descendant whose executable
+  basename is `qemu-system-linx64`, avoiding false samples of Python runner
+  commands that merely contain a `--qemu` argument.
 - Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
 - Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
 - Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.
