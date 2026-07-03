@@ -170,6 +170,14 @@ For recovered historical lines, insert one extra step before implementation:
   `heartbeat_tlb_fill` and prints compact `tlbf=` liveness tags in matrix
   markdown. Use full fill traces only after the aggregate counters identify a
   row/window worth narrowing.
+- For SPEC page-walk cache experiments, do not treat QEMU's `tlb_set_page`
+  `size` argument as multi-page lookup coverage. Upstream cputlb still
+  materializes one `TARGET_PAGE_SIZE` entry and uses larger sizes only for
+  invalidation bookkeeping. If Linx large block mappings are the target, keep
+  the generic soft-TLB page-granular and test the opt-in block-aware page-walk
+  result cache via `LINX_QEMU_MMU_CACHE=1`; use
+  `LINX_QEMU_MMU_CACHE_STATS=1` and the SPEC runner's `heartbeat_mmu_cache`
+  / `mmuc=` fields to prove hit/miss/fill behavior before promoting it.
 - For long live-timeout rows where aggregate fill volume is high but full fill
   trace output would be too large, add `LINX_QEMU_TLB_FILL_HOT=1` alongside
   `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
