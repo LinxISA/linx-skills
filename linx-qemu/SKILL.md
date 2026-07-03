@@ -156,10 +156,13 @@ For recovered historical lines, insert one extra step before implementation:
   but disagree with the ELF file offset that should back that VA, treat QEMU as
   following the installed PTE and route the blocker to Linux file
   mapping/page-cache/VMA triage.
-- For SPEC live-timeout throughput triage, use `LINX_QEMU_TLB_STATS=1` before
-  enabling full `LINX_TLB_TRACE=1`. The stats path adds `tlbi_iall`,
-  `tlbi_ia`, `tlbi_iv`, `tlbi_iav`, and last-invalidation PC/BPC/operand/ACR
-  fields to `LINX_HEARTBEAT` without enabling the experimental MMU cache. Use
+- For SPEC live-timeout throughput triage, use the SPEC runner switch
+  `--qemu-tlb-stats` or `LINX_SPEC_QEMU_TLB_STATS=1` before enabling full
+  `LINX_TLB_TRACE=1`. The switch sets `LINX_QEMU_TLB_STATS=1`; QEMU appends
+  `tlbi_iall`, `tlbi_ia`, `tlbi_iv`, `tlbi_iav`, and last-invalidation
+  PC/BPC/operand/ACR fields to `LINX_HEARTBEAT` without enabling the
+  experimental MMU cache. The SPEC runner records these fields under
+  `heartbeat_tlb_invalidation` and prints compact `tlbi=` liveness tags. Use
   this to separate startup/fault-path invalidation pressure from steady-state
   benchmark execution before changing QEMU TLB behavior.
 - For SPEC demand page-walk attribution, use `LINX_QEMU_TLB_FILL_STATS=1`
