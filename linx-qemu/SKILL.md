@@ -226,6 +226,16 @@ For recovered historical lines, insert one extra step before implementation:
   `qemu_thread_jit_write()` was also rejected on 2026-07-03: it preserved 999
   correctness but lowered the comparable no-stats 505 count to about 30B
   instructions in 120s, below the clean 34B baseline.
+- If a post-`LINX_SPEC_START` SPEC profile shows `helper_linx_tlb_iv` hot,
+  first quantify Linux-side `local_flush_tlb_page()` sources before changing
+  QEMU cputlb semantics. In the 2026-07-04 `531.deepsjeng_r` profile,
+  `helper_linx_tlb_iv` was the second largest active QEMU frame after
+  `probe_access_internal`; a naive uncommitted experiment that narrowed
+  `TLB.IV`/`TLB.IAV` to an address-derived QEMU MMU-index map preserved the
+  999 sentinel but was neutral on focused 531. Do not retry address-derived
+  MMU-index narrowing without new evidence; inspect Linx Linux
+  `update_mmu_cache_range`, `ptep_set_wrprotect`, and fault/vmalloc
+  `local_flush_tlb_page()` call volume first.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
