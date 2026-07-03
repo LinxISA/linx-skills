@@ -190,6 +190,14 @@ For recovered historical lines, insert one extra step before implementation:
   and the SPEC runner records them under `heartbeat_frame_stats`. Use this to
   rule frame fallback stores or return-cache misses in/out before reopening
   frame-store, restore-load, or BSTART return-target experiments.
+- For SPEC frame-template dispatch experiments, keep
+  `LINX_QEMU_TEMPLATE_CHAIN=1` opt-in until an all-row train comparison proves
+  it. The 2026-07-04 focused `523.xalancbmk_r` probe with
+  `LINX_QEMU_MMU_CACHE=1` improved the 120-second count from 16B to 22B
+  instructions while preserving call/ret and 999 sentinels, but broad promotion
+  still needs train-all evidence. Use it as a dispatch/helper-exit probe after
+  frame/TB stats or a post-start host profile points at template helper exits,
+  `tb_lookup`, `qht_lookup_custom`, or `pthread_jit_write_protect_np`.
 - For SPEC TCG dispatch/cache-pressure attribution, use
   `LINX_QEMU_TB_STATS=1` or the SPEC runner's `--qemu-tb-stats` before changing
   TCG `tb-size`, cache policy, or dispatch behavior. QEMU appends `tbs_`
