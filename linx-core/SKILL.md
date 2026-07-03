@@ -210,6 +210,38 @@ Do not treat a frontend/backend Chisel module as replacement evidence merely
 because its unit test passes. It needs monitored commit/stage-owner visibility
 through the neutral cross-check path before it can displace pyCircuit evidence.
 
+## Chisel speed loop
+
+Use this abbreviated loop before opening the full packet ledger. It exists to
+avoid repeating the long-session pattern of rereading every historical R packet,
+rerunning broad status checks, and rediscovering toolchain facts.
+
+1. Read `rtl/LinxCore/docs/chisel/integrated-development-flow.md` first, then
+   only `rtl/LinxCore/docs/chisel/development-loop.md`, the assigned module
+   spec, and the latest relevant rows in
+   `rtl/LinxCore/docs/chisel/agent-loop.md`.
+2. Record the four SHAs once: superproject, `rtl/LinxCore`,
+   `model/LinxCoreModel`, and `emulator/qemu`. Do not run repeated `git status`
+   checks inside the same packet unless an edit, fetch, commit, or generated
+   artifact changes the state.
+3. Validate the Chisel environment once with the repo wrappers. Reuse
+   `tools/chisel/chisel_env.sh`; do not call raw `sbt` from ad hoc working
+   directories.
+4. Run gates in tiers from the integrated flow: module unit gate first,
+   adjacent owner gate second, generated-RTL/QEMU cross-check third, model or
+   workload promotion fourth, full closure only at promotion.
+5. For QEMU/DUT failures, stop at the first divergent architectural row and
+   classify ownership before editing: `chisel`, `qemu`, `model`, `compiler`,
+   `adapter`, `benchmark`, or `unknown`.
+6. Update the module doc, gate evidence, and ledger in the same packet. If the
+   finding is reusable across modules, update this skill once; otherwise close
+   with `skill-evolve: no-update`.
+
+Prefer bounded evidence windows while debugging. Scale CoreMark or direct-boot
+windows only after the narrow module gate and the previous smaller cross-check
+pass. Full cross-gate closure remains mandatory before claiming LinxCore
+closure, but it is not the inner edit loop.
+
 Toolchain facts from initial Chisel bring-up:
 
 - Homebrew `openjdk@17` works with the wrappers.
