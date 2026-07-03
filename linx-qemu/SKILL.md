@@ -187,6 +187,15 @@ For recovered historical lines, insert one extra step before implementation:
   companion lines with a small hot-page sketch; the SPEC runner records
   `heartbeat_tlb_fill_hot` and prints compact `tlbf-hot=` tags with the
   hottest page/access/MMU tuple and eviction pressure.
+- For SPEC rows or post-start profiles where `helper_linx_tlb_iv` is hot, add
+  `LINX_QEMU_TLB_INV_HOT=1` or the SPEC runner switch `--qemu-tlb-inv-hot`
+  alongside `--qemu-tlb-stats` before changing QEMU cputlb behavior. QEMU emits
+  `LINX_TLB_INV_HOT` heartbeat companion lines keyed by invalidation op and
+  source PC, with last BPC/operand/page/ACR plus per-heartbeat deltas. The SPEC
+  runner records `heartbeat_tlb_inv_hot` and prints compact `tlbi-hot=` tags.
+  If the hot source is in Linx Linux `update_mmu_cache_range()` or
+  `ptep_set_wrprotect()`, route the next speed loop to Linux flush frequency or
+  batching before retrying QEMU MMU-index narrowing.
 - For SPEC frame-template attribution, use `LINX_QEMU_FRAME_STATS=1` or the
   SPEC runner's `--qemu-frame-stats` before enabling full `LINX_FENTRY_TRACE`
   / `LINX_FRET_STK_TRACE`. QEMU appends `fr_` counters to `LINX_HEARTBEAT`,
