@@ -162,6 +162,13 @@ For recovered historical lines, insert one extra step before implementation:
   fields to `LINX_HEARTBEAT` without enabling the experimental MMU cache. Use
   this to separate startup/fault-path invalidation pressure from steady-state
   benchmark execution before changing QEMU TLB behavior.
+- For SPEC demand page-walk attribution, use `LINX_QEMU_TLB_FILL_STATS=1`
+  before enabling full `LINX_QEMU_TLB_FILL_TRACE=1`. The fill-stats path adds
+  `tlbf_total`, fetch/load/store/probe/ok/fault counts, and last-fill
+  PC/BPC/VA/PA/access/MMU/prot/cause/ACR fields to `LINX_HEARTBEAT`; the SPEC
+  runner records them under `heartbeat_tlb_fill` and prints compact `tlbf=`
+  liveness tags in matrix markdown. Use full fill traces only after the
+  aggregate counters identify a row/window worth narrowing.
 - Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
 - Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
 - Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.
