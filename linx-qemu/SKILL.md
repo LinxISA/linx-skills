@@ -170,6 +170,12 @@ For recovered historical lines, insert one extra step before implementation:
   `heartbeat_tlb_fill` and prints compact `tlbf=` liveness tags in matrix
   markdown. Use full fill traces only after the aggregate counters identify a
   row/window worth narrowing.
+- For long live-timeout rows where aggregate fill volume is high but full fill
+  trace output would be too large, add `LINX_QEMU_TLB_FILL_HOT=1` alongside
+  `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
+  companion lines with a small hot-page sketch; the SPEC runner records
+  `heartbeat_tlb_fill_hot` and prints compact `tlbf-hot=` tags with the
+  hottest page/access/MMU tuple and eviction pressure.
 - For host-side SPEC profiling, prefer
   `tools/spec2017/profile_qemu_after_spec_start.py` over manual `pgrep` or
   parent-process sampling. The wrapper waits for `LINX_SPEC_START` in the
