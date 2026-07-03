@@ -147,6 +147,15 @@ For recovered historical lines, insert one extra step before implementation:
   `LINX_FAULT_TRACE_PC_LO`/`LINX_FAULT_TRACE_PC_HI` or
   `LINX_FAULT_TRACE_COUNT_LO`/`LINX_FAULT_TRACE_COUNT_HI`, and cap output with
   `LINX_FAULT_TRACE_LIMIT` when possible.
+- For wrong runtime instruction bytes, pair a narrow TLB-fill trace with
+  PC-watch virtual and physical byte dumps before changing decode. A reusable
+  shape is `LINX_TLB_FILL_TRACE_VA=<va>`,
+  `LINX_DEBUG_PC_WATCH=<pc>`,
+  `LINX_DEBUG_PC_WATCH_DUMP_CODE_BYTES=<n>`, and
+  `LINX_DEBUG_PC_WATCH_DUMP_PHYS=1`. If virtual bytes and physical bytes agree
+  but disagree with the ELF file offset that should back that VA, treat QEMU as
+  following the installed PTE and route the blocker to Linux file
+  mapping/page-cache/VMA triage.
 - Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
 - Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
 - Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.
