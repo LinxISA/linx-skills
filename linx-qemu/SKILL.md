@@ -156,6 +156,12 @@ For recovered historical lines, insert one extra step before implementation:
   but disagree with the ELF file offset that should back that VA, treat QEMU as
   following the installed PTE and route the blocker to Linux file
   mapping/page-cache/VMA triage.
+- For SPEC live-timeout throughput triage, use `LINX_QEMU_TLB_STATS=1` before
+  enabling full `LINX_TLB_TRACE=1`. The stats path adds `tlbi_iall`,
+  `tlbi_ia`, `tlbi_iv`, `tlbi_iav`, and last-invalidation PC/BPC/operand/ACR
+  fields to `LINX_HEARTBEAT` without enabling the experimental MMU cache. Use
+  this to separate startup/fault-path invalidation pressure from steady-state
+  benchmark execution before changing QEMU TLB behavior.
 - Keep trace scope minimal: shortest repro, narrowest event set, shortest instruction window, and one lane at a time.
 - Treat QEMU traces as disposable debugging artifacts. Remove large trace/log outputs immediately after extracting the needed evidence.
 - Clean temporary QEMU traces from `/tmp`, `/private/tmp`, and repo-local output trees before closeout when they are no longer needed.
