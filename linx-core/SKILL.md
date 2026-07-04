@@ -1689,10 +1689,12 @@ Toolchain facts from initial Chisel bring-up:
   xcheck and `run_chisel_verilator_lint.sh`.
 - `LinxCoreFrontendFetchRfAluTraceTop` is already close to the JVM constructor
   method-size limit. For dormant owner packets, prefer module-local diagnostics
-  plus internal helper wiring; do not add a new batch of top-level diagnostic IO
-  or width assertions unless an external wrapper consumes those signals. If a
-  focused top gate fails with `Method too large` after adding diagnostics, first
-  remove or compact the top IO fanout before changing replay logic.
+  and defer top integration unless an external wrapper consumes the signals or
+  an existing owner can absorb the logic without growing the top constructor.
+  Do not add a new batch of top-level diagnostic IO, width assertions, or
+  standalone dormant owner instances casually. If a focused top gate fails with
+  `Method too large`, first remove or compact the new top fanout/instance
+  before changing replay logic.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
