@@ -222,6 +222,16 @@ For recovered historical lines, insert one extra step before implementation:
   one-register stack-32 `FENTRY`/`FRET.STK` pair, so future template-helper
   speed prototypes should specialize concrete shapes like that before adding
   broader frame-helper machinery.
+- For one-register frame-template speed experiments, use
+  `LINX_QEMU_FRAME_SINGLE_REG_FAST=1` or the SPEC runner switch
+  `--qemu-frame-single-reg-fast`. The path is default-off, applies only to
+  valid one-register `FENTRY`/`FRET.STK` shapes, and keeps frame trace modes on
+  the generic implementation. Pair it with `--qemu-frame-stats` so
+  `fr_single_fast_fentry` and `fr_single_fast_fret_stk` prove usage. On
+  2026-07-05, focused `541.leela_r` train improved from `5500000007` to
+  `5900000001` bounded instructions in the fine-heartbeat 45s shape while
+  strict `999.specrand_ir` and call/ret contract gates passed. Keep it opt-in
+  until a train-all comparison proves no row regresses.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
