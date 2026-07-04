@@ -1713,6 +1713,11 @@ Toolchain facts from initial Chisel bring-up:
   cycle, but only storage/count updates should depend on dequeue ready;
   otherwise FIRRTL can report a response-valid/dequeue-ready combinational
   cycle during path elaboration.
+- Replay-LIQ local STQ snapshot response drains must not infer stale from a
+  simple nonmatch. A nonmatching FIFO head may belong to a later token once
+  multi-token query ownership exists. Only explicit row-state evidence
+  equivalent to the model `entry.fsm != MTC_LDQ_REPICK` check may authorize a
+  stale-head drop, and stale drops must not clear the accepted query token.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
