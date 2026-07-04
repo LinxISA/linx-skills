@@ -1702,6 +1702,11 @@ Toolchain facts from initial Chisel bring-up:
   them off in the top helper; tying them false inside the composite can let
   FIRRTL eliminate the child owner during module-level elaboration and hide the
   boundary that future packets need to promote.
+- Replay-LIQ local STQ snapshot source-return must preserve the accepted query
+  identity. Once a query issues for a selected row, response matching must use
+  a token or queued owner captured from that accepted `cID/eID` rather than the
+  current launch selector, query issue must be gated by token capacity, and the
+  token may clear only at the ordered response consumption boundary.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
