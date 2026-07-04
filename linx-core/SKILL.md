@@ -1687,6 +1687,12 @@ Toolchain facts from initial Chisel bring-up:
   selected target, not only the named top file, because CIRCT emits instantiated
   Chisel modules as sibling `.sv` files. This applies to both the reduced ROB
   xcheck and `run_chisel_verilator_lint.sh`.
+- `LinxCoreFrontendFetchRfAluTraceTop` is already close to the JVM constructor
+  method-size limit. For dormant owner packets, prefer module-local diagnostics
+  plus internal helper wiring; do not add a new batch of top-level diagnostic IO
+  or width assertions unless an external wrapper consumes those signals. If a
+  focused top gate fails with `Method too large` after adding diagnostics, first
+  remove or compact the top IO fanout before changing replay logic.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
