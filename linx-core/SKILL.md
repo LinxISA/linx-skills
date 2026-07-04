@@ -1713,6 +1713,12 @@ Toolchain facts from initial Chisel bring-up:
   cycle, but only storage/count updates should depend on dequeue ready;
   otherwise FIRRTL can report a response-valid/dequeue-ready combinational
   cycle during path elaboration.
+- Live-control policy owners that may later drive both request issue and sink
+  readiness must take request-capacity inputs from pre-cycle resident state
+  (for example `!requestQueue.full`), not same-cycle `enqueueReady` values that
+  may depend on a policy-controlled sink/dequeue. Same-cycle drain can make room
+  for storage, but it must not open a new policy request arm through a
+  request/sink/dequeue/queue-ready combinational loop.
 - Replay-LIQ local STQ snapshot response drains must not infer stale from a
   simple nonmatch. A nonmatching FIFO head may belong to a later token once
   multi-token query ownership exists. Only explicit row-state evidence
