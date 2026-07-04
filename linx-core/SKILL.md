@@ -1718,7 +1718,10 @@ Toolchain facts from initial Chisel bring-up:
   (for example `!requestQueue.full`), not same-cycle `enqueueReady` values that
   may depend on a policy-controlled sink/dequeue. Same-cycle drain can make room
   for storage, but it must not open a new policy request arm through a
-  request/sink/dequeue/queue-ready combinational loop.
+  request/sink/dequeue/queue-ready combinational loop. When the policy output
+  is muxed into a composite path, apply the same rule at the path request-control
+  boundary; an unselected `enqueueReady` mux branch can still leave a FIRRTL
+  dependency cycle if the selected sink arm controls the queue dequeue.
 - Replay-LIQ local STQ snapshot response drains must not infer stale from a
   simple nonmatch. A nonmatching FIFO head may belong to a later token once
   multi-token query ownership exists. Only explicit row-state evidence
