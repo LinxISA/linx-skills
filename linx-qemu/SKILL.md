@@ -212,6 +212,16 @@ For recovered historical lines, insert one extra step before implementation:
   and the SPEC runner records them under `heartbeat_frame_stats`. Use this to
   rule frame fallback stores or return-cache misses in/out before reopening
   frame-store, restore-load, or BSTART return-target experiments.
+- When aggregate `fr_` counters show frame-template traffic but do not identify
+  the hot shape, add `LINX_QEMU_FRAME_SHAPE_HOT=1` or the SPEC runner switch
+  `--qemu-frame-shape-hot`. QEMU emits `LINX_FRAME_SHAPE_HOT` companion lines
+  with the hottest frame kind, register range, register count, stack size,
+  count/delta, and eviction pressure; the SPEC runners record
+  `heartbeat_frame_shape_hot` and matrix markdown prints `frame-hot=` tags. On
+  2026-07-05, focused `541.leela_r` train showed the dominant shape was a
+  one-register stack-32 `FENTRY`/`FRET.STK` pair, so future template-helper
+  speed prototypes should specialize concrete shapes like that before adding
+  broader frame-helper machinery.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
