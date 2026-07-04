@@ -1695,6 +1695,13 @@ Toolchain facts from initial Chisel bring-up:
   standalone dormant owner instances casually. If a focused top gate fails with
   `Method too large`, first remove or compact the new top fanout/instance
   before changing replay logic.
+- When a dormant source-return or replay cluster already has several direct
+  children in `LinxCoreFrontendFetchRfAluTraceTop`, a constructor-relief packet
+  may replace that cluster with one composite owner. Keep future raw request,
+  identity, response, and sideband inputs at the composite IO boundary and tie
+  them off in the top helper; tying them false inside the composite can let
+  FIRRTL eliminate the child owner during module-level elaboration and hide the
+  boundary that future packets need to promote.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
