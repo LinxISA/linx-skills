@@ -230,8 +230,15 @@ For recovered historical lines, insert one extra step before implementation:
   `fr_single_fast_fentry` and `fr_single_fast_fret_stk` prove usage. On
   2026-07-05, focused `541.leela_r` train improved from `5500000007` to
   `5900000001` bounded instructions in the fine-heartbeat 45s shape while
-  strict `999.specrand_ir` and call/ret contract gates passed. Keep it opt-in
-  until a train-all comparison proves no row regresses.
+  strict `999.specrand_ir` and call/ret contract gates passed. The same day,
+  clean-build train-all evidence under
+  `workloads/generated/specint-train-all-frame-single-fast-clean-qemu-20260705-r1/`
+  kept `999.specrand_ir` passing and all other rows live-progressing, but the
+  timeout-normalized result was mixed: `520`, `523`, `525`, and `541` improved,
+  `531` was roughly flat, and `500`, `505`, and `557` regressed versus the
+  prior clean ledger. Keep it opt-in/default-off and use it only for focused
+  one-register frame-shape experiments until row-specific regressions are
+  understood.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
