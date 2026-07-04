@@ -156,6 +156,16 @@ For recovered historical lines, insert one extra step before implementation:
   but disagree with the ELF file offset that should back that VA, treat QEMU as
   following the installed PTE and route the blocker to Linux file
   mapping/page-cache/VMA triage.
+- For SPEC userspace-trap PC-watch packets, require the runner's
+  `qemu_debug_env` JSON field in the evidence so the exact heartbeat,
+  fault-trace, and PC-watch knobs are reproducible. Keep watch sets minimal:
+  broad multi-window PC-watch can perturb row timing enough to change a
+  userspace trap into a kernel live-timeout. `LINX_DEBUG_PC_WATCH_RING=1` is
+  useful when the terminal fault is on a watched PC, but signal paths can still
+  end without `LINX_PC_WATCH_RING` output; in that case use printed
+  `linx_pc_watch:` / `LINX_PC_WATCH_REGS` hit lines as authoritative evidence
+  and narrow the next repro toward the producer/caller path instead of widening
+  the trace.
 - For SPEC live-timeout throughput triage, use the SPEC runner switch
   `--qemu-tlb-stats` or `LINX_SPEC_QEMU_TLB_STATS=1` before enabling full
   `LINX_TLB_TRACE=1`. The switch sets `LINX_QEMU_TLB_STATS=1`; QEMU appends
