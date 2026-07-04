@@ -1707,6 +1707,12 @@ Toolchain facts from initial Chisel bring-up:
   a token or queued owner captured from that accepted `cID/eID` rather than the
   current launch selector, query issue must be gated by token capacity, and the
   token may clear only at the ordered response consumption boundary.
+- Queue owners that feed a downstream matcher must keep head visibility
+  independent of downstream ready when that ready is derived from the matcher
+  consuming the head. Empty-slot bypass may expose a new head in the same
+  cycle, but only storage/count updates should depend on dequeue ready;
+  otherwise FIRRTL can report a response-valid/dequeue-ready combinational
+  cycle during path elaboration.
 - Packet B FlushControl work must preserve LinxCoreModel `CheckOlder` branch
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
