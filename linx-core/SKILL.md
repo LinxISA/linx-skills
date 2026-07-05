@@ -200,6 +200,11 @@ multi-agent Chisel development. Each module packet must:
   probe, and require nonzero `mdb_conflict_valid`, `mdb_fanout_record_*`,
   BMDB, and SSIT counters while keeping unrelated lookup/wait-plan counters
   explicitly guarded;
+- for replay-wake promotion, do not treat top-local sideband counters as proof
+  that the LIQ child consumed a wake when child clear masks disagree. Inspect
+  final top assignment order and tie-off helpers for the actual
+  `ReducedLoadReplayLiqAllocPath.io.replayWake*` inputs before changing
+  `LoadReplayWakeup` predicate logic;
 - for reduced BFU body-cut work after R153, do not arm body cuts from static
   boundary geometry alone. A conditional `BSTART` can close the previous model
   body but still fall through at runtime, so cut-eligible prediction must come
