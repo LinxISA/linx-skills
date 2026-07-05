@@ -203,6 +203,20 @@ For recovered historical lines, insert one extra step before implementation:
   `531.deepsjeng_r`, justify associativity or user-data fast-path prototypes;
   low hit and low collision rows, as in `541.leela_r` and `525.x264_r`, should
   stay in TB/template or transport lanes instead of MMU-cache resizing.
+  The 2026-07-06 same-head assoc2 controls reject the first adjacent 2-way
+  cache-shape prototype as a promotion candidate:
+  `workloads/generated/specint-505-mmuc-direct-control-qemu-20260706-r1/`
+  versus `workloads/generated/specint-505-mmuc-assoc2-qemu-20260706-r1/`
+  drops `505.mcf_r` hits and raises fills/collisions, and
+  `workloads/generated/specint-531-mmuc-direct-control-qemu-20260706-r1/`
+  versus `workloads/generated/specint-531-mmuc-assoc2-qemu-20260706-r1/`
+  drops `531.deepsjeng_r` hits while leaving fills/collisions flat. Keep
+  `LINX_QEMU_MMU_CACHE_ASSOC2` / `--qemu-mmu-cache-assoc2` default-off and do
+  not put it into all-row train gates unless a new same-head control beats the
+  direct-mapped cache. Future cache-shape experiments should avoid simply
+  pairing adjacent direct-map slots; preserve or improve direct-map locality
+  first, then rerun `999.specrand_ir` plus focused `505`/`531` controls before
+  train-all promotion.
 - For long live-timeout rows where aggregate fill volume is high but full fill
   trace output would be too large, add `LINX_QEMU_TLB_FILL_HOT=1` alongside
   `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
