@@ -242,8 +242,16 @@ For recovered historical lines, insert one extra step before implementation:
   timeout-normalized result was mixed: `520`, `523`, `525`, and `541` improved,
   `531` was roughly flat, and `500`, `505`, and `557` regressed versus the
   prior clean ledger. Keep it opt-in/default-off and use it only for focused
-  one-register frame-shape experiments until row-specific regressions are
-  understood.
+  one-register frame-shape experiments when used by itself. A later same-head
+  180-second train-all run that stacked `--qemu-frame-single-reg-fast` on top
+  of `--qemu-mmu-cache --qemu-mmu-cache-stats` improved six measured rows
+  versus MMU-cache-only (`500`, `502`, `505`, `525`, `541`, and `557`) and left
+  `520`, `523`, and `531` flat while preserving the strict
+  `999.specrand_ir` train hash
+  (`workloads/generated/specint-train-all-mmuc-single-fast-latest-qemu-20260705-r1/`).
+  Treat that combined stack as the current best bounded all-row speed probe,
+  but keep it opt-in/default-off until at least one real SPEC row completes
+  with correct output.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
