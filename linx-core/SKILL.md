@@ -194,6 +194,12 @@ multi-agent Chisel development. Each module packet must:
   `qemu-replay-arch-rows` before treating the manifest as evidence;
 - for CoreMark or other direct-boot benchmark ELF replay, pass explicit QEMU
   memory if the ELF program headers map above the default 128 MiB RAM window;
+- for replay-LIQ MDB promotion, do not claim conflict record or fanout
+  evidence from aggregate store-probe and ResolveQ counters. Prove a same-cycle
+  store-detect/ResolveQ overlap, or a model-equivalent retained/replayed store
+  probe, and require nonzero `mdb_conflict_valid`, `mdb_fanout_record_*`,
+  BMDB, and SSIT counters while keeping unrelated lookup/wait-plan counters
+  explicitly guarded;
 - for reduced BFU body-cut work after R153, do not arm body cuts from static
   boundary geometry alone. A conditional `BSTART` can close the previous model
   body but still fall through at runtime, so cut-eligible prediction must come
