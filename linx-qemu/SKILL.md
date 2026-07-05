@@ -286,10 +286,18 @@ For recovered historical lines, insert one extra step before implementation:
   ambient env; the comparison/analyzer tools also infer older env-only runs
   from linked stage-row `qemu_debug_env`. Treat this full stack as the current
   best bounded all-row speed probe, but keep it default-off until at least one
-  real SPEC row completes with correct output. Use it as a dispatch/helper-exit
-  probe after frame/TB stats or a post-start host profile points at template
-  helper exits, `tb_lookup`, `qht_lookup_custom`, or
-  `pthread_jit_write_protect_np`.
+  real SPEC row completes with correct output. A feature-compatible post-start
+  profile for that full stack exists under
+  `workloads/generated/specint-profile-suite-train-mmuc-single-fast-template-chain-latest-qemu-20260705-r1/`
+  with the joined lane report under
+  `workloads/generated/specint-qemu-progress-analysis-mmuc-single-fast-template-chain-latest-20260705-r1/`.
+  Do not repeat that profile before the next implementation change. The lane
+  split is still template/TB/MMU dispatch for `500`, `502`, `505`, `520`,
+  `523`, and `541`; Linux TLBI attribution for `531` and `557`; and a separate
+  9p row for `525`, whose latest active frames are also template/TB/MMU-heavy.
+  The next QEMU speed loop should target template return/entry helper exits,
+  TB lookup/dispatch, and soft-MMU lookup/probe for the six shared rows first,
+  then rerun the all-row gate with `999.specrand_ir` as the strict sentinel.
 - For SPEC TCG dispatch/cache-pressure attribution, use
   `LINX_QEMU_TB_STATS=1` or the SPEC runner's `--qemu-tb-stats` before changing
   TCG `tb-size`, cache policy, or dispatch behavior. QEMU appends `tbs_`
