@@ -251,7 +251,12 @@ For recovered historical lines, insert one extra step before implementation:
   (`workloads/generated/specint-train-all-mmuc-single-fast-latest-qemu-20260705-r1/`).
   Treat that combined stack as the current best bounded all-row speed probe,
   but keep it opt-in/default-off until at least one real SPEC row completes
-  with correct output.
+  with correct output. Feature-compatible post-start profiles for that stack
+  under
+  `workloads/generated/specint-profile-suite-train-mmuc-single-fast-latest-qemu-20260705-r1/`
+  split the next speed lanes into template/TB/MMU dispatch for `500`, `502`,
+  `505`, `520`, `523`, and `541`; Linux TLBI source reduction for `531` and
+  `557`; and separate 9p/kernel transport profiling for `525`.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
