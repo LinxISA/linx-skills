@@ -188,9 +188,14 @@ For recovered historical lines, insert one extra step before implementation:
   materializes one `TARGET_PAGE_SIZE` entry and uses larger sizes only for
   invalidation bookkeeping. If Linx large block mappings are the target, keep
   the generic soft-TLB page-granular and test the opt-in block-aware page-walk
-  result cache via `LINX_QEMU_MMU_CACHE=1`; use
-  `LINX_QEMU_MMU_CACHE_STATS=1` and the SPEC runner's `heartbeat_mmu_cache`
-  / `mmuc=` fields to prove hit/miss/fill behavior before promoting it.
+  result cache via the SPEC runner switches `--qemu-mmu-cache` and
+  `--qemu-mmu-cache-stats` (or their `LINX_QEMU_MMU_CACHE=1` /
+  `LINX_QEMU_MMU_CACHE_STATS=1` env equivalents); use the runner's
+  `heartbeat_mmu_cache` / `mmuc=` fields to prove hit/miss/fill behavior before
+  promoting it. On 2026-07-05, focused `505.mcf_r` train improved from
+  `41000000005` to `45000000003` bounded instructions in 180s with
+  `mmuc_hit=122234545`, while strict `999.specrand_ir` passed with the new
+  switches; keep the cache opt-in until all-row train evidence is green.
 - For long live-timeout rows where aggregate fill volume is high but full fill
   trace output would be too large, add `LINX_QEMU_TLB_FILL_HOT=1` alongside
   `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
