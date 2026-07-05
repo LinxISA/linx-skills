@@ -196,6 +196,13 @@ For recovered historical lines, insert one extra step before implementation:
   `41000000005` to `45000000003` bounded instructions in 180s with
   `mmuc_hit=122234545`, while strict `999.specrand_ir` passed with the new
   switches; keep the cache opt-in until all-row train evidence is green.
+  The 2026-07-06 clean train-all packet
+  `workloads/generated/specint-train-all-mmuc-split-clean-qemu-20260706-r1/`
+  adds size-class and collision counters. Read `mmuc_col*` before changing the
+  cache shape: high 4K collision ratios, as in `505.mcf_r` and
+  `531.deepsjeng_r`, justify associativity or user-data fast-path prototypes;
+  low hit and low collision rows, as in `541.leela_r` and `525.x264_r`, should
+  stay in TB/template or transport lanes instead of MMU-cache resizing.
 - For long live-timeout rows where aggregate fill volume is high but full fill
   trace output would be too large, add `LINX_QEMU_TLB_FILL_HOT=1` alongside
   `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
