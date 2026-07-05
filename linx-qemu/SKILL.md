@@ -201,7 +201,14 @@ For recovered historical lines, insert one extra step before implementation:
   `LINX_QEMU_TLB_FILL_STATS=1`. QEMU emits `LINX_TLB_FILL_HOT` heartbeat
   companion lines with a small hot-page sketch; the SPEC runner records
   `heartbeat_tlb_fill_hot` and prints compact `tlbf-hot=` tags with the
-  hottest page/access/MMU tuple and eviction pressure.
+  hottest page/access/MMU tuple, eviction pressure, and reuse/churn counters
+  (`inserts`, `last_hits`, `slot_hits`). If `inserts` and `evictions` track
+  total fills while `last_hits`/`slot_hits` stay near zero, route the row to
+  streaming page-walk or soft-MMU lookup cost rather than enlarging the small
+  hot-page sketch. The 2026-07-06 focused `505.mcf_r` train packet
+  `workloads/generated/specint-505-tlbf-hot-reuse-qemu-20260706-r1/` is the
+  current example: `tlbf_total=89914727`, `inserts=89914720`,
+  `evictions=89914704`, `last_hits=5`, and `slot_hits=2`.
 - For SPEC rows or post-start profiles where `helper_linx_tlb_iv` is hot, add
   `LINX_QEMU_TLB_INV_HOT=1` or the SPEC runner switch `--qemu-tlb-inv-hot`
   alongside `--qemu-tlb-stats` before changing QEMU cputlb behavior. QEMU emits
