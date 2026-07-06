@@ -332,6 +332,18 @@ For recovered historical lines, insert one extra step before implementation:
   counters to `LINX_HEARTBEAT`, and the SPEC runner records them under
   `heartbeat_tb_stats`. Use this after host profiles implicate
   `cpu_tb_exec`, `pthread_jit_write_protect_np`, or TB lookup/codegen pressure.
+  When aggregate counters show high lookup/dispatch pressure but do not identify
+  a source PC, add `LINX_QEMU_TB_HOT=1` or the SPEC runner switch
+  `--qemu-tb-hot` on a focused row. QEMU emits `LINX_TB_HOT` companion lines
+  with a 256-slot hot-PC sketch; the SPEC runners record
+  `heartbeat_tb_hot` and matrix markdown prints compact `tb-hot=` tags with
+  lookup delta, total lookup count, jump-cache hits, hash hits, misses, and
+  eviction pressure. On 2026-07-06, focused `502.gcc_r` train evidence in
+  `workloads/generated/specint-502-tb-hot-256-qemu-20260706-r1/` identified
+  `0xffffffff8006dbca` as the max-delta TB lookup PC (`125865/125865`, all
+  jump-cache hits) while the row stayed heartbeat-live. Symbolize such PCs
+  against the matching `vmlinux` or benchmark ELF before changing QEMU cache
+  policy; route kernel PCs through the Linux TLBI/timer/transport lane first.
   The 2026-07-03 focused `505.mcf_r` probe had `tbs_flush=0`, stable
   miss/generation counts, and only about 36 MiB of roughly 1 GiB code-buffer
   use, so larger TB cache was rejected; route similar evidence toward per-TB
