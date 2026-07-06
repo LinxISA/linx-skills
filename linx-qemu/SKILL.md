@@ -295,7 +295,15 @@ For recovered historical lines, insert one extra step before implementation:
   `--qemu-frame-stats` so `fr_restore_host` and `fr_restore_fallback` prove
   whether the run actually used the path. As of 2026-07-04 it improved a
   focused `531.deepsjeng_r` train sample but did not close the all-row train
-  gate and does not replace the data-memory/TLB lane for `505`.
+  gate and does not replace the data-memory/TLB lane for `505`. The 2026-07-06
+  same-head train-all comparison on QEMU head
+  `4e9c0fcf35e80216ae46e407d97118ecd721618a` rejected broad promotion:
+  `--qemu-frame-restore-host-load` preserved the strict `999.specrand_ir`
+  sentinel and improved bounded counts for `502.gcc_r`, `525.x264_r`, and
+  `557.xz_r`, but regressed `500.perlbench_r`, `505.mcf_r`,
+  `520.omnetpp_r`, `523.xalancbmk_r`, and `531.deepsjeng_r`, with `541.leela_r`
+  neutral. Keep it default-off for all-row gates; use it as a focused A/B
+  switch on rows where restore-side frame traffic is the current hypothesis.
 - For SPEC frame-template dispatch experiments, keep
   `LINX_QEMU_TEMPLATE_CHAIN=1` opt-in until real SPEC rows complete correctly
   under the speed stack. The 2026-07-04 focused `523.xalancbmk_r` probe with
