@@ -230,6 +230,17 @@ For recovered historical lines, insert one extra step before implementation:
   `workloads/generated/specint-505-tlbf-hot-reuse-qemu-20260706-r1/` is the
   current example: `tlbf_total=89914727`, `inserts=89914720`,
   `evictions=89914704`, `last_hits=5`, and `slot_hits=2`.
+  The 2026-07-06 focused `505.mcf_r` post-start host profile
+  `workloads/generated/specint-505-poststart-profile-speedstack-qemu-20260706-r1/`
+  showed `linx_tlb_fill_stats_record` in the top QEMU frames, but a same-head
+  75-second A/B rejected TLB-fill stats/hot instrumentation as the row-level
+  throughput limiter: `workloads/generated/specint-505-speedstack-tlbfillstats-control-qemu-20260706-r1/`
+  and `workloads/generated/specint-505-speedstack-no-tlbfillstats-qemu-20260706-r1/`
+  both reached 21B bounded instructions with effectively identical TB,
+  MMU-cache, TLBI, and frame counters. Do not spend a speed loop optimizing
+  TLB-fill stats overhead for 505 unless a new matched control shows a real
+  instruction-count delta; keep the next 505 work on frame helper exits,
+  generic soft-MMU lookup/probe cost, TB dispatch, and page-walk cache shape.
 - For SPEC rows or post-start profiles where `helper_linx_tlb_iv` is hot, add
   `LINX_QEMU_TLB_INV_HOT=1` or the SPEC runner switch `--qemu-tlb-inv-hot`
   alongside `--qemu-tlb-stats` before changing QEMU cputlb behavior. QEMU emits
