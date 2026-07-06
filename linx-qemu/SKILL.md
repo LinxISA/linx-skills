@@ -347,8 +347,13 @@ For recovered historical lines, insert one extra step before implementation:
   `LINX_SPEC_START` is present, prefer `heartbeat_tb_hot.post_start_*` fields
   or matrix `tb-hot=post:` markdown for benchmark-phase attribution. Symbolize
   post-start user PCs against the matching benchmark ELF before changing QEMU
-  cache policy; route all-run boot-phase kernel PCs through the Linux
-  TLBI/timer/transport lane first.
+  cache policy; current runner output records this under
+  `heartbeat_tb_hot_user_symbols` / `heartbeat_tb_hot_user_symbol_evidence`
+  for no-ASLR Linx static-PIE rows. The same 502 evidence maps the benchmark
+  hot PC to `0x403ec3aa=gimple_code gimple.c:0`, with nearby `gimplify.c` and
+  `tree-inline.c` blocks, so route 502-style evidence to user tiny-helper
+  dispatch/template-entry-return/TB chaining work. Route all-run boot-phase
+  kernel PCs through the Linux TLBI/timer/transport lane first.
   The 2026-07-03 focused `505.mcf_r` probe had `tbs_flush=0`, stable
   miss/generation counts, and only about 36 MiB of roughly 1 GiB code-buffer
   use, so larger TB cache was rejected; route similar evidence toward per-TB
