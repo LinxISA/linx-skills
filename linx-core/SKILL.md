@@ -158,6 +158,16 @@ architectural compare depth: QEMU metadata rows may be filtered before compare,
 so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
 slices the replay input to the smallest prefix containing the requested
 non-metadata commits.
+For PC-filtered QEMU-only preflights that are candidates for generated-RTL
+promotion, exact memory-PC guards are necessary but not sufficient. The reduced
+preview must also prove that the Verilator harness can reconstruct starting
+architectural register state, for example through
+`state_seed_audit.status="ready"` in
+`tools/chisel/search_replay_liq_pc_filter_preflights.py` schema v2. If the
+first non-skipped reduced row has memory/destination data but no visible source
+operands, treat the PC filter as generated-RTL blocked even when QEMU-only
+memory-PC guards pass; the DUT would otherwise start from reset/RF defaults
+while QEMU already executed hidden predecessor state.
 In `--elf` mode, `--replay-rows` is also the raw FIFO capture cap. The wrapper
 must kill the prefix reader and fail with an empty-trace error if QEMU exits
 before producing rows; do not leave agents blocked on a FIFO. Direct-boot
