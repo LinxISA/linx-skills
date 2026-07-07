@@ -263,6 +263,13 @@ rerunning broad status checks, and rediscovering toolchain facts.
 6. Update the module doc, gate evidence, and ledger in the same packet. If the
    finding is reusable across modules, update this skill once; otherwise close
    with `skill-evolve: no-update`.
+7. After generated-RTL/QEMU evidence is captured, prune reproducible build
+   intermediates before starting another broad sweep. Preserve report JSON,
+   manifests, sideband stats, and trace snippets cited by docs, but remove
+   `generated/**/obj_dir`, generated Verilog trees that wrappers can recreate,
+   wave dumps, and compiler temporaries (`*.tmp`, `*.o`, `*.a`, `*.d`, `*.gch`).
+   If an active generated-RTL run is producing large intermediates and the loop
+   pivots, terminate that run cleanly before deleting its incomplete build dir.
 
 Prefer bounded evidence windows while debugging. Scale CoreMark or direct-boot
 windows only after the narrow module gate and the previous smaller cross-check
