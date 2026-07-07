@@ -167,7 +167,13 @@ architectural register state, for example through
 first non-skipped reduced row has memory/destination data but no visible source
 operands, treat the PC filter as generated-RTL blocked even when QEMU-only
 memory-PC guards pass; the DUT would otherwise start from reset/RF defaults
-while QEMU already executed hidden predecessor state.
+while QEMU already executed hidden predecessor state. That blocked state can be
+reopened only by citing a matching raw-prefix RF seed artifact, for example
+one built with `tools/chisel/build_frontend_fetch_rf_seed.py` from the
+unfiltered QEMU trace and passed to generated RTL through `--rf-seed` /
+`FETCH_RF_SEED`. A seeded comparator pass proves launch-state reconstruction
+only; replay-LIQ replacement proof still needs nonzero eligible-store,
+ResolveQ, MDB, LIQ allocation, replay-output, and row-mutation counters.
 In `--elf` mode, `--replay-rows` is also the raw FIFO capture cap. The wrapper
 must kill the prefix reader and fail with an empty-trace error if QEMU exits
 before producing rows; do not leave agents blocked on a FIFO. Direct-boot
