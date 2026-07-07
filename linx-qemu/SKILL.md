@@ -142,6 +142,13 @@ For recovered historical lines, insert one extra step before implementation:
 
 - Do not generate full-run QEMU traces from the beginning of execution unless no narrower reproducer exists.
 - First localize the suspicious `pc`/opcode/window from AVS output, guest state, or a smaller repro, then enable trace only near that window.
+- Keep QEMU trace/log output storage-bounded. Prefer `LINX_*_TRACE_LIMIT`,
+  heartbeat/stat counters, and narrow PC/count windows over unbounded logs.
+  After a QEMU packet is summarized, preserve the report/manifest and the small
+  excerpt cited by docs, then delete bulky rerunnable artifacts such as
+  `avs/qemu/out/**/qemu.log`, generated `*.trace`, generated initramfs `*.cpio`,
+  and temporary `.omx/tmp*.log` files. Do not keep multi-hundred-MB QEMU logs
+  solely as historical context once their outcome is captured in JSON/Markdown.
 - For hosted user-fault bring-up, prefer the opt-in `LINX_FAULT_TRACE=1`
   path before adding new trace code. Narrow it with
   `LINX_FAULT_TRACE_PC_LO`/`LINX_FAULT_TRACE_PC_HI` or

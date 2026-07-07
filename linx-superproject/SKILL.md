@@ -77,6 +77,25 @@ git -C /Users/zhoubot/linx-isa worktree remove --force <path>
 git -C /Users/zhoubot/linx-isa worktree prune
 ```
 
+## Generated Artifact Storage Hygiene
+
+- Treat `workloads/generated/`, `avs/qemu/out`, `.omx/tmp*.log`, and
+  generated QEMU/model trace logs as disposable unless a current report
+  explicitly cites a small artifact from that run.
+- After workload or QEMU triage, preserve the machine-readable summary
+  (`report.json`, `summary.md`, gate JSON/MD, and any manifest cited in docs)
+  before deleting bulky rerunnable products such as QEMU logs, `*.trace`,
+  generated initramfs `*.cpio`, copied SPEC run directories, and temporary
+  debug output.
+- Do not delete source workload trees, SPEC installed input data, submodule
+  git object packs, compiler/QEMU build trees, or user documents as routine
+  cleanup. If storage pressure requires those, make it an explicit user-visible
+  tradeoff.
+- Before continuing a broad loop after a large run, check `du -xhd1
+  /Users/zhoubot/linx-isa` and prune generated artifacts if
+  `workloads/generated` or `avs/qemu/out` has grown beyond the evidence needed
+  by the current packet.
+
 ## Skills sync policy (mandatory per bring-up cycle)
 
 ```bash
