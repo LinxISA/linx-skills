@@ -151,8 +151,8 @@ Generated-RTL Verilator harnesses must emit commit JSONL through
 strings. The helper owns QEMU-shaped architectural fields and DUT sidebands
 (`valid`, `seq/cycle/slot`, `bid/gid/rid`, ROB id, and `block_bid`); harnesses
 own only top-specific pin conversion. This preserves model `CommitInfo`
-identity separately from the 64-bit hardware block BID and prevents schema
-drift before live Chisel trace writers are added.
+identity separately from the `BID_W`-bit hardware block BID and prevents
+schema drift before live Chisel trace writers are added.
 For QEMU trace replay, keep raw replay/normalization depth separate from the
 architectural compare depth: QEMU metadata rows may be filtered before compare,
 so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
@@ -229,7 +229,7 @@ multi-agent Chisel development. Each module packet must:
   because `ReducedBfuGeometryPredictionLatch` is registered. Keep
   `ReducedBfuBodyCutArm` as diagnostic/oracle comparison until a real
   branch/BFU resolver replaces the external replay source. Drive local
-  body-window F4 scans from registered F4 validity rather than source out-fire
+  body-window D1 scans from registered F4/IB entry validity rather than source out-fire
   to avoid body-cut/source-advance combinational cycles;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
@@ -278,6 +278,11 @@ closure, but it is not the inner edit loop.
 
 Toolchain facts from initial Chisel bring-up:
 
+Compatibility terminology: historical Chisel module/test names such as
+`F4DecodeWindow` remain literal code identifiers. In the bring-up notes below,
+an "F4 slot/window" means a D1 decode slot/view read from F4/IB state; it never
+defines a separate F4 decode stage.
+
 - Homebrew `openjdk@17` works with the wrappers.
 - Homebrew `sbt` 2.0.0 works when the project uses Scala `2.13.17`.
 - Chisel is pinned to `7.3.0` in `chisel/build.sbt`.
@@ -288,20 +293,24 @@ Toolchain facts from initial Chisel bring-up:
   opcode, 4-bit instruction length fields, 6-bit reg/ptag/ROB index defaults,
   32-bit scalar LSID, `BK_*` order,
   `REG_INVALID=0x3f`, `TRAP_BRU_RECOVERY_NOT_BSTART=0x0000b001`, and the split
-  between model `bid/gid/rid` identity and 64-bit hardware `blockBid`.
-- Phase 2 `F4DecodeWindow` work must preserve LinxCoreModel `CheckMInstSize`
+  between model `bid/gid/rid` identity and hardware `blockBid`. The current
+  fixed 64-bit `blockBid` bundle is legacy implementation shape: new contract
+  work uses `BID_W`, and a width migration must update all producers,
+  consumers, traces, and fixtures coherently.
+- Phase 2 `F4DecodeWindow` is a legacy module name for a D1 decode-window
+  helper; it is not architectural F4. Work on it must preserve LinxCoreModel `CheckMInstSize`
   instruction sizing: bit 0 clear gives 2 bytes unless header bits `[3:1]` are
   `111`, which gives 6 bytes; bit 0 set gives 4 bytes unless header bits
   `[3:1]` are `111`, which gives 8 bytes. The Chisel gate is
   `bash tools/chisel/run_chisel_tests.sh --only F4DecodeWindow`.
-- F4 decode-window work must keep 8-byte window slicing sequential and
+- Legacy decode-window/D1 work must keep 8-byte window slicing sequential and
   non-compacting: a candidate that does not fit invalidates that slot and all
   later slots; do not search forward for a later instruction. Flush masks D1
   and all slot-valid bits. Slot UIDs are `(pktUid << 3) | slot`.
 - Full opcode decode, register/immediate extraction, macro-boundary standalone
   behavior, and D1/D2 uop construction are deferred until the Chisel opcode
-  table/decode-owner modules exist; do not bury those behaviors in the F4
-  transport helper.
+  table/decode-owner modules exist; do not bury those behaviors in the legacy
+  `F4DecodeWindow` transport helper.
 - Phase 2 `FrontendInstructionBuffer` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendInstructionBuffer`.
   The buffer is a frontend-owned FIFO for `FrontendDecodePacket` records:
@@ -309,12 +318,14 @@ Toolchain facts from initial Chisel bring-up:
   occupancy stable, and keep full-state backpressure based on pre-cycle
   occupancy.
 - Chisel frontend buffers must carry `checkpointId` as packet-owned state
-  alongside PC/window/packet UID. Do not reconstruct F4/D1 packet checkpoint
+  alongside PC/window/packet UID. Do not reconstruct F4/IB-to-D1 packet checkpoint
   identity from adjacent control wiring once a packet enters the Chisel
   frontend queue.
 - Phase 2 `FrontendDecodeIngress` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress`.
-  This module is only the IB-to-F4 transport owner: compose
+  Architecturally this is the F4/IB-to-D1 transport boundary: F4 is the fourth
+  fetch stage and the instruction-buffer boundary, not a four-slot decode
+  stage. The current implementation composes
   `FrontendInstructionBuffer` with `F4DecodeWindow`, pop only on
   `decodeReady && f4.d1.valid`, preserve no same-cycle push-to-D1 bypass,
   clear/mask both children on flush, and keep opcode decode, macro-boundary
@@ -322,7 +333,7 @@ Toolchain facts from initial Chisel bring-up:
 - Phase 2/R39/R40 `FrontendDecodeStage` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus the
   affected `F4DecodeWindow`, `FrontendDecodeIngress`, and `InterfaceBundles`
-  gates. This module is the first D1 decode-shape owner after F4 slots: use the
+  gates. This module is the first D1 decode-shape owner after F4/IB: use the
   generated pyCircuit opcode metadata mask/match table, preserve the
   most-specific-mask rule (`decode16_meta`/`decode32_meta`/`decode48_meta`/
   `decode64_meta`), emit `DecodedUop` records with slot PC/raw/len/opcode and
@@ -394,7 +405,7 @@ Toolchain facts from initial Chisel bring-up:
   reservation owner exists, stamp allocator BID/RID identity at the queue head
   before `ScalarDecodeRenameBridge`; do not stamp or reserve allocator cursors
   for multiple queued rows at enqueue because that duplicates identities. Later
-  top-level frontend integration must advance D1/F4 only on `decodeReady` /
+  top-level frontend integration must advance D1 and consume F4/IB only on `decodeReady` /
   queue acceptance.
 - Phase 5/R45 `DecodeLoadStoreIdAssign` / `DecodeRenameROBPath` work must run
   `bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign` plus
@@ -1028,9 +1039,9 @@ Toolchain facts from initial Chisel bring-up:
   comparator still receives only non-skip scalar commit rows. Treat this as
   reduced marker-consume evidence, not dense packet support and not full
   `BSTART`/`BSTOP` scalar_done/BROB retirement semantics.
-- Phase 5/R102 reduced dense F4 slot work lets the same live fetch RF/ALU gate
-  feed natural 8-byte F4 windows instead of one instruction per response. The
-  reduced bridge must preserve every valid F4 slot from the window in order,
+- Phase 5/R102 reduced dense D1-slot work lets the same live fetch RF/ALU gate
+  feed natural 8-byte F4/IB windows instead of one instruction per response. The
+  reduced bridge must preserve every valid D1 slot from the window in order,
   keep each slot's original slot index, and drain one slot per cycle into the
   existing serialized decode/ROB path. Build the fixture with
   `bash tools/chisel/build_frontend_fetch_rf_alu_qemu_fixture_elf.sh --out-dir generated/r102-live-qemu-fixture`,
@@ -1295,7 +1306,7 @@ Toolchain facts from initial Chisel bring-up:
   Commit rows must remain no-writeback and carry one 8-byte store sideband;
   scalar P sources are visible while local T/U bases are consumed internally and
   suppressed to match QEMU. Do not promote live CoreMark captures that cut
-  inside a dense F4 window: 41 rows cuts inside the SDI/ADDI two-slot packet, 43
+  inside a dense F4/IB window: 41 rows cuts inside the SDI/ADDI two-slot packet, 43
   rows cuts inside the following three-slot branch packet, and the promoted R118
   gate uses `--capture-rows 42`. Run
   `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
@@ -1352,7 +1363,7 @@ Toolchain facts from initial Chisel bring-up:
   real LSU/data-memory implementation. `OP_C_SETC_EQ` shares the no-writeback
   compare-row shape with `C.SETC_NE` but publishes equality on the reduced
   branch-decision sideband. Bounded live-QEMU captures may end inside an
-  8-byte F4 window; in that case the frontend fetch RF/ALU harness may accept a
+  8-byte F4/IB window; in that case the frontend fetch RF/ALU harness may accept a
   DUT dense-packet superset only for the final captured expected row while
   still comparing every committed row in the captured prefix. If that final
   packet contains post-prefix slots, stop after the compared prefix instead of
@@ -1527,8 +1538,8 @@ Toolchain facts from initial Chisel bring-up:
   marker sources, `activeQueryStid` for scalar row BID reuse/diagnostics,
   `scalarBlockStartStid` for scalar-created active blocks, and
   `scalarRedirectStid` for execute-owned redirect cleanup. A scalar redirect
-  must clear only the redirecting STID lane; ROB block-last may clear by full
-  BID match across active lanes because full block BIDs are global. Run
+  must clear only the redirecting STID lane; ROB block-last cleanup matches the
+  exact `(STID,BID)` lane because BID slots are per-STID, not global. Run
   `bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycleSpec`,
   `bash tools/chisel/run_chisel_tests.sh --only DecodeRenameROBPathSpec`,
   `bash tools/chisel/run_chisel_tests.sh --only LinxCoreFrontendFetchRfAluTraceTopSpec`,
@@ -1554,7 +1565,7 @@ Toolchain facts from initial Chisel bring-up:
   external completion arbitration, or the live marker-skip regression surface.
 - Phase 5/R176/R177/R178/R179/R180 marker decode context splits following-row BID assignment from
   retire-time marker effects. `BlockMarkerDecodeContext` is the decode-time
-  owner: decoded `BSTART` rows must use the allocator's new full BID even when
+  owner: decoded `BSTART` rows must use the allocator's new BID even when
   an older active context exists, following scalar rows must reuse that new BID,
   decoded `BSTOP` rows must reuse and clear the active BID, and
   flush/redirect/ROB block-last cleanup must stay STID-scoped. R177 wires this
@@ -1765,14 +1776,17 @@ Toolchain facts from initial Chisel bring-up:
   order: different `stid` never compares; same-BID BID-based priority resolves
   before PE-replay special cases; same non-BID BID/RID conflicts resolve before
   generic age; PE-vs-PE age only compares within one PE.
-- Packet C BROB/BID work must preserve the hardware BID contract: default BID
-  is 64 bits, 128-entry slot id is `bid[6:0]`, uniqueness/age is `bid[63:7]`,
-  `cmd_tag` is `bid[7:0]`, and BID flush keeps `bid <= flush_bid` while killing
-  `bid > flush_bid` using full BID order.
+- Packet C BROB/BID work must preserve the hardware BID contract:
+  each STID has a default 256-entry BROB ring,
+  `BID_W = ceil(log2(BROB_ENTRIES))`, and default BID is 8 bits. Shared block
+  identity is `(STID,BID)`; STID is separate, while wrap, generation, and age
+  stay in per-STID BROB-owned state. `(cmd_stid,cmd_tag) = (stid,bid)`. Flush
+  uses an STID-qualified BROB younger-entry kill mask or equivalent ring
+  context; unsigned BID magnitude is never an age comparison.
 - Commit trace work must keep the LinxCoreModel `CommitInfo` identity
-  `bid/gid/rid` as 32-bit model sideband fields while preserving the hardware
-  block identity separately as 64-bit `block_bid`; do not truncate the hardware
-  BID into `CommitInfo.bid`.
+  `bid/gid/rid` as 32-bit model sideband fields while preserving the
+  hardware block identity separately as `(stid, BID_W-bit block_bid)`; do not
+  merge the model and hardware identity domains.
 - Fixed-width Chisel commit trace dumps may include invalid slots, but
   `tools/chisel/trace_schema_adapter.py` must filter `valid: 0` rows before
   sequence numbering and QEMU comparison.
@@ -1824,17 +1838,17 @@ Toolchain facts from initial Chisel bring-up:
   remains the trace and duplicate-detection sideband.
 - Phase 5 `DispatchROBAllocator` work must run
   `bash tools/chisel/run_chisel_tests.sh --only DispatchROBAllocator`. This
-  bridge is the first backend integration owner for allocation: generate the
-  full hardware BID from a block cursor, allocate `BrobMetaTracker` and
-  `ROBEntryBank` atomically, stamp `CommitTraceRow.blockBid`, convert the full
-  BID into the ring `ROBID` sidecar for `ROBEntryBank.allocBid`, and keep RID
-  allocation inside `ROBEntryBank`.
+  bridge is the first backend integration owner for allocation: allocate a
+  `BID_W`-bit BID from the BROB tail, allocate `BrobMetaTracker` and
+  `ROBEntryBank` atomically, stamp `CommitTraceRow.blockBid`, carry separate
+  BROB ring/wrap context wherever age is required, and keep RID allocation
+  inside `ROBEntryBank`.
 - Phase 5 `FullBidRecoveryBridge` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FullBidRecoveryBridge`. This
-  bridge is the first explicit recovery handoff for the two BID surfaces:
-  preserve the full hardware `blockBid` for BROB/block cleanup, produce the
-  ring `FlushBus.req.bid` sidecar for ROB row pruning, share the
-  full-BID-to-ring-ROBID conversion with `DispatchROBAllocator`, and keep
+  legacy-named bridge is an implementation migration point, not authority for
+  a widened BID. It must preserve the `BID_W`-bit `blockBid`, accept
+  BROB-qualified kill/order context for block cleanup, produce the typed
+  `FlushBus.req.bid` sidecar for ROB row pruning, and keep
   rename restore, LSU/STQ cleanup, frontend redirect, PE replay fanout, and
   BROB pointer restoration in later cleanup owners.
 - Phase 5 `RecoveryCleanupControl` work must run
@@ -1851,9 +1865,11 @@ Toolchain facts from initial Chisel bring-up:
   module is the first scalar rename-map consumer of
   `RecoveryCleanupControl.intent`: own scalar `smap`/`cmap`, per-BID
   checkpoints, `renamePtr`, free physical GPR mask, and finite map queue for
-  STID0; on flush, restore from checkpoint `flush.bid - 1` when valid or from
-  `cmap` otherwise, prune map-queue rows by `baseOnBid` or BID/RID ordering,
-  and re-apply surviving same-BID non-base entries to `smap`. Treat replay as
+  STID0. Its current `flush.bid - 1` restore is a legacy reduced behavior; new
+  work must use the selected STID's BROB-qualified predecessor/generation
+  context, falling back to `cmap` when invalid. Prune map-queue rows by
+  `baseOnBid` or BID/RID ordering and re-apply surviving same-BID non-base
+  entries to `smap`. Treat replay as
   observed-only here; ClockHands, T/U operands, SGPR, multithread, and full
   dispatch/commit wiring remain later owners.
 - Phase 5 `STQFlushPrune` work must run
@@ -2267,17 +2283,38 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
   - LSU owner state together,
   - recovery/flush ownership together,
   - trace emission separate from state mutation.
-- For issue-side work specifically, keep `S1/S2/IQ/P1/I1/I2` responsibilities inspectable in dedicated modules/files. A monolithic scheduler file is a contract smell because it hides which stage owns routing, readiness initialization, wakeup fanout, and deallocation.
+- For issue-side work specifically, keep `S1/S2/S3/IQ/P0/P1/I1/I2` responsibilities inspectable in dedicated modules/files. A monolithic scheduler file is a contract smell because it hides which stage owns routing, readiness initialization, wakeup fanout, and deallocation.
 - Within that issue-side split, keep `P1/I1/I2` pick arbitration, RF-read accounting, issue-confirm gating, and issue-side wait-cause logic in an issue-owner module/file rather than leaving them split across top-level scheduler glue and queue-owner code. Queue ownership should stop at IQ residency/wakeup; issue ownership should cover pick/read/confirm behavior.
+- I2 deallocates only a non-speculative, non-cancellable transfer. A uop with
+  live load-dependence state remains valid+inflight in IQ until every producer
+  load resolves hit at E5; miss/replay cancels the pipe copy, clears inflight,
+  and leaves the resident row for repick.
+- Preserve the ARM-style stage names in architecture-facing work: `S1` captures
+  dispatch payload, `S2` allocates/writes IQ state, and `S3` is the resident,
+  valid, pickable IQ boundary. `P0` is optional preselection and `P1` is final
+  pick. Do not skip `S3` merely because the current implementation folds it
+  into IQ residency.
+- Treat `E*` and `W*` as overlaid coordinates, not one serial chain. `E1/E2/E3`
+  name absolute cycles after I2; `W1/W2/W3` name actual
+  data-bypass/result/writeback age for the selected operation latency, with W1
+  as the first real data age. Earlier speculative wakeup stays separately
+  E-qualified. `W*` must never be reused for ROB retirement, trace preparation,
+  or commit.
 - When adding new owner tables or wake structures such as qtag wait crossbars or IQ owner tables, place them in the queue-owner module/file instead of generic top-level helpers.
 - For LSU-side work, keep `LIQ/LHQ/MDB/STQ/SCB/L1D` transitions in an LSU-owner module/file and keep redirect pruning plus LSID rebasing in a recovery-owner module/file. Do not mix memory-owner progression and recovery-domain pruning into generic scheduler glue.
-- For frontend-side work, keep instruction-to-uop build/decode in a decode-owner module/file, `F0..F4/D1..D3/S1/S2` movement and routing in a frontend-owner module/file, and stage-event generation in a trace-owner module/file. Do not mix uop construction, stage transport, and trace emission back into one scheduler file; that obscures which part of the model owns fetch barriers, ROB admission, and visible stage residency.
-- Model architectural redirect restart as an explicit `FLS -> F0` recovery handoff, not as an implicit side effect of generic fetch iteration. In the CA reference model, recovery should publish the earliest frontend restart cycle and `F0` should honor that registered restart boundary; do not let fetch resume in the same abstract step that resolved the redirect just because the software loop can see the corrected target immediately.
-- Keep redirect restart-source selection in the recovery owner too. `FLS` should resolve the legal restart source from redirect metadata and block-boundary legality (`BSTART`, `FENTRY`, `FEXIT`, `FRET.*`), then hand `F0` a concrete restart token `(target_pc, restart_seq, resume_cycle)`; do not let generic fetch code infer restart by “next surviving seq” once wrong-path/frontend occupancy exists.
+- For frontend-side work, keep instruction-to-uop build/decode in a decode-owner module/file, `F0/F1..F4/IB/D1..D3/S1..S3` movement and routing in a frontend-owner module/file, and stage-event generation in a trace-owner module/file. F0 is canonical thread/PC control. F1-F4 are the four fetch stages; F4 owns final lightweight predecode/prediction and aliases IB, never four decode slots. Internal serial `IB -> F4` and `F4DecodeWindow` names are migration aliases. Do not mix uop construction, stage transport, and trace emission back into one scheduler file; that obscures which part of the model owns fetch barriers, ROB admission, and visible stage residency.
+- Template parents are marked at F4 but must pass D1/D2 before D3 atomically
+  reserves one `(STID,BID)`, child ROB rows, and a final template trace/commit
+  row. CTU fills child rows in order; children reuse the parent BID and retire
+  before the final row. Flush removes filled/unfilled reservations by STID and
+  checkpoint. Do not use a ROB-head direct-write CTU path as canonical evidence.
+- Preserve the ARM-style retirement coordinates: R0 captures resolve, R1 forms the precise decision, R2 publishes CMT and FLS coherently, R3 performs registered recovery processing, and R4 publishes restart state to F0. Do not move CMT to R3 or conflate the R2 flush broadcast with the R4 restart.
+- Model architectural redirect restart as the registered `R2 FLS -> R3 recovery -> R4 restart -> F0` sequence, not as an implicit side effect of generic fetch iteration. F0 must honor the R4 restart boundary; do not let fetch resume in the same abstract step that resolved the redirect just because the software loop can see the corrected target immediately.
+- Keep redirect restart-source selection in the recovery owner too. The R1/R2 path resolves the legal restart source from redirect metadata and block-boundary legality (`BSTART`, `FENTRY`, `FEXIT`, `FRET.*`); R4 then hands F0 a concrete restart token `(target_pc, restart_seq, resume_cycle)`. Do not let generic fetch code infer restart by “next surviving seq” once wrong-path/frontend occupancy exists.
 - Keep architectural redirect ownership boundary-only. In the CA reference model, a non-fallthrough BRU commit is not itself an `FLS` redirect owner; treat it as pre-boundary correction metadata and let the later architectural boundary (`BSTART`/`BSTOP`/macro boundary) own the visible redirect and frontend restart.
 - Model deferred BRU correction as explicit recovery-owner state, and let the later architectural boundary consume it before any boundary-local redirect target. A BRU mismatch should publish pending correction metadata when it becomes architecturally visible, but `FLS` should only resolve at the boundary, using pending BRU correction first and clearing that state once the boundary-owned redirect/restart token is issued.
 - Match deferred BRU correction by block/branch epoch, not plain age. In the CA reference model, a later boundary may consume deferred BRU correction only when the correction epoch matches that boundary's block epoch; a stale correction from an older dynamic block instance must not leak across a head-`BSTART` epoch advance into the next loop iteration.
-- Model recovery-target safety as a BRU-side precise trap, not a boundary fallback. If deferred BRU correction resolves to a target that lacks legal `BSTART` metadata, raise `TRAP_BRU_RECOVERY_NOT_BSTART` on the offending BRU row and retire that row with `trap_valid/trap_cause`; do not silently convert the fault into a boundary-local redirect or guessed restart sequence.
+- Model recovery-target safety as a BRU-side precise trap, not a boundary fallback. If deferred BRU correction resolves to a target that lacks legal block-start metadata (`BSTART*` or a valid template start), report architectural `E_BLOCK(EC_CFI)` with `CFI_BAD_TARGET`, source PC/TPC in `TRAPARG0`, and `ECSTATE.BI=0`. `TRAP_BRU_RECOVERY_NOT_BSTART (0xB001)` is legacy internal diagnostics only and must be mapped before trap export; do not silently convert the fault into a boundary-local redirect or guessed restart sequence.
 - Carry checkpoint identity through recovery-owner state and trace visibility. Deferred BRU correction, boundary redirect selection, and BRU recovery faults should preserve the checkpoint id associated with the owning row, and `FLS/CMT` trace emission should surface that checkpoint/trap metadata instead of collapsing recovery events to an unlabeled redirect cause.
 - Carry live boundary kind through recovery trace visibility as well. `FLS/CMT` events that represent redirect ownership, BRU recovery faults, or rows retiring under a live branch-validation context should surface the owning branch class (`fall/cond/call/ret/direct/ind/icall`) so DFX can distinguish which architectural boundary kind drove recovery instead of reducing everything to a generic redirect cause.
 - Keep checkpoint ownership split by domain: frontend owns fetch-packet checkpoint assignment, and recovery owns `flush_checkpoint_id` / redirect-checkpoint propagation. Do not synthesize backend-visible checkpoint ids from unrelated notions like block epoch once a fetch/F4 packet boundary exists; derive/store checkpoint id at packet ingress and carry the boundary row's checkpoint through redirect/fault handling.
@@ -2292,6 +2329,11 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
 ## LinxTrace v1 container (strict)
 
 - Canonical trace artifact is a single uncompressed `*.linxtrace` (JSONL).
+- LinxTrace v1 is a single-STID compatibility schema and retains its legacy
+  64-bit `block_bid` container. Do not reinterpret high bits as canonical
+  uniqueness. Multi-STID promotion requires a v2 major with separate
+  `{stid, BID_W-bit block_bid, block_uid}` across producer, linter, viewer,
+  fixtures, and comparator.
 - First non-empty record must be `{"type":"META", ...}` (in-band META).
 - Legacy split artifacts are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
 - Do not turn LinxTrace/raw-event generation into an unbounded full-run logger by default.
@@ -2316,44 +2358,75 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/linxcoresight/open_linxcoresight
 ```
 ## Block/BID design decisions (strict)
 
-These are confirmed in #linx-core (2026-02-24) and must be preserved by future changes:
+These are the canonical LinxCore contract and must be preserved by future changes:
 
 1) **BID is generated by BROB**
-- BID is the BROB entry identity.
-- Default sizing: BROB is parameterized; **default entries = 128**.
+- Each STID owns an independent BROB ring; scalar frontend `thread_id` aliases
+  STID, while PE/engine-local TID remains a subordinate qualifier.
+- BID is the entry identity within that STID's BROB.
+- Default sizing: `N_STID=1`; **BROB entries per STID = 256** (power of two,
+  at least 2). Multi-STID is a supported target configuration and requires
+  STID-bearing shared interfaces. `STID_W=max(1,ceil(log2(N_STID)))`.
 
 2) **BID encoding**
-- Keep 64-bit BID.
-- `slot_id = BID[6:0]` (for 128 entries)
-- `uniq = BID[63:7]` (debug uniqueness / age ordering)
-- So: `BID = (uniq << 7) | slot_id`
+- `BID_W = ceil(log2(BROB_ENTRIES))`.
+- BID is the complete per-STID BROB slot identity. For each default 256-entry
+  ring, BID is 8 bits. Shared block identity is `(STID,BID)`; STID is never
+  packed above BID.
+- A conventional internal BROB pointer may use `{wrap, bid}` and therefore
+  `BID_W + 1` bits, but wrap/generation/age is not part of BID.
+- A globally unique `block_uid` may exist for DFX only; it must not widen BID
+  or participate in architectural routing.
 
 3) **Tag routing**
-- **cmd_tag = BID[7:0]**
+- **`(cmd_stid, cmd_tag) = (STID, BID)`** when the engine tag width covers
+  `BID_W`; responses echo both fields.
 - Rationale: PE response tags must route to the correct BROB entry; avoid any unrelated tag sources (e.g. cycles).
+- If a long-latency engine needs protection across slot reuse, carry a
+  separate echoed transaction epoch/tag. Do not pack that epoch into BID.
+- The default permits one outstanding top-level command per `(STID,BID)` and
+  one aggregated non-scalar-done response. Multiple same-block commands require
+  a separate transaction ID plus expected-response accounting.
+- Command valid is independent of ready and payload holds until fire. Response
+  lanes likewise hold until fire; a collector must accept or independently
+  backpressure simultaneous responses without priority-mux loss. Preserve the
+  full trapno/TRAPARG0/BI envelope.
 
 4) **Block completion**
 - `complete = scalar_done && (needs_engine ? engine_done : 1)`
 - `needs_engine` should be set when the block actually issues engine commands.
+- Scalar boundary completion is separate from non-scalar engine completion;
+  one event must not set both bits.
 
 5) **BSTART / BSTOP semantics**
-- `BSTART` uop in ROB carries the **new BID** (it belongs to the new block).
+- `BSTART` uop in ROB carries the **new `(STID,BID)`** (it belongs to the new block).
 - `scalar_done` is triggered at **BSTART retire + BSTOP retire**.
-  - On BSTART retire: mark scalar_done for the *old active bid* (implicit end).
-  - On BSTOP retire: mark scalar_done for the current active bid (explicit end).
+  - On BSTART retire: mark scalar_done for the *old active `(STID,BID)`* (implicit end).
+  - On BSTOP retire: mark scalar_done for the current `(STID,BID)` (explicit end).
 
 6) **Flush semantics (BID-based)**
-- On a flush/redirect, the system reports the **current block BID** (the block where the flush is generated).
-- All blocks **younger than this BID** must be cleared.
-- Because slot ids wrap, comparisons must use full 64-bit BID ordering.
-- Rule: **keep `bid <= flush_bid`, kill `bid > flush_bid`**.
-- This applies to **all modules that carry/queue BID** (at minimum: BROB + BISQ + any other bid-carrying queues).
+- On a flush/redirect, the system reports the **current `(flush_stid,
+  flush_bid)`**. Only that STID's younger blocks are cleared.
+- Because slot ids wrap, unsigned BID comparison is invalid.
+- The selected STID's BROB computes the younger set from its
+  head/tail/occupancy/wrap state and publishes STID plus `brob_kill_mask`, or
+  exactly equivalent ring-qualified context.
+- Rule: keep the flush-owning entry and older entries; kill the ring interval
+  from successor(`flush_bid`) to the pre-flush tail.
+- This applies to **all modules that carry/queue `(STID,BID)`** (at minimum:
+  BROB, BISQ, engine queues, memory rows, and cleanup paths).
+- A `(STID,BID)` slot may not be reused until all row, command, response, and cleanup
+  ownership for its previous occupant has drained, unless a separate echoed
+  transaction identity rejects stale responses.
 
 ## PR checklist for BID/block changes
 
-- [ ] Confirm `cmd_tag == bid[7:0]` through backend->bctrl->PE and response routing.
-- [ ] Confirm flush path provides `flush_bid` and every bid-carrying module kills `bid > flush_bid`.
-- [ ] Confirm BROB keeps `bid <= flush_bid` (including current block) and handles wrap via uniq bits.
+- [ ] Confirm `BID_W == ceil(log2(BROB_ENTRIES))` per STID through backend, BCTRL, PE, response, trace, and test interfaces.
+- [ ] Confirm `(cmd_stid,cmd_tag) == (stid,bid)` through backend->bctrl->PE and response routing, or document a physically STID-dedicated lane plus the separate echoed transaction tag.
+- [ ] Confirm flush path provides `(flush_stid,flush_bid)` plus that ring's qualified kill context and every `(STID,BID)`-carrying module applies the same younger set.
+- [ ] Confirm wrap-boundary tests prove that unsigned BID magnitude is never used as age.
+- [ ] Confirm two STIDs can use the same BID without alias and one-ring flush does not touch the other.
+- [ ] Confirm stale/duplicate responses cannot match or over-complete a reused `(STID,BID)` slot.
 - [ ] Update docs/skills when new edge cases are discovered.
 
 ## Scalar GPR rename checkpoint cleanup (strict)
@@ -2373,22 +2446,25 @@ GPR rename cleanup.
   rejection instead of allocating a scalar physical tag.
 - Reset state is identity for `smap` and `cmap`, with physical tags above the
   identity GPR range marked free.
-- Checkpoint capture copies the current speculative map into the slot indexed
-  by `bid.val` and updates `renamePtr`. In the model call path, `SPERename`
-  captures this checkpoint for `inst->isLastInBlock`.
+- Checkpoint capture copies the current speculative map into the live
+  `(STID,BID)` slot and records the matching BROB generation/ring context. In
+  the model call path, `SPERename` captures this checkpoint for
+  `inst->isLastInBlock`.
 - Commit walks the map queue for matching BID in queue order, releases the old
   committed physical tag for each architectural destination, updates `cmap`,
   and clears committed rows. Same-architecture multiple writes in one block must
   release the overwritten intermediate physical tag as well as the pre-block
   committed tag.
-- Flush computes `restoreBid = flush.bid - 1`. If `restoreBid <= renamePtr`,
-  restore `smap` from the valid checkpoint for that BID, or from `cmap` if the
-  checkpoint is invalid, then set `renamePtr = restoreBid`.
-- For block-stop redirects that preserve the just-finished block, the cleanup
-  BID presented to scalar GPR rename must be the **next** block BID. Passing
-  the current block BID makes `restoreBid = flush.bid - 1` restore the
-  checkpoint before the block and can lose adjacent `C.SETRET` / source maps
-  after the block has already committed its mapQ rows.
+- Flush restores from the selected STID's BROB-qualified predecessor
+  checkpoint, or from `cmap` if that checkpoint is invalid. The legacy model
+  computes this as predecessor of its full `{wrap,val}` ROBID; target hardware
+  must not implement it as unsigned narrow `flush.bid - 1` without ring/
+  generation context.
+- For block-stop redirects that preserve the just-finished block, scalar GPR
+  cleanup uses the BROB successor/predecessor context that selects the
+  just-finished block's committed checkpoint, not a raw numeric BID
+  subtraction. Selecting the checkpoint before the block can lose adjacent
+  `C.SETRET` / source maps after mapQ commit.
 - Default skip-marker marker-only redirects are frontend restarts, not
   backend/rename cleanup events. When `skipBlockMarkers=true`, a marker stop
   redirect has no valid marker retire source; do not synthesize scalar GPR
@@ -2435,8 +2511,8 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
 - The rule selection contract is **most-specific mask wins**: among matching
   rules for the current instruction length, choose the rule with the largest
   `mask.bit_count()`. Equal specificity keeps source/catalog order.
-- Use F4-provided instruction length to select the 16/32/48/64-bit rule domain;
-  do not let a wider table match a shorter F4 slot.
+- Use the F4/IB entry length carried into D1 to select the 16/32/48/64-bit rule
+  domain; do not let a wider table match a shorter D1 slot.
 - `FrontendDecodeStage` owns opcode catalog ID, basic dispatch target,
   block-boundary/stop, load, and store sideband masks.
 - The generated Chisel table must carry the pyCircuit operand-shape metadata
@@ -2575,8 +2651,12 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
   only load/store/DCZVA rows increment the LSID counter. ResolveQ retire
   watermarks must therefore come from a ROB commit memory-order sidecar that
   preserves this all-row pre-increment LSID, not only from committed memory
-  rows. Keep the sidecar out of `CommitTraceRow` unless the architectural trace
-  schema intentionally grows.
+  rows. After a commit batch, publish the most advanced cumulative
+  `(STID,BID,LSID)` frontier per affected STID (first uncommitted position or
+  equivalent tail frontier); ResolveQ removes only rows strictly older by that
+  STID's BROB-ring age plus LSID. One frontier may coalesce multiple commits,
+  but frontiers never compare across STIDs. Keep the sidecar out of
+  `CommitTraceRow` unless the architectural trace schema intentionally grows.
 - ResolveQ precise flush producers are also MemReq-shaped: for scalar
   redirects, drive queue pruning from the redirecting row's all-row LSID
   snapshot converted to the reduced `ROBID` shape, not from ROB RID and not from
@@ -2739,7 +2819,9 @@ Confirmed in #linx-core (2026-02-25):
 - `nuke_pending` freezes IFU (stop fetching new younger uops), but commit_redirect (older BRU flush) still applies.
   - BRU flush may clear younger ROB entries (and their nuke marks).
 - Implementation: ROB maintains an `oldest_nuke` record (not full-table OR scan) and validates nuke reports only for still-valid RIDs.
-- For block domain: on nuke flush, compute `flush_bid = rob_head.block_bid` and flush younger blocks by BID (`bid > flush_bid`).
+- For block domain: on nuke flush, compute
+  `flush_bid = rob_head.block_bid` and ask BROB for the ring-qualified younger
+  kill set. Never approximate that set with `bid > flush_bid`.
 
 ## Deferred BRU correction payload (strict)
 
