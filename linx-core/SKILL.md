@@ -158,6 +158,11 @@ architectural compare depth: QEMU metadata rows may be filtered before compare,
 so `run_chisel_qemu_trace_replay_xcheck.sh` normalizes a wider raw window and
 slices the replay input to the smallest prefix containing the requested
 non-metadata commits.
+Every `tools/qemu/run_qemu_commit_trace.sh --max-seconds N` invocation must be
+a real wall-clock bound. The runner uses `timeout`/`gtimeout` when present and
+otherwise its Python process-group fallback; a timeout returns `124` after
+terminating QEMU. Do not treat a host without GNU coreutils as permission to
+run an unbounded CoreMark/QEMU capture.
 For PC-filtered QEMU-only preflights that are candidates for generated-RTL
 promotion, exact memory-PC guards are necessary but not sufficient. The reduced
 preview must also prove that the Verilator harness can reconstruct starting
@@ -1666,7 +1671,14 @@ defines a separate F4 decode stage.
   `bash tools/chisel/run_chisel_frontend_fetch_rf_alu_qemu_elf_xcheck.sh --build-dir generated/r136-ldi-t-dst-1620-qemu-elf-xcheck --elf tests/benchmarks/build/coremark_real.elf --expected-rows 0 --capture-rows 1620 --allow-block-markers --max-seconds 8 -- -nographic -monitor none -machine virt -m 1280M -kernel tests/benchmarks/build/coremark_real.elf`
   after changing FRET.STK RA-load return, SP-shadow sourcing, local T/U
   destination admission, reduced LDI load lookup, or bounded final dense-window
-  handling. The R136 evidence compares 1094 normalized rows with zero
+  handling. An in-flight FRET.STK must sample its SETC condition in E1 and
+  carry that sample through W1/W2; a younger marker may then clear the shared
+  block-condition latch without changing the older return. With live first-pass
+  LIQ enabled, ordinary loads transfer lookup ownership to LIQ, but the
+  synthetic FRET RA load must remain direct-execute eligible and retain direct
+  sparse-memory lookup. Select the RA load for an explicit condition-false
+  return, or when the condition is absent and neither SETC nor active-marker
+  target exists; otherwise a live target owns the redirect. The R136 evidence compares 1094 normalized rows with zero
   mismatches; a QEMU-only 1660-row probe reaches `OP_CSEL` at `pc=0x40005d32`.
   R137 classifies that frontier as a model/QEMU source-order divergence, not a
   reduced RTL implementation target: Sail and LinxCoreModel select `SrcL` when
