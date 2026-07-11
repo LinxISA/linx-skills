@@ -2491,6 +2491,11 @@ These are the canonical LinxCore contract and must be preserved by future change
 - A migration-era wider cleanup transport must first resolve its canonical
   `BID_W` slot against that exact selected-STID live window. The unique internal
   `{wrap,bid}` pointer is the pivot. Wider upper bits are diagnostic only.
+  Cleanup interfaces must keep these identities physically separate: every
+  field named or specified as BID is exactly `BID_W`, while any internal
+  `{wrap,bid}` pointer travels in a distinct field under an explicit valid
+  qualifier. Do not widen a BID field to carry generation, and do not compare a
+  canonical BID slot as an unsigned age.
   Distribute the resolved pivot or kill mask to every BROB, rename, ROB, LSU,
   and queued-cleanup consumer; never let one owner use the resolved pointer
   while another uses the raw transport. A missing or ambiguous live match must
@@ -2511,6 +2516,9 @@ These are the canonical LinxCore contract and must be preserved by future change
 - [ ] Confirm canonical BID resolution is performed once per accepted cleanup,
   all state owners consume the same resolved pivot/kill set, and zero-match
   recovery mutates no owner.
+- [ ] Confirm cleanup BID fields are exactly `BID_W`; any wrap-qualified
+  implementation pointer is a separate valid-qualified field and cannot replace
+  architectural `(STID,BID)` identity.
 - [ ] Confirm wrap-boundary tests prove that unsigned BID magnitude is never used as age.
 - [ ] Confirm two STIDs can use the same BID without alias and one-ring flush does not touch the other.
 - [ ] Confirm stale/duplicate responses cannot match or over-complete a reused `(STID,BID)` slot.
