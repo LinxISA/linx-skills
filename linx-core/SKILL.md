@@ -2517,6 +2517,11 @@ These are the canonical LinxCore contract and must be preserved by future change
   existing external lanes, and keep the canonical scalar-LSU lane final unless
   every cause-mask, payload-owner, sidecar, probe, and consumer is migrated in
   one reviewed change.
+- Select STID/scope once in a shared retained-source boundary before age or
+  resident-owner lookup. An invalid STID must issue no lookup, publish no
+  source, and release no retained report. Canonical and reduced compositions
+  may own different queues, but must instantiate the same scope-selection and
+  exact-promotion policy rather than duplicating it in top-level wiring.
 - Derive IEX IQ-watchdog replay identity from the selected STID's authoritative
   full BROB commit pointer and valid/incomplete oldest state. Increment the full
   pointer with rollover; never increment a canonical BID slot and invent wrap.
