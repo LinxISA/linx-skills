@@ -2488,6 +2488,13 @@ These are the canonical LinxCore contract and must be preserved by future change
 - The selected STID's BROB computes the younger set from its
   head/tail/occupancy/wrap state and publishes STID plus `brob_kill_mask`, or
   exactly equivalent ring-qualified context.
+- A migration-era wider cleanup transport must first resolve its canonical
+  `BID_W` slot against that exact selected-STID live window. The unique internal
+  `{wrap,bid}` pointer is the pivot. Wider upper bits are diagnostic only.
+  Distribute the resolved pivot or kill mask to every BROB, rename, ROB, LSU,
+  and queued-cleanup consumer; never let one owner use the resolved pointer
+  while another uses the raw transport. A missing or ambiguous live match must
+  suppress all cleanup mutations together.
 - Rule: keep the flush-owning entry and older entries; kill the ring interval
   from successor(`flush_bid`) to the pre-flush tail.
 - This applies to **all modules that carry/queue `(STID,BID)`** (at minimum:
@@ -2501,6 +2508,9 @@ These are the canonical LinxCore contract and must be preserved by future change
 - [ ] Confirm `BID_W == ceil(log2(BROB_ENTRIES))` per STID through backend, BCTRL, PE, response, trace, and test interfaces.
 - [ ] Confirm `(cmd_stid,cmd_tag) == (stid,bid)` through backend->bctrl->PE and response routing, or document a physically STID-dedicated lane plus the separate echoed transaction tag.
 - [ ] Confirm flush path provides `(flush_stid,flush_bid)` plus that ring's qualified kill context and every `(STID,BID)`-carrying module applies the same younger set.
+- [ ] Confirm canonical BID resolution is performed once per accepted cleanup,
+  all state owners consume the same resolved pivot/kill set, and zero-match
+  recovery mutates no owner.
 - [ ] Confirm wrap-boundary tests prove that unsigned BID magnitude is never used as age.
 - [ ] Confirm two STIDs can use the same BID without alias and one-ring flush does not touch the other.
 - [ ] Confirm stale/duplicate responses cannot match or over-complete a reused `(STID,BID)` slot.
