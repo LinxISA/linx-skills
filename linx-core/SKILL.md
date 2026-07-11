@@ -106,6 +106,7 @@ bash tools/chisel/run_chisel_tests.sh --only BrobOrderState
 bash tools/chisel/run_chisel_tests.sh --only BrobStoreRangeState
 bash tools/chisel/run_chisel_brob_order_state_probe.sh
 bash tools/chisel/run_chisel_brob_store_range_state_probe.sh
+bash tools/chisel/run_chisel_brob_store_count_publisher_probe.sh
 bash tools/chisel/run_chisel_decode_load_store_id_assign_probe.sh
 bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
@@ -1836,6 +1837,23 @@ defines a separate F4 decode stage.
   explicit producer. Accepted suffix recovery restores the first killed
   row's saved start when assigned. Range assignment is not non-flush proof and
   must never authorize STQ commitment or SCB admission.
+- Treat scalar and explicit block store-count publication as retained owner
+  traffic, not advisory pulses. Admit explicit CTU/tile payloads only for an
+  exact identity inside the selected STID's owner head/live-count window;
+  preserve them under sink backpressure and cancel them only with the accepted
+  recovery that kills their full BID. Keep scalar closure independently
+  resident because it is not backpressurable.
+- On count-source collision, an explicit value wins only for the same exact
+  `(STID,full BID)`; different blocks serialize scalar-first while explicit
+  stays pending. An agreeing frozen-count repeat is idempotent; a conflicting
+  explicit value is an integration error and must not rewrite the row. Do not
+  retire the exact BROB head until normal completion and range count certainty
+  are both true.
+- Audit model call sites before promoting a declared mechanism. Current model
+  DCTop/Decoder/GenCoder accumulation and `deliveryStoreID` are active, while
+  `BlockROB::setStoreCount` and DCTop `calcLSCnt` have no active caller. Use
+  dormant code as design intent only, and document the real Chisel producer
+  boundary instead of claiming inactive model flow as behavioral evidence.
 - Public allocator readiness/fire, resident ROB allocation valid, BROB
   allocation valid, and cursor advance must come from one recovery-qualified
   admission decision. An accepted recovery cycle must not let a child ROB row
