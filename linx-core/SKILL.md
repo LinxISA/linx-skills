@@ -208,6 +208,13 @@ multi-agent Chisel development. Each module packet must:
 - update the module Markdown spec before promotion;
 - keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
   surface for replacement evidence;
+- For BROB non-flush promotion, publish an exact per-STID `(head BID,
+  prefix count)` window. An unsafe head, stale slot, hole, or exception must
+  produce no authorization, and consumers must not use the youngest safe BID
+  as an unsigned threshold. A store commit retained while waiting for this
+  proof must carry STID, full block BID, and instruction identity, clear on the
+  same accepted recovery as STQ/BROB state, and pass both the BROB rollover
+  probe and `run_chisel_store_non_flush_gate_probe.sh` before promotion.
 - run the narrow module gate plus affected cross-check gates;
 - inspect `crosscheck_manifest.json` for every generated-RTL or QEMU/DUT
   comparison that routes through the common cross-check wrapper; R151 and later
