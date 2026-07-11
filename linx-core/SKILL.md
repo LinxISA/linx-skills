@@ -102,6 +102,8 @@ bash tools/chisel/run_chisel_tests.sh --only LoadRefillWakeup
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
+bash tools/chisel/run_chisel_tests.sh --only BrobAllocationRecovery
+bash tools/chisel/run_chisel_brob_allocation_recovery_probe.sh
 bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec
@@ -1795,6 +1797,19 @@ defines a separate F4 decode stage.
   stay in per-STID BROB-owned state. `(cmd_stid,cmd_tag) = (stid,bid)`. Flush
   uses an STID-qualified BROB younger-entry kill mask or equivalent ring
   context; unsigned BID magnitude is never an age comparison.
+- Accepted Chisel BROB recovery must restore the next-allocation cursor in the
+  selected STID from full-BID authority. Model `MISS_PRED_FLUSH` reports the
+  first killed block and therefore restores inclusively to the pivot; accepted
+  scalar nuke/inner/fast flush preserves the target and restores to its
+  successor. Capture the pre-recovery allocation cursor (`old_alloc`) for
+  downstream observability, and keep commit/dispatch/rename/non-flush pointer
+  claims separate until those owners exist.
+- Public allocator readiness/fire, resident ROB allocation valid, BROB
+  allocation valid, and cursor advance must come from one recovery-qualified
+  admission decision. An accepted recovery cycle must not let a child ROB row
+  allocate while the public allocator reports no fire. Generated proof must
+  include simultaneous allocation/recovery and verify that neither child owner
+  mutates until coherent admission resumes.
 - Commit trace work must keep the LinxCoreModel `CommitInfo` identity
   `bid/gid/rid` as 32-bit model sideband fields while preserving the
   hardware block identity separately as `(stid, BID_W-bit block_bid)`; do not
