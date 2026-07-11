@@ -103,7 +103,10 @@ bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
 bash tools/chisel/run_chisel_tests.sh --only BrobOrderState
+bash tools/chisel/run_chisel_tests.sh --only BrobStoreRangeState
 bash tools/chisel/run_chisel_brob_order_state_probe.sh
+bash tools/chisel/run_chisel_brob_store_range_state_probe.sh
+bash tools/chisel/run_chisel_decode_load_store_id_assign_probe.sh
 bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec
@@ -1818,9 +1821,21 @@ defines a separate F4 decode stage.
   Shared retirement must arbitrate eligible STID heads fairly and hold the
   selected full `(STID,BID)` irrevocably under backpressure. Metadata free,
   commit-head advance, live-count decrement, downstream block-commit enqueue,
-  and public retire fire must share one handshake. Keep non-flush,
-  store-barrier, replay, and configurable multi-block-retire claims separate
-  until those owners exist.
+  and public retire fire must share one handshake. Keep non-flush, store-range,
+  replay, and configurable multi-block-retire claims separate until those
+  owners exist.
+- Scalar LSID/load-ID/store-ID counters are independent per STID and advance
+  only at the accepted decode boundary. Scoped recovery mutates only the exact
+  STID lane; reset/restart is the explicit all-lane clear. Keep these
+  per-instruction identities separate from BROB aggregate block ranges.
+- BROB block store ranges own a separate cursor and next store ID per STID.
+  Assign a stable start to the exact resident cursor row, stop on an unknown
+  count or identity hole, and advance only through consecutive count-certain
+  rows using the owner head/live-count window. Scalar-done may freeze an
+  accumulated scalar count; template/tile counts require an authoritative
+  explicit producer. Accepted suffix recovery restores the first killed
+  row's saved start when assigned. Range assignment is not non-flush proof and
+  must never authorize STQ commitment or SCB admission.
 - Public allocator readiness/fire, resident ROB allocation valid, BROB
   allocation valid, and cursor advance must come from one recovery-qualified
   admission decision. An accepted recovery cycle must not let a child ROB row
