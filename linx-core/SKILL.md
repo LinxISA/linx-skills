@@ -102,8 +102,8 @@ bash tools/chisel/run_chisel_tests.sh --only LoadRefillWakeup
 bash tools/chisel/run_chisel_tests.sh --only CommitTrace
 bash tools/chisel/run_chisel_tests.sh --only FlushControl
 bash tools/chisel/run_chisel_tests.sh --only BROB
-bash tools/chisel/run_chisel_tests.sh --only BrobAllocationRecovery
-bash tools/chisel/run_chisel_brob_allocation_recovery_probe.sh
+bash tools/chisel/run_chisel_tests.sh --only BrobOrderState
+bash tools/chisel/run_chisel_brob_order_state_probe.sh
 bash tools/chisel/run_chisel_tests.sh --only BlockScalarDoneSequencer
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerLifecycle
 bash tools/chisel/run_chisel_tests.sh --only BlockMarkerDecodeContextSpec
@@ -1797,13 +1797,23 @@ defines a separate F4 decode stage.
   stay in per-STID BROB-owned state. `(cmd_stid,cmd_tag) = (stid,bid)`. Flush
   uses an STID-qualified BROB younger-entry kill mask or equivalent ring
   context; unsigned BID magnitude is never an age comparison.
-- Accepted Chisel BROB recovery must restore the next-allocation cursor in the
-  selected STID from full-BID authority. Model `MISS_PRED_FLUSH` reports the
-  first killed block and therefore restores inclusively to the pivot; accepted
-  scalar nuke/inner/fast flush preserves the target and restores to its
-  successor. Capture the pre-recovery allocation cursor (`old_alloc`) for
-  downstream observability, and keep commit/dispatch/rename/non-flush pointer
-  claims separate until those owners exist.
+- Chisel BROB order state must own independent allocation-tail, commit-head,
+  and bounded live-count registers per STID. Allocation advances only the tail;
+  exact completed-head retirement advances only the head; accepted recovery
+  validates and truncates tail/count without moving the head. Model
+  `MISS_PRED_FLUSH` reports the first killed block and restores inclusively;
+  retained-target scalar nuke/inner/fast flush restores to the target
+  successor. Metadata pruning must consume the same owner head/count and use
+  bounded modular distance, including windows spanning implementation BID
+  rollover; raw unsigned BID magnitude is not an age test.
+- Scalar/engine completion is persistent BROB metadata, not retirement
+  authority. A younger completed block waits behind the exact resident head.
+  Shared retirement must arbitrate eligible STID heads fairly and hold the
+  selected full `(STID,BID)` irrevocably under backpressure. Metadata free,
+  commit-head advance, live-count decrement, downstream block-commit enqueue,
+  and public retire fire must share one handshake. Keep non-flush,
+  store-barrier, replay, and configurable multi-block-retire claims separate
+  until those owners exist.
 - Public allocator readiness/fire, resident ROB allocation valid, BROB
   allocation valid, and cursor advance must come from one recovery-qualified
   admission decision. An accepted recovery cycle must not let a child ROB row
