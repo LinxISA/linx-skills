@@ -2508,6 +2508,22 @@ These are the canonical LinxCore contract and must be preserved by future change
   ownership for its previous occupant has drained, unless a separate echoed
   transaction identity rejects stale responses.
 
+7) **Recovery producer ownership**
+- Give each independent BCC, IEX, PE, and LSU recovery family its own finite
+  retained lane. A lane accepts only a complete typed event, holds identity and
+  payload stable until central acceptance, and exposes backpressure to its
+  trigger owner.
+- Treat source indices as provenance contracts. Append new producer banks after
+  existing external lanes, and keep the canonical scalar-LSU lane final unless
+  every cause-mask, payload-owner, sidecar, probe, and consumer is migrated in
+  one reviewed change.
+- Derive IEX IQ-watchdog replay identity from the selected STID's authoritative
+  full BROB commit pointer and valid/incomplete oldest state. Increment the full
+  pointer with rollover; never increment a canonical BID slot and invent wrap.
+- Tied-off reduced shells prove integration shape only. Do not claim live BCC,
+  IEX, or PE recovery until the actual trigger owner drives the raw event port
+  and generated RTL proves positive activation.
+
 ## PR checklist for BID/block changes
 
 - [ ] Confirm `BID_W == ceil(log2(BROB_ENTRIES))` per STID through backend, BCTRL, PE, response, trace, and test interfaces.
@@ -2522,6 +2538,10 @@ These are the canonical LinxCore contract and must be preserved by future change
 - [ ] Confirm wrap-boundary tests prove that unsigned BID magnitude is never used as age.
 - [ ] Confirm two STIDs can use the same BID without alias and one-ring flush does not touch the other.
 - [ ] Confirm stale/duplicate responses cannot match or over-complete a reused `(STID,BID)` slot.
+- [ ] Confirm recovery source indices and provenance widths include every
+  retained lane without renumbering existing payload owners.
+- [ ] Confirm IQ-watchdog recovery uses the owner-selected full BROB commit
+  pointer successor and suppresses absent, completed, or out-of-range STID state.
 - [ ] Update docs/skills when new edge cases are discovered.
 
 ## Scalar GPR rename checkpoint cleanup (strict)
