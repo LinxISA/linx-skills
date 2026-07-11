@@ -2522,6 +2522,19 @@ These are the canonical LinxCore contract and must be preserved by future change
   source, and release no retained report. Canonical and reduced compositions
   may own different queues, but must instantiate the same scope-selection and
   exact-promotion policy rather than duplicating it in top-level wiring.
+- When allocation requires a speculative side lookup such as MDB prediction,
+  join side-queue credit into allocation readiness and issue the lookup from
+  the exact accepted allocation payload. The resident row and lookup must
+  accept atomically; never allocate first and reconstruct or pulse the lookup
+  later. Assert acceptance equality at the integration boundary.
+- When several producers mutate one resident queue, arbitrate complete native
+  mutation requests and preserve each producer's qualification policy. MDB
+  lookup/timeout requests may target pre-launch `Wait` rows without unrelated
+  SCB-return proof, while source-return mutations keep their stricter row-state
+  and ordering checks. A retained producer must not dequeue until the selected
+  native write accepts. Feed owner-generated wakeups back into the resident
+  queue; if wake sources collide, define priority and retain the displaced
+  source rather than leaving a wakeup as diagnostics only.
 - Derive IEX IQ-watchdog replay identity from the selected STID's authoritative
   full BROB commit pointer and valid/incomplete oldest state. Increment the full
   pointer with rollover; never increment a canonical BID slot and invent wrap.
