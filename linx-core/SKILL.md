@@ -3134,6 +3134,20 @@ Confirmed in #linx-core (2026-02-25):
   lane.
 - Canonicalize stored pipe identity from the accepted queue target. Do not
   trust a duplicate payload pipe field that can disagree with lane selection.
+- If E3/E4 is registered after launch, reserve the exact selected lane at
+  launch. Enforce `resident + reserved <= lane depth`, permit same-cycle drain
+  credit only for that lane, and release one reservation on every terminal E4
+  result whether it hits, misses, replays, or is otherwise blocked.
+- Treat E4 hit insertion into ResolveQ and LRET as one atomic publication.
+  Neither sink may observe the return alone, and the LIQ row may clear only
+  after both sinks accept the same payload.
+- Recovery must suppress flush-coincident E4 publication and release or prune
+  pipeline reservations in the same action that kills or rewinds the LIQ row.
+  Include both resident queue entries and reservations in LSU quiescence.
+- When a row gains lane identity or another parameterized field, thread the
+  full row shape through every mutation, preview, bridge, and helper bundle.
+  Default helper widths are not evidence that a non-default configuration is
+  preserved.
 - Do not bypass an empty return queue directly into IEX. Permit same-cycle
   dequeue/enqueue at a full lane, but keep enqueue and later drain as distinct
   registered phases.
