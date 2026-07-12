@@ -3186,6 +3186,34 @@ Confirmed in #linx-core (2026-02-25):
   ready mask one edge later. Update matching valid, non-issued P source
   next-state readiness with the ready table on the accepted edge; wakeup at N
   is pick-visible at N+1 and must never affect selection at N.
+- Treat finite scalar RF read ports as an explicit physical Chisel enhancement,
+  not as behavior copied from LinxCoreModel: the current model services every
+  scalar read request and has no scalar read denial. Preserve architectural
+  equivalence by granting a uop's required reads atomically, cancelling only
+  the losing `inflight` attempt, retaining the resident row, and proving later
+  retry through generated RTL plus commit comparison.
+- In a banked shared IQ, first form the oldest selectable candidate independently
+  for each represented STID. Compare wrap-qualified RID age only between rows
+  with the same STID; choose among different STIDs with advancing round-robin
+  state. Apply the same rule at bank-local pick, global I1 admission, and
+  shared I2 output arbitration. Advance fairness only when the selected
+  transaction advances.
+- Treat unresolved control as an admission frontier, not merely an arbiter
+  preference. A younger same-STID row must not enter I1 while an older control
+  row is resident. For Linx, BRU rows and redirecting `FRET.STK` own this
+  frontier; retain exact `(STID, BID, RID)` across IQ release until central
+  recovery accepts cleanup. Do not globally flush older issue/store ownership
+  to close the release-to-recovery gap.
+- Preserve store completion order across issue banks: a store may enter I1 only
+  when no older resident store exists in the same STID. Loads and non-memory
+  work may still bypass under normal dependency/MDB policy, and unrelated STIDs
+  remain independent. This protects FIFO STA/STD consumers without importing
+  ARM memory-order or barrier semantics.
+- Keep total scalar issue capacity, scalar bank count, physical read ports,
+  write ports, and execution width as independent parameters with explicit
+  divisibility/minimum constraints. A live two-bank ALU/spill slice is not
+  evidence that the complete BRU/AGU/STD/CMD physical queue layout or
+  two-write-port S1/S2 dispatch is implemented.
 - Parameterize physical GPR capacity and write-port count independently of the
   Linx architectural P-register namespace. One port serializes all producers;
   multiple ports may accept independent tags in one cycle. Serialize same-tag
@@ -3214,6 +3242,17 @@ Confirmed in #linx-core (2026-02-25):
   must also cover request hold with no early mutation, each public sink allow,
   same-tag and independent-tag contention, actual one-port and multi-port
   configurations, and an unsupported T/U negative case.
+- Banked-issue proof must force simultaneous bank-local picks, nonzero I1
+  contention and cancellation, retained-row retry, multiple resident I2 rows,
+  same-STID oldest selection, and cross-STID fairness without cross-lane RID
+  comparison. CoreMark through a commit-only top is no-regression evidence,
+  not natural bank-contention activation; cite top-visible nonzero fabric
+  counters only when the RF/issue composition generated them.
+- Extend banked-issue proof with a younger same-STID control row held through
+  exact release, unrelated-STID progress, retained external redirect identity,
+  and younger-store retry after the oldest store releases. A full-path run that
+  exposes a later LSU owner deadlock is evidence for the next packet, not
+  permission to weaken these issue frontiers.
 - Reuse these ISA-neutral queue, credit, arbitration, residency, and pruning
   mechanisms. Reject ARM exception levels, condition flags, exclusive
   monitors, barrier encodings, acquire/release opcode policy, and ARM-specific
