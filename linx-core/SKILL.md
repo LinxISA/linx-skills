@@ -2878,10 +2878,10 @@ Confirmed in #linx-core (2026-02-25).
   The finite live memory window must remain below half of the LSID domain.
 - R670 carries full LSID through store dispatch, split merge, STQ residency,
   scalar early-safe commit, commit FIFO, split drain, SCB admission, and the
-  committed-memory overlay. Its ROBID projection is temporary and exists only
-  for unconverted typed recovery and load forwarding/replay/MDB consumers.
-  Do not remove the full field or use the projection for new ordering logic;
-  convert those remaining consumers and then delete the projection.
+  committed-memory overlay. Its ROBID projection is temporary and now exists
+  only for physical compatibility and legacy diagnostics. Do not remove the
+  full field or use the projection for ordering logic; remove remaining
+  projection consumers before deleting the projection itself.
 - Memory identity is STID-scoped. Split STA/STD merge identity must include
   `(STID, BID, full LSID)`; equal BID/LSID values from different STIDs never
   merge or compare. Every cache-line fragment and reduced-top commit bypass
@@ -2907,7 +2907,8 @@ Confirmed in #linx-core (2026-02-25).
   wait target before its local store index resolves, but it must not mutate LIQ
   until the predicted store's full LSID is valid. Do not widen BID/GID/RID or
   reconstruct missing full authority.
-- R672-B promotes the reduced replay snapshot request/token/response graph.
+- R672-B promotes the reduced replay snapshot request/token/response graph and
+  reduced forwarding order.
   Ordinary live capture and wait-store relaunch must first carry the load's
   authority through `ReducedLoadReplayCandidate`, relaunch FIFO, and LIQ
   allocation. Request FIFO rows, the accepted-query token, response FIFO rows,
@@ -2915,13 +2916,15 @@ Confirmed in #linx-core (2026-02-25).
   validity/value. Selective request/token/response pruning must use
   `STQFlushPrune.matchesFlush`; same-BID missing authority retains state. The
   projection-only matcher is deleted and must not be reintroduced.
-- Forwarding age/nearest-store selection remains the next R672-B projected-order
-  boundary, but the selected not-ready store must already carry full LSID
+- Forwarding uses BID/BROB order across blocks. Within one BID, candidate
+  eligibility, nearest-store selection per byte, and final wait-store choice
+  require valid parameterized full LSIDs and use `LSIDOrder`. Missing authority
+  and exactly half-range ambiguity fail closed and must remain observable; do
+  not fall back to the projection. The selected not-ready store retains full
   authority through E3/E4 and any reduced resident wait-slot/replay-wakeup
   bridge into canonical LIQ wait, timeout-delete, and recovery state. Replay
-  matching must require exact full LSID whenever the stored wait key marks it
-  valid. Never use the R672-B projection boundary to justify a wildcard full
-  LSID in resident LIQ state.
+  matching requires exact full LSID whenever the stored wait key marks it
+  valid.
 - Cluster/entry IDs and ROBID-shaped LSID fields in the snapshot graph are
   physical routing or compatibility sidecars. They must not authorize Linx
   memory-order recovery or substitute for full-LSID authority.
