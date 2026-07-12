@@ -3158,6 +3158,19 @@ Confirmed in #linx-core (2026-02-25):
   clear for reset/start/restart or genuinely unscoped fatal recovery.
 - W2 is the atomic side-effect point: required ROB resolve, RF writeback, and
   wakeup readiness must all be satisfied before its resident slot clears.
+- Once LRET drains into registered IEX stages, carry the complete scoped entry
+  through every W1/W2 lane. Validate the exact ROB row before dequeue: hold a
+  missing row, and consume a present `NeedFlush` row without side effects.
+- Size canonical W1/W2 residency by return-pipe count. Permit same-cycle W2
+  completion, W1 advance, and new W1 insertion only when each source and
+  destination slot has one unambiguous owner; use fair shared ingress when one
+  queue drain can target several W1 lanes.
+- During typed precise recovery, suppress stage movement and side effects,
+  prune matching W1/W2 entries, and preserve unrelated lanes. Do not replace
+  scoped recovery with a global stage clear.
+- Exported `pending`, `empty`, and top-level quiescence must aggregate the
+  retained queue, in-flight reservations, and every registered W1/W2 stage.
+  Queue-empty alone is not load-return completion evidence.
 - Generated-RTL proof must cover selected-lane backpressure with independent
   credit, full-lane simultaneous dequeue/enqueue, ROBID-wrap pruning,
   prune-cycle mutation suppression, resident fullness without a request, and
