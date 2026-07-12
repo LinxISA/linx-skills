@@ -2841,6 +2841,21 @@ Confirmed in #linx-core (2026-02-25).
 - STQ may contain flushable (speculative) stores.
 - SCB must only contain stores guaranteed **not** to be flushed.
   - This is controlled by a **non-flush pointer** (strong: excludes branch flush + exceptions/interrupts/traps).
+- Scalar STQ `Wait -> Commit` has two model-derived non-flush proofs. Preserve
+  both when adapting the LSU:
+  - completed, exception-free blocks inside the exact per-STID strong
+    non-flush head/count prefix;
+  - a ready resident scalar row in the exact oldest ROB `(STID, BID)` block
+    whose wrap-qualified LSID is strictly older than the ROB/PE oldest-LSID
+    snapshot.
+- The oldest-LSID proof scans resident STQ rows directly. It must not depend on
+  first observing a matching ROB store-commit identity because ROB retirement
+  and delayed STA/STD merge can cross. If a later commit-LSID proof is retained,
+  latch it through row absence and clear it on accepted recovery.
+- Do not repair a full, all-ready STQ by merely aliasing STQ depth to ROB depth
+  or enlarging the queue. First inspect resident scalar early-safe eligibility,
+  exact BID/STID matching, LSID wrap, and recovery stall. Tile/template rows
+  cannot reuse the scalar predicate; they need explicit issued/non-flush proof.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
