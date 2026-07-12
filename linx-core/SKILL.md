@@ -3165,6 +3165,18 @@ Confirmed in #linx-core (2026-02-25):
   completion, W1 advance, and new W1 insertion only when each source and
   destination slot has one unambiguous owner; use fair shared ingress when one
   queue drain can target several W1 lanes.
+- When multiple W2 lanes share physical sinks, arbitrate them fairly and
+  advance fairness only on the atomic resolve/RF/wakeup completion fire. A
+  blocked selected lane must retain its payload and arbitration ownership.
+- Preserve the complete slot-plus-wrap RID through W2 and revalidate it at the
+  ROB completion side-effect point. Admission-time lookup is not completion
+  authority; never reduce canonical completion identity to a slot value.
+- If another completion source has priority, withhold scalar resolve-ready so
+  W2 holds and retries when the sources target different rows. Never emit both
+  completion sources in one cycle or clear W2 merely because it was a
+  candidate. Treat same-row candidates as duplicate producer ownership unless
+  both sources carry enough exact identity and side-effect evidence to prove a
+  separate idempotent policy.
 - During typed precise recovery, suppress stage movement and side effects,
   prune matching W1/W2 entries, and preserve unrelated lanes. Do not replace
   scoped recovery with a global stage clear.
@@ -3174,7 +3186,10 @@ Confirmed in #linx-core (2026-02-25):
 - Generated-RTL proof must cover selected-lane backpressure with independent
   credit, full-lane simultaneous dequeue/enqueue, ROBID-wrap pruning,
   prune-cycle mutation suppression, resident fullness without a request, and
-  scope/payload identity on drain.
+  scope/payload identity on drain. Completion integration proof must also wrap
+  and reuse a ROB slot, reject the stale pre-wrap RID, accept the current
+  generation, hold scalar W2 under legal different-row contention, and classify
+  same-row contention as duplicate producer ownership.
 - Reuse these ISA-neutral queue, credit, arbitration, residency, and pruning
   mechanisms. Reject ARM exception levels, condition flags, exclusive
   monitors, barrier encodings, acquire/release opcode policy, and ARM-specific
