@@ -2886,6 +2886,21 @@ Confirmed in #linx-core (2026-02-25).
   `(STID, BID, full LSID)`; equal BID/LSID values from different STIDs never
   merge or compare. Every cache-line fragment and reduced-top commit bypass
   must retain the originating BID and full LSID metadata.
+- R671 carries `lsIdFullValid/lsIdFull` through `FullBidFlushReq`, producer
+  retention, recovery arbitration/class merge, full-BID/ring bridges, and
+  `RecoveryCleanupIntent.flush`. Scalar redirect sources must capture the
+  execute row's full all-row LSID before publication; do not reconstruct it
+  from RID, BID, or the legacy LSID projection.
+- Typed STQ recovery uses full LSID only after STID/PE/thread and flush-mode
+  scope checks. BID-only suffix recovery needs no LSID. Non-BID store pruning
+  must conservatively refuse missing full-LSID authority and exactly
+  half-range ambiguity; it may not fall back to `FlushReq.lsId`.
+- Until LIQ/ResolveQ/MDB payloads are promoted, their recovery sources leave
+  `lsIdFullValid` clear. Preserve explicit required/missing/ambiguous STQ masks
+  so this gap is visible; never hide it by re-enabling projected STQ pruning.
+  Legacy load-side row cleanup may use only a separately named projection-only
+  helper until those rows retain full LSID; never pass a zero placeholder to
+  the authoritative STQ matcher.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
