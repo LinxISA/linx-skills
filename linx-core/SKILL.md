@@ -216,7 +216,8 @@ multi-agent Chisel development. Each module packet must:
   (`robEntries` for BID/GID/RID), and full memory-order identity
   (`lsidWidth`, normally 32). Never derive one domain from another. Add at
   least one unequal-capacity elaboration, such as 16 STQ rows with 8 ROB
-  entries, and assert both physical index/mask widths and identity widths;
+  entries and a 40-bit LSID, and assert physical index/mask, ROB identity, and
+  LSID widths independently;
 - keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
   surface for replacement evidence;
 - For BROB non-flush promotion, publish an exact per-STID `(head BID,
@@ -2871,6 +2872,20 @@ Confirmed in #linx-core (2026-02-25).
 - LSID is a full-width per-STID memory-order identity, not an STQ or ROB index.
   A transitional `ROBID`-shaped LSID projection may not become the golden
   interface or decide ordering without the full `lsidWidth` value beside it.
+- Use `CoreParams.lsidWidth`/`InterfaceParams.lsidWidth` as the Chisel owner.
+  Same-block age uses `LSIDOrder` modulo serial arithmetic; plain unsigned
+  comparison is forbidden, and exactly half-range separation is ambiguous.
+  The finite live memory window must remain below half of the LSID domain.
+- R670 carries full LSID through store dispatch, split merge, STQ residency,
+  scalar early-safe commit, commit FIFO, split drain, SCB admission, and the
+  committed-memory overlay. Its ROBID projection is temporary and exists only
+  for unconverted typed recovery and load forwarding/replay/MDB consumers.
+  Do not remove the full field or use the projection for new ordering logic;
+  convert those remaining consumers and then delete the projection.
+- Memory identity is STID-scoped. Split STA/STD merge identity must include
+  `(STID, BID, full LSID)`; equal BID/LSID values from different STIDs never
+  merge or compare. Every cache-line fragment and reduced-top commit bypass
+  must retain the originating BID and full LSID metadata.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
