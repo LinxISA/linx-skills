@@ -2527,6 +2527,12 @@ These are the canonical LinxCore contract and must be preserved by future change
   the exact accepted allocation payload. The resident row and lookup must
   accept atomically; never allocate first and reconstruct or pulse the lookup
   later. Assert acceptance equality at the integration boundary.
+- For store-side conflict probes, expose a stable pre-permit insertion intent
+  so MDB sink readiness can gate address-bearing STQ acceptance without a
+  ready/payload combinational cycle. If reduced timing requires later ResolveQ
+  replay, retain every committed probe in a finite FIFO and include FIFO credit
+  in admission; never overwrite an accepted probe with the latest store.
+  Data-only fragments may bypass this address-side gate.
 - When several producers mutate one resident queue, arbitrate complete native
   mutation requests and preserve each producer's qualification policy. MDB
   lookup/timeout requests may target pre-launch `Wait` rows without unrelated
