@@ -2907,17 +2907,24 @@ Confirmed in #linx-core (2026-02-25).
   wait target before its local store index resolves, but it must not mutate LIQ
   until the predicted store's full LSID is valid. Do not widen BID/GID/RID or
   reconstruct missing full authority.
-- Forwarding age/nearest-store selection remains an R672-B projected-order
+- R672-B promotes the reduced replay snapshot request/token/response graph.
+  Ordinary live capture and wait-store relaunch must first carry the load's
+  authority through `ReducedLoadReplayCandidate`, relaunch FIFO, and LIQ
+  allocation. Request FIFO rows, the accepted-query token, response FIFO rows,
+  response apply, and row-mutation wait metadata retain parameterized full-LSID
+  validity/value. Selective request/token/response pruning must use
+  `STQFlushPrune.matchesFlush`; same-BID missing authority retains state. The
+  projection-only matcher is deleted and must not be reintroduced.
+- Forwarding age/nearest-store selection remains the next R672-B projected-order
   boundary, but the selected not-ready store must already carry full LSID
   authority through E3/E4 and any reduced resident wait-slot/replay-wakeup
   bridge into canonical LIQ wait, timeout-delete, and recovery state. Replay
   matching must require exact full LSID whenever the stored wait key marks it
   valid. Never use the R672-B projection boundary to justify a wildcard full
   LSID in resident LIQ state.
-- The named projection-only matcher remains legal only in the reduced replay
-  snapshot request/token/response graph pending R672-B. Do not cite canonical
-  R672-A proof as reduced forwarding/replay closure, and remove the helper when
-  that graph is promoted.
+- Cluster/entry IDs and ROBID-shaped LSID fields in the snapshot graph are
+  physical routing or compatibility sidecars. They must not authorize Linx
+  memory-order recovery or substitute for full-LSID authority.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
