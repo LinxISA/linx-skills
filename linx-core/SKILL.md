@@ -210,6 +210,13 @@ multi-agent Chisel development. Each module packet must:
 - record current `rtl/LinxCore` and `model/LinxCoreModel` SHAs before edits;
 - learn behavior from LinxCoreModel C++ owner files before writing Chisel;
 - update the module Markdown spec before promotion;
+- for scalar LSU sizing changes, keep three independent domains explicit:
+  physical queue/storage capacity (`stqEntries`, `commitQueueEntries`,
+  `scbEntries`, LIQ/ResolveQ/MDB depths), ROB slot-plus-wrap identity
+  (`robEntries` for BID/GID/RID), and full memory-order identity
+  (`lsidWidth`, normally 32). Never derive one domain from another. Add at
+  least one unequal-capacity elaboration, such as 16 STQ rows with 8 ROB
+  entries, and assert both physical index/mask widths and identity widths;
 - keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
   surface for replacement evidence;
 - For BROB non-flush promotion, publish an exact per-STID `(head BID,
@@ -2856,6 +2863,14 @@ Confirmed in #linx-core (2026-02-25).
   or enlarging the queue. First inspect resident scalar early-safe eligibility,
   exact BID/STID matching, LSID wrap, and recovery stall. Tile/template rows
   cannot reuse the scalar predicate; they need explicit issued/non-flush proof.
+- Treat `ScalarLsuParams` as the live Chisel physical-sizing owner. STQ rows,
+  commit FIFO, commit issue lanes, SCB rows, forwarding snapshots, wait-store
+  indices, and MDB store vectors use their respective configured capacities;
+  BID/GID/RID remain ROB-sized. A compatibility default that makes sizes equal
+  is not proof: run the unequal-capacity module and reduced-top gates.
+- LSID is a full-width per-STID memory-order identity, not an STQ or ROB index.
+  A transitional `ROBID`-shaped LSID projection may not become the golden
+  interface or decide ordering without the full `lsidWidth` value beside it.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
