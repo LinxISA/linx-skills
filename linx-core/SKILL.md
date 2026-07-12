@@ -2895,12 +2895,29 @@ Confirmed in #linx-core (2026-02-25).
   scope checks. BID-only suffix recovery needs no LSID. Non-BID store pruning
   must conservatively refuse missing full-LSID authority and exactly
   half-range ambiguity; it may not fall back to `FlushReq.lsId`.
-- Until LIQ/ResolveQ/MDB payloads are promoted, their recovery sources leave
-  `lsIdFullValid` clear. Preserve explicit required/missing/ambiguous STQ masks
-  so this gap is visible; never hide it by re-enabling projected STQ pruning.
-  Legacy load-side row cleanup may use only a separately named projection-only
-  helper until those rows retain full LSID; never pass a zero placeholder to
-  the authoritative STQ matcher.
+- Before R672-A, LIQ/ResolveQ/MDB recovery sources left `lsIdFullValid` clear.
+  Keep required/missing/ambiguous STQ diagnostics for any still-unconverted
+  source; never hide missing authority by re-enabling projected STQ pruning or
+  passing a zero placeholder to the authoritative matcher.
+- R672-A promotes the canonical scalar-load owner: load allocation, LIQ/LHQ,
+  ResolveQ, MDB conflict/fanout/SSIT/wait/delete/recovery, and return queue/W1/W2
+  payloads carry explicit full-LSID validity/value. Same-BID cleanup,
+  group cleanup, retirement, conflict selection, and SSIT distance use
+  `LSIDOrder`; cross-BID age remains ROB/BROB-ring-owned. MDB may identify a
+  wait target before its local store index resolves, but it must not mutate LIQ
+  until the predicted store's full LSID is valid. Do not widen BID/GID/RID or
+  reconstruct missing full authority.
+- Forwarding age/nearest-store selection remains an R672-B projected-order
+  boundary, but the selected not-ready store must already carry full LSID
+  authority through E3/E4 and any reduced resident wait-slot/replay-wakeup
+  bridge into canonical LIQ wait, timeout-delete, and recovery state. Replay
+  matching must require exact full LSID whenever the stored wait key marks it
+  valid. Never use the R672-B projection boundary to justify a wildcard full
+  LSID in resident LIQ state.
+- The named projection-only matcher remains legal only in the reduced replay
+  snapshot request/token/response graph pending R672-B. Do not cite canonical
+  R672-A proof as reduced forwarding/replay closure, and remove the helper when
+  that graph is promoted.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
