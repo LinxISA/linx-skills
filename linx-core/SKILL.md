@@ -2967,6 +2967,21 @@ Confirmed in #linx-core (2026-02-25).
   refill credit. Hard flush clears buffered refills; typed precise recovery
   freezes transport for that cycle and preserves physical line data for
   surviving Linx loads. Legal dual ingress is not a protocol error.
+- For a scalar load that crosses one cache line, retain one architectural Linx
+  identity and make every phase consumer use the active aligned line and
+  phase-local byte mask: forwarding, store/SCB wakeup, miss coalescing, refill
+  matching, and lower-memory request generation. Do not implement only final
+  data assembly while those owners still observe the first line.
+- A completed first phase is private LIQ state. It may not publish ResolveQ,
+  LRET, writeback, or wakeup. Publish exactly one result only after all line
+  phases are complete, using the original address, size, destination, and
+  full-LSID identity. Sequential versus parallel phase launch is a performance
+  policy, not an architectural difference.
+- Hard Linx recovery clears every phase. Typed precise recovery prunes by the
+  existing full row identity; a nonmatching survivor may retain a phase that
+  completed before recovery, but it must not adopt a phase transition produced
+  by a coincident canceled E4 cycle. Add generated-RTL proof for that exact
+  first-phase recovery collision.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
