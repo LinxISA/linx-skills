@@ -3181,6 +3181,11 @@ Confirmed in #linx-core (2026-02-25):
   owner. A write request or port grant reserves bandwidth only; it must not
   mutate data or readiness until exact W2 resolve, required RF writeback, and
   required wakeup all fire atomically with ROB completion.
+- Drive resident issue-queue global-P wakeup from that same committed RF fire,
+  not from write request/grant and not only by polling the newly registered
+  ready mask one edge later. Update matching valid, non-issued P source
+  next-state readiness with the ready table on the accepted edge; wakeup at N
+  is pick-visible at N+1 and must never affect selection at N.
 - Parameterize physical GPR capacity and write-port count independently of the
   Linx architectural P-register namespace. One port serializes all producers;
   multiple ports may accept independent tags in one cycle. Serialize same-tag
@@ -3189,6 +3194,10 @@ Confirmed in #linx-core (2026-02-25):
   table. Until the point-to-point sink is integrated, reject a T/U W2 request
   with an explicit backend contract error and no ROB/RF/wakeup evidence; do
   not silently deadlock it or substitute a global P-tag write.
+- Once all live consumers instantiate the canonical GPR owner directly,
+  delete compatibility RF wrappers, tests, and file-level pages. Keep history
+  in git and update current architecture evidence so no second state owner can
+  return through a stale integration path.
 - During typed precise recovery, suppress stage movement and side effects,
   prune matching W1/W2 entries, and preserve unrelated lanes. Do not replace
   scoped recovery with a global stage clear.
