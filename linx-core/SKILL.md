@@ -2928,6 +2928,31 @@ Confirmed in #linx-core (2026-02-25).
 - Cluster/entry IDs and ROBID-shaped LSID fields in the snapshot graph are
   physical routing or compatibility sidecars. They must not authorize Linx
   memory-order recovery or substitute for full-LSID authority.
+- R673 makes cacheable scalar load misses retained canonical state.
+  `loadMissQueueEntries` is independent of LIQ, ROB, STQ, LRET, and LSID width.
+  Reserve worst-case miss capacity at accepted launch and release it at every
+  E4 outcome; an E4 data miss must transfer atomically into `LoadMissQueue` and
+  may never rely on a one-cycle lower-memory pulse.
+- Coalesce one miss entry per aligned cache line, but identify the lower-memory
+  transaction by miss slot plus generation and line address. Preserve
+  first-miss FIFO issue order and hold every request field stable under
+  backpressure. Line address alone is not response authority after flush or
+  reuse.
+- Every coalesced dependent retains LIQ slot/generation plus
+  PE/STID/TID/BID/GID/RID/full-LSID authority. Typed recovery prunes dependents
+  with `LoadQueueFlushMatch`. Cancel an unissued entry only after its last
+  dependent is removed; retain an issued empty entry as an orphan until its
+  exact response drains. A stale generation or wrong-line response must not
+  wake LIQ or free a current entry.
+- Only a valid read response with exact slot, generation, and line authority
+  may retire a miss entry. Invalid-ID, non-read, stale, duplicate, and
+  wrong-line responses are diagnostics and cannot mutate live state. Qualify
+  the E4-to-miss transfer and its drop assertion with non-flush residency so a
+  coincident accepted recovery is not misreported as data loss.
+- The miss queue is for upstream-classified cacheable scalar normal memory.
+  Device/MMIO, tile, cache-maintenance, and other side-effecting classes need
+  dedicated non-coalescing owners. Do not import ARM barrier, exclusive,
+  acquire/release, or exception-level behavior into this mechanism.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
