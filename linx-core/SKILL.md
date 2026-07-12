@@ -2953,6 +2953,20 @@ Confirmed in #linx-core (2026-02-25).
   Device/MMIO, tile, cache-maintenance, and other side-effecting classes need
   dedicated non-coalescing owners. Do not import ARM barrier, exclusive,
   acquire/release, or exception-level behavior into this mechanism.
+- R674 makes refill publication a bounded retained transport rather than a
+  combinational priority mux. `loadRefillQueueEntries` is independent of LIQ,
+  miss, ROB, STQ, return, and LSID sizing. Exact miss and external refill
+  sources have independent ready/valid ingress and may both fire; preserve
+  miss-then-external same-cycle FIFO order and one-packet-per-cycle LIQ egress.
+- Compute ingress readiness from post-dequeue capacity so a full transport can
+  replace its consumed head without a bubble. If only one slot opens, miss
+  ingress wins and external ingress remains backpressured. Hold head payload
+  and provenance stable until output fire.
+- A valid exact read response may free a miss entry only in the same event that
+  its refill packet enters retained transport. Malformed responses need no
+  refill credit. Hard flush clears buffered refills; typed precise recovery
+  freezes transport for that cycle and preserves physical line data for
+  surviving Linx loads. Legal dual ingress is not a protocol error.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
