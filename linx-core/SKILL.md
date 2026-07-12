@@ -3177,6 +3177,18 @@ Confirmed in #linx-core (2026-02-25):
   candidate. Treat same-row candidates as duplicate producer ownership unless
   both sources carry enough exact identity and side-effect evidence to prove a
   separate idempotent policy.
+- Keep physical GPR data and non-speculative P-tag readiness in one canonical
+  owner. A write request or port grant reserves bandwidth only; it must not
+  mutate data or readiness until exact W2 resolve, required RF writeback, and
+  required wakeup all fire atomically with ROB completion.
+- Parameterize physical GPR capacity and write-port count independently of the
+  Linx architectural P-register namespace. One port serializes all producers;
+  multiple ports may accept independent tags in one cycle. Serialize same-tag
+  requests with deterministic priority and reject duplicate committed owners.
+- Keep Linx T/U local-link data and qtag wakeup outside the global P ready
+  table. Until the point-to-point sink is integrated, reject a T/U W2 request
+  with an explicit backend contract error and no ROB/RF/wakeup evidence; do
+  not silently deadlock it or substitute a global P-tag write.
 - During typed precise recovery, suppress stage movement and side effects,
   prune matching W1/W2 entries, and preserve unrelated lanes. Do not replace
   scoped recovery with a global stage clear.
@@ -3189,7 +3201,10 @@ Confirmed in #linx-core (2026-02-25):
   scope/payload identity on drain. Completion integration proof must also wrap
   and reuse a ROB slot, reject the stale pre-wrap RID, accept the current
   generation, hold scalar W2 under legal different-row contention, and classify
-  same-row contention as duplicate producer ownership.
+  same-row contention as duplicate producer ownership. Physical-state proof
+  must also cover request hold with no early mutation, each public sink allow,
+  same-tag and independent-tag contention, actual one-port and multi-port
+  configurations, and an unsupported T/U negative case.
 - Reuse these ISA-neutral queue, credit, arbitration, residency, and pruning
   mechanisms. Reject ARM exception levels, condition flags, exclusive
   monitors, barrier encodings, acquire/release opcode policy, and ARM-specific
