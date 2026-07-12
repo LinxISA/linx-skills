@@ -3118,6 +3118,41 @@ Confirmed in #linx-core (2026-02-25):
   epoch and the original return-label source owner/epoch as distinct live owner
   state, and surface both on `FLS/CMT`.
 
+## Scalar LSU-to-IEX load-return queues (strict)
+
+- Model final scalar load return as a retained queue boundary, not a
+  combinational LSU-to-ROB/RF/wakeup pulse. Preserve PE/STID/TID plus
+  BID/GID/RID/load-LSID through queue admission and registered E4/W1/W2
+  residency.
+- Keep one independently sized queue per `(STID, return pipe)`. Queue depth,
+  STID count, return-pipe count, and ROB identity capacity are separate
+  parameters; never infer an identity width from queue capacity.
+- Split admission into STID-local pre-credit and exact selected-pipe
+  acceptance when pipe choice depends on consumer capacity. Feeding final
+  target readiness into pipe selection creates a combinational cycle. A
+  published return must still be accepted atomically by exactly one final
+  lane.
+- Canonicalize stored pipe identity from the accepted queue target. Do not
+  trust a duplicate payload pipe field that can disagree with lane selection.
+- Do not bypass an empty return queue directly into IEX. Permit same-cycle
+  dequeue/enqueue at a full lane, but keep enqueue and later drain as distinct
+  registered phases.
+- Use fair shared-port drain across nonempty STID/pipe lanes and retain a head
+  under IEX E4 backpressure.
+- Apply accepted typed Linx recovery by compacting only matching queue entries;
+  preserve older and independent entries in FIFO order. Reserve global hard
+  clear for reset/start/restart or genuinely unscoped fatal recovery.
+- W2 is the atomic side-effect point: required ROB resolve, RF writeback, and
+  wakeup readiness must all be satisfied before its resident slot clears.
+- Generated-RTL proof must cover selected-lane backpressure with independent
+  credit, full-lane simultaneous dequeue/enqueue, ROBID-wrap pruning,
+  prune-cycle mutation suppression, resident fullness without a request, and
+  scope/payload identity on drain.
+- Reuse these ISA-neutral queue, credit, arbitration, residency, and pruning
+  mechanisms. Reject ARM exception levels, condition flags, exclusive
+  monitors, barrier encodings, acquire/release opcode policy, and ARM-specific
+  return state.
+
 ## When merging LinxCore PRs
 
 After merging to `LinxISA/LinxCore`, bump the superproject gitlink:
