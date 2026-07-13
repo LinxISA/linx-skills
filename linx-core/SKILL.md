@@ -2982,6 +2982,30 @@ Confirmed in #linx-core (2026-02-25).
   completed before recovery, but it must not adopt a phase transition produced
   by a coincident canceled E4 cycle. Add generated-RTL proof for that exact
   first-phase recovery collision.
+- R676 makes `ScalarL1D` the single scalar cache-array owner. Parameterize set
+  count, way count, and line size independently from ROB, LIQ, STQ, SCB, miss,
+  refill, and return capacities. Retain aligned line tag, full data, readable
+  validity, writable permission, dirty state, and replacement age in one
+  owner; do not recreate cache truth in the load or store path.
+- Refill wins the shared array port. Hold the retained refill head until the
+  cache can install it, and hold every valid victim address/data/dirty payload
+  until the eviction owner accepts it. Select an invalid way first and then a
+  deterministic replacement victim. Silent clean or dirty eviction is not a
+  valid temporary implementation.
+- A duplicate refill may grant additional write permission, but it must return
+  resident data to waiting loads and must not overwrite resident bytes or
+  clear dirty state. The resident line may contain a newer committed SCB byte
+  update than the lower response. Add generated-RTL proof that stale duplicate
+  data loses to resident data.
+- Keep tag hit, readable hit, and writable hit distinct. Scalar loads consume
+  readable hits; committed SCB writes update only writable hits, mark the line
+  dirty by byte mask, and request ownership on a tag-only hit. Permission is a
+  neutral coherence capability, not an ARM memory type or Linx opcode policy.
+- Physical cache contents are non-speculative. Typed Linx recovery and backend
+  hard restart may prune LIQ/miss/refill/speculative-store ownership but must
+  not invalidate L1D lines. Reset, explicit coherence invalidation,
+  cache-maintenance, and platform reset need dedicated interfaces; never infer
+  them from BID, LSID, exception level, barriers, or acquire/release behavior.
 - SCB coalesces by **physical cacheline** (paddr line base).
 - Memory model: **TSO**
   - store drain must preserve program order.
