@@ -29,9 +29,11 @@ python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py
 
 The codec parity check is the source-of-truth proof that LLVM MC tables are
 generated from the live v0.56 ISA catalog. The coverage checks must cover
-710/710 unique v0.56 mnemonics with `99_spec_decode` included; stale output
-artifacts are acceptable only as audit evidence, not as a replacement for a
-fresh `run.sh` when the compiler binary is available.
+711/711 unique v0.56 mnemonics and audit all 747 instruction definitions with
+`99_spec_decode` included. Coverage conclusions require a fresh `run.sh` using
+Clang rebuilt from the current `compiler/llvm` HEAD; if the binary's reported
+VCS revision is stale, classify existing analyzer output as provenance/audit
+evidence rather than a source defect.
 
 ## Toolchain lane policy
 

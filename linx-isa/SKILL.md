@@ -48,9 +48,11 @@ python3 /Users/zhoubot/linx-isa/docs/check_documentation.py --root /Users/zhoubo
 
 The Sail gate is toolchain-pinned by `isa/sail/toolchain.json`; required lanes
 must install that exact version and may not treat a missing parser or C backend
-as success. Semantic coverage is form-ID based and grades each form as
-`decode-only`, `executable-subset`, or `architecturally-complete`; never infer
-semantic completeness from mnemonic presence alone.
+as success. Semantic coverage is stable ISA form-ID based and grades each form
+as `decode-only`, `executable-subset`, or `architecturally-complete`; never
+infer semantic completeness from mnemonic presence alone. QEMU reporter form
+coverage instead uses the encoding signature `(mnemonic, length, mask,
+match)`; do not report that signature coverage as stable form-ID closure.
 All generated-artifact checks must compare both contents and the exact owned
 file set without rewriting the worktree.
 

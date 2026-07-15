@@ -132,6 +132,16 @@ ninja qemu-system-linx64
 8. Patch decode/execute or exception path and add a focused regression.
 9. Re-run runtime and system strict gates.
 
+First-divergence rules:
+
+- For current `ET_REL` direct-boot relocation failures, first compare QEMU
+  loader relocation types with LLVM `ELFRelocs/LinxISA.def`. Enter opcode
+  dispatch only for an explicit whitelist of current relocation types; never
+  infer dynamic, TLS, GOT, or unsupported relocations from instruction bits.
+- Do not close platform-defined `XB`/`CAC_TABLE` coverage with decoder-only or
+  no-op handling. First freeze the table-entry layout plus the `XBINFO`,
+  permission, and `E_INST` ABI tracked by `LinxISA/linx-isa#140`.
+
 For recovered historical lines, insert one extra step before implementation:
 
 1. Pick and validate the old base first.
