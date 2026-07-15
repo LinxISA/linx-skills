@@ -51,6 +51,22 @@ evidence rather than a source defect.
 - keep `FENTRY + FEXIT` tail-transfer path legal,
 - preserve relocation/template checks.
 
+## SIMT recurrence contract
+
+- Treat generic loop-carried recurrences as order-dependent. Only recurrence
+  kinds with an explicitly supported `v.rd*` reduction plan may use grouped
+  multi-lane lowering.
+- In auto layout, lower a generic recurrence with `LB0=1` scalar replay. An
+  explicit grouped request must reject with a stable legality reason rather
+  than emitting independent per-lane recurrence states.
+- Recurrence carrier loads/stores synthesized by the compiler are memory
+  traffic even when the source IR has no load or store. A body containing
+  synthesized `.brg` accesses must use `MSEQ`/`MPAR`, never tile-only
+  `VSEQ`/`VPAR`.
+- Gate constant-trip recurrences with both assembly and runtime evidence: lock
+  the recurrence update token as the stored value, require zero-offset carrier
+  access in scalar replay, and compare auto-mode output with scalar mode.
+
 ## Workflow
 
 1. Implement backend change.
