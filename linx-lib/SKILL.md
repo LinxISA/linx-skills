@@ -23,15 +23,22 @@ Use this skill for combined libc bring-up and runtime policy across `lib/glibc` 
 ```bash
 bash /Users/zhoubot/linx-isa/lib/glibc/tools/linx/build_linx64_glibc.sh
 MODE=phase-b /Users/zhoubot/linx-isa/lib/musl/tools/linx/build_linx64_musl.sh
-python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static
-python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared
-python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link both --sample all
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+  python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link static
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+  python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link shared
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+  python3 /Users/zhoubot/linx-isa/avs/qemu/run_musl_smoke.py --mode phase-b --link both --sample all
 ```
 
 ## Runtime policy
 
 - Static and shared outcomes are first-class and separate.
 - No aggregate green if one mode fails.
+- Bind runtime evidence to the current `build-linx` QEMU explicitly; do not let
+  the runner fall back to a stale `emulator/qemu/build` binary.
+- If the mandatory call/ret cross-stack audit fails before samples start,
+  report every sample as `BLOCKED_PRE_RUN`, not as a libc runtime failure.
 - Preserve mode-level logs and summaries.
 - PR/runtime gate runs use `--sample all` so fork/wait, fork/exec, stdio, and
   C++ startup regressions are not hidden behind the lightweight malloc/printf
