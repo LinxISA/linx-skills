@@ -141,6 +141,10 @@ First-divergence rules:
 - Do not close platform-defined `XB`/`CAC_TABLE` coverage with decoder-only or
   no-op handling. First freeze the table-entry layout plus the `XBINFO`,
   permission, and `E_INST` ABI tracked by `LinxISA/linx-isa#140`.
+- Treat `report_qemu_isa_coverage.py` as L1 decoder/source-mapping evidence
+  only. Call coverage executable and semantic only when the same form has L2
+  runtime execution tied to a test ID and an L3 architectural result oracle;
+  report missing L2/L3 evidence as unavailable rather than zero.
 
 For recovered historical lines, insert one extra step before implementation:
 
