@@ -36,6 +36,15 @@ For direct-boot AVS and SuperNPUBench AI workload runs, set
 That env makes test finisher MMIO writes report pass/fail to the host instead
 of relying on timeout behavior.
 
+The finisher is a post-store MMIO contract. Translation helpers must not stop
+the CPU before the terminal store executes and retires: route the write through
+the `linx-test-finisher` device, let the normal store/commit path record the
+instruction, then use `stop_after_commit` to close commit/Minst traces. Minst
+store records must carry the real store value in `mem_wdata`. A focused
+regression must end with exactly one retired finisher store at `0x10009000`
+with the expected status value; never obtain trace parity by dropping or
+normalizing away the terminal record.
+
 QEMU linux-user mode is a separate process ABI lane. Use it only when the
 checked-out or recovered QEMU tree actually provides a `qemu-linx` binary; the
 current canonical checked-in target list may still expose only softmmu targets.
