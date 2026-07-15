@@ -207,7 +207,7 @@ bash tools/chisel/run_chisel_qemu_trace_replay_xcheck.sh \
 Use `rtl/LinxCore/docs/chisel/agent-loop.md` as the operational runbook for
 multi-agent Chisel development. Each module packet must:
 
-- record current `rtl/LinxCore` and `model/LinxCoreModel` SHAs before edits;
+- record current `rtl/LinxCore` and `tools/LinxCoreModel` SHAs before edits;
 - learn behavior from LinxCoreModel C++ owner files before writing Chisel;
 - update the module Markdown spec before promotion;
 - for scalar LSU sizing changes, keep three independent domains explicit:
@@ -274,7 +274,7 @@ rerunning broad status checks, and rediscovering toolchain facts.
    spec, and the latest relevant rows in
    `rtl/LinxCore/docs/chisel/agent-loop.md`.
 2. Record the four SHAs once: superproject, `rtl/LinxCore`,
-   `model/LinxCoreModel`, and `emulator/qemu`. Do not run repeated `git status`
+   `tools/LinxCoreModel`, and `emulator/qemu`. Do not run repeated `git status`
    checks inside the same packet unless an edit, fetch, commit, or generated
    artifact changes the state.
 3. Validate the Chisel environment once with the repo wrappers. Reuse
@@ -2647,11 +2647,11 @@ GPR rename cleanup.
 
 Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
 `decode16.py`, `decode32.py`, `decode48.py`, `decode64.py`,
-`model/LinxCoreModel/model/bctrl/spe/Decoder.cpp`,
-`model/LinxCoreModel/isa/ISACommon/GPR.h`,
-`model/LinxCoreModel/isa/ISACommon/DecodeUtiles.h`,
-`model/LinxCoreModel/isa/MInst.cpp`, and
-`model/LinxCoreModel/isa/codec/decodefiles/block16.decode`.
+`tools/LinxCoreModel/model/bctrl/spe/Decoder.cpp`,
+`tools/LinxCoreModel/isa/ISACommon/GPR.h`,
+`tools/LinxCoreModel/isa/ISACommon/DecodeUtiles.h`,
+`tools/LinxCoreModel/isa/MInst.cpp`, and
+`tools/LinxCoreModel/isa/codec/decodefiles/block16.decode`.
 
 - Chisel opcode classification must be generated from the pyCircuit opcode
   metadata catalog, not from ad-hoc low-bit slices of the raw instruction.

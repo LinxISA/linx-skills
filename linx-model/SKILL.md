@@ -12,12 +12,12 @@ Canonical repo location (superproject checkout):
 AI workload final-target lane:
 
 - The AI workload hard-break flow uses the C++ BlockISA model at
-  `model/LinxCoreModel` as the final execution target.
+  `tools/LinxCoreModel` as the final execution target.
 - Canonical command:
 
 ```bash
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run
-/Users/zhoubot/linx-isa/model/LinxCoreModel/bin/gfsim -f <linx.elf>
+/Users/zhoubot/linx-isa/tools/LinxCoreModel/bin/gfsim -f <linx.elf>
 ```
 
 - The smoke profile includes `avs-pto-parity-smoke`, a bounded PTO parity case
@@ -87,7 +87,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   timeout artifacts belong to the `model` lane until the model exits naturally
   or an explicit architectural stop condition is implemented.
 - Build or select the optimized bring-up binary for workload promotion:
-  `cmake -S model/LinxCoreModel -B model/LinxCoreModel/build -DOPT_LEVEL=O3
+  `cmake -S tools/LinxCoreModel -B tools/LinxCoreModel/build -DOPT_LEVEL=O3
   -DDISABLE_DEBUG_SYMBOLS=ON`, then build target `gfsim`. The AI runner uses
   these options by default unless `--skip-model-build` selects an existing
   binary.

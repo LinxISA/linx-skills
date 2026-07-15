@@ -25,6 +25,11 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
   is opt-in (`LINX_SEMIHOST=1`) and must not be implicit.
 - `BI=1` trap return contract explicitly restores second-layer block state
   (`EBARG/BSTATE`, including `TQ/UQ` queues and continuation PCs).
+- `TIME` (SSR `0x0010`) is a read-only monotonic nanosecond counter modulo
+  `2^64`; it is not wall-clock time.
+- `BSTART.PAR` and `B.IOD` are retired spellings in v0.56.5. Their encodings
+  remain reserved evidence, assemblers reject the names, and canonical decode
+  never exposes them as instruction identities (`BSTART.TEPL` owns its code).
 
 ## LinxArch mandatory gates
 
@@ -34,7 +39,20 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --
 python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
 python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
 python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/gen_sail_decode.py --check
+python3 /Users/zhoubot/linx-isa/tools/isa/gen_sail_status.py --check
+python3 /Users/zhoubot/linx-isa/tools/isa/sail_coverage.py --check
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_sail_model.py --require-parser --require-c-backend
+python3 /Users/zhoubot/linx-isa/docs/check_documentation.py --root /Users/zhoubot/linx-isa
 ```
+
+The Sail gate is toolchain-pinned by `isa/sail/toolchain.json`; required lanes
+must install that exact version and may not treat a missing parser or C backend
+as success. Semantic coverage is form-ID based and grades each form as
+`decode-only`, `executable-subset`, or `architecturally-complete`; never infer
+semantic completeness from mnemonic presence alone.
+All generated-artifact checks must compare both contents and the exact owned
+file set without rewriting the worktree.
 
 Historical compatibility wrappers are retired. Do not restore
 `check_public_v03.sh`, `check_canonical_v04.py`, or `check_no_legacy_v0*.py`

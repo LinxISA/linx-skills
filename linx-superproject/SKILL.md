@@ -157,6 +157,7 @@ are not active gates. Use the canonical v0.56 checks directly:
 python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
 python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
 python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/bringup/check_sail_model.py --require-parser --require-c-backend
 ```
 
 Keep CI/workflow names on `public-v056` surfaces.
@@ -243,9 +244,9 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TExpandScalar'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
-  --run-id <run-id> --case '=supernpu-tileop_api-TCopyIn'
+  --run-id <run-id> --case '=supernpu-tileop_api-TLoad'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
-  --run-id <run-id> --case '=supernpu-tileop_api-TCopyOut'
+  --run-id <run-id> --case '=supernpu-tileop_api-TStore'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
   --run-id <run-id> --case '=supernpu-tileop_api-TCopy'
 python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile pr \
@@ -281,11 +282,10 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 ```
 
 - Use this flow to promote PTO and SuperNPUBench AI workloads from source
-  contracts through in-repo Linx LLVM, Linx QEMU, and C++ `model/LinxCoreModel`.
-- Unless `QEMU` or `QEMU_CLEAN_OUT_DIR` selects a matching clean build, the
-  flow should prefer `emulator/qemu/build-linx/qemu-system-linx64`. Treat
-  `emulator/qemu/build/qemu-system-linx64` as a legacy fallback that may be
-  stale against current Linx direct-boot semantics.
+  contracts through in-repo Linx LLVM, Linx QEMU, and C++ `tools/LinxCoreModel`.
+- Strict lanes require an explicit clean `QEMU` binary built from the pinned
+  `emulator/qemu` checkout. Do not search fallback build directories or accept
+  an implicit binary whose source SHA and opcode metadata are unknown.
 - Direct-boot AI workload QEMU runs require `LINX_VIRT_TEST_FINISHER=1` so
   SuperNPUBench and AVS pass/fail MMIO writes become host-visible exits instead
   of long-running guest spins.
@@ -297,6 +297,13 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
 - SuperNPUBench `PLAT=linx` cases are linked as direct-boot Linx ELFs with
   `_start` first at `0x10000`; preserve the generated linker script, objdump,
   raw bin, and compile logs as triage artifacts.
+- Discover SuperNPUBench manifests only below
+  `workloads/SuperNPUBench/benchmark/two-level-arch/test`. With an explicit
+  `OBJ_ROOT`, the ELF contract is
+  `<OBJ_ROOT>/<suite>/elf/<suite-with-slashes-replaced>_<TESTCASE>_linx.elf`;
+  the repository-default output root is
+  `benchmark/two-level-arch/output`. Do not restore or probe the retired
+  top-level `test`, `tests`, or `benchmarks` trees.
 - For SuperNPUBench manifest rows with a generic `TESTCASE`, resolve concrete
   source files from `TYPE` first and keep the filesystem's actual case in source
   manifests. `kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4` resolves
@@ -307,8 +314,8 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   source-contract failures because the runner reads `make` rows literally.
 - Current SuperNPUBench Tier-0/Tier-1 direct-boot green cases are `MatMul`,
   `MatMul_e4m3`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`,
-  `TCI`, `TCopyIn`,
-  `TCopyOut`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
+  `TCI`, `TLoad`,
+  `TStore`, `TCopy`, `TCvt`, `TReshape`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`,
   `TDiv`, `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`,
   `TMaxs`, `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`,
@@ -327,7 +334,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   generated `.s` files with a host/default assembler when the AI runner
   redirects `OBJ_ROOT`.
   `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAbs`, `TCI`, `TExpandCol`,
-  `TExpandRow`, `TExpandScalar`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
+  `TExpandRow`, `TExpandScalar`, `TLoad`, `TStore`, `TCopy`, `TCvt`,
   `TReshape`, `TTrans`, `TPad`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
   `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
   `TAnd`, `TOr`, `TCmp`, `TRowSum`, `TRowMax`, `TRowSumExpand`, and
@@ -417,7 +424,7 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   QEMU parity maturity row and is intentionally not model-eligible in PR, while
   `avs-pto-parity-full-model` is the Tier-4 full-row LinxCoreModel closure
   target.
-  Non-skipped model builds configure `model/LinxCoreModel/bin/gfsim` with
+  Non-skipped model builds configure `tools/LinxCoreModel/bin/gfsim` with
   `-DOPT_LEVEL=O3 -DDISABLE_DEBUG_SYMBOLS=ON` so PR/nightly workload probes use
   the optimized bring-up binary.
   `avs-pto-parity-prefix-gemm-performance` is the fast Tier-1 model-green
