@@ -34,3 +34,32 @@
 ## Reporting
 
 Publish command + SHA provenance for each result.
+
+## Incremental post-SPEC C workload pack
+
+After a current-SHA SPEC diagnostic run, do not invoke the whole
+`full-benchmarks` stage just to collect the remaining C workload evidence. That
+stage repeats SPEC build/attestation and long nightly rows. Run the incremental
+pack below, with all QEMU executions serialized:
+
+1. Run `workloads/run_benchmarks.py` for CoreMark and Dhrystone through
+   `tools/bringup/run_c_benchmark_matrix.py`. Require `requested_gate=runtime`,
+   `runtime_all_pass=true`, and both rows to be `RUN_PASS`; a successful build
+   is not runtime evidence.
+2. PolyBench is an optional Linux/QEMU runtime smoke, not a numerical oracle.
+   Use the phase-b musl static lane (`LINX_SPEC_FORCE_STATIC=1`) and pass
+   `--cflag=-DMINI_DATASET` to `workloads/run_polybench.py`. Upstream defaults
+   to `LARGE_DATASET`, which measures emulator throughput instead of providing
+   a minimal bring-up proof. Require both `gemm` and `jacobi-2d` to run, exit
+   zero, and have child Linux reports with `result.ok=true`.
+3. Milepost is optional and requires an explicit external source corpus whose
+   `$CTUNING_ROOT/program` contains `milepost-codelet-*` sources. The in-repo
+   `workloads/ctuning` directory is the runner, not the corpus. For the five-row
+   sentinel require `selected_codelets=5`, `passed=5`, `failed=0`, `skipped=0`,
+   and `all_pass=true`; generated `out/` objects and skipped rows are never
+   coverage evidence.
+
+For SPEC train diagnostics, report `live-timeout` separately from traps,
+panics, and silent stalls. A heartbeat/site-changing timeout proves liveness,
+not workload completion. Preserve the passing strict-output/hash sentinel and
+the clean QEMU/kernel provenance in the machine-readable packet.
