@@ -357,6 +357,14 @@ For recovered historical lines, insert one extra step before implementation:
   split the next speed lanes into template/TB/MMU dispatch for `500`, `502`,
   `505`, `520`, `523`, and `541`; Linux TLBI source reduction for `531` and
   `557`; and separate 9p/kernel transport profiling for `525`.
+- Never promote `--qemu-speed-stack` without a same-manifest, default-off
+  `999.specrand_ir` train A/B first. On 2026-07-17 the default-off sentinel
+  completed with its strict hash in 108.581 seconds, while the speed-stack
+  lane timed out at 180 seconds; the same speed-stack run timed out all ten
+  train rows before hash checking. For timeout diagnosis, also set a nonzero
+  `--qemu-heartbeat-interval`: enabling extended heartbeat fields alone does
+  not emit `LINX_HEARTBEAT`, so `running` and site-progress remain
+  unobservable and must not be reported as proof of either liveness or stall.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
