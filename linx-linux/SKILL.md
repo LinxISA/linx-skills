@@ -100,10 +100,19 @@ PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
 ## Trap triage
 
 1. capture first repeated trap tuple (`pc`, cause, context),
-2. symbolize with matching `vmlinux`,
+2. identify whether the PC belongs to the kernel or a user PIE; for a PIE,
+   subtract the mapped load base before symbolizing the matching user ELF,
 3. disassemble neighborhood,
 4. classify failure (target legality, ABI/call-ret, translation/fault),
 5. bisect Linux/QEMU SHAs when needed.
+
+When a user trap contains an implausibly small address after paired loads,
+also inspect T/U-hand queue age across the producer and every consumer. A
+multi-def instruction gives its destinations one instruction index but still
+pushes them in operand order; compiler queue allocation must therefore include
+same-instruction `DefOpNo` order. Two later consumers both reading `t#1` or
+`u#1` can be a compiler depth-assignment bug even when each instruction's
+standalone QEMU semantics is correct.
 
 ## Cross-stack checks
 
