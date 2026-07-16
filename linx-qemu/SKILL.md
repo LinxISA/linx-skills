@@ -171,6 +171,14 @@ First-divergence rules:
   physical replacement. The currently executable LTAR ABI maps TA..TD to
   indices 0..3 and TO/TS to 4/5; do not invent a wider mapping until the
   assembler, compiler, and QEMU parser adopt it together.
+- Keep vector LTAR lifetime tied to descriptor provenance. Source-less
+  MSEQ/MPAR B.IOT outputs are block-local scratch: reserve them for TO/TS while
+  the body runs, then discard them without publishing into a tile hand.
+  Input-bound VPAR/TEPL outputs are persistent tile dataflow and must consume
+  frozen inputs before publishing the independently reserved output. Until
+  general vector lowering becomes queue-relative as one cross-layer change,
+  do not apply the tile-body queue-head destination compatibility rule to
+  ordinary fixed-slot MSEQ/MPAR code.
 - For faultable tile helpers, plan descriptor allocation and source consumption
   without mutating live state, then publish them only after the operation
   succeeds. TMA Normal-memory beats may remain externally non-atomic when the
