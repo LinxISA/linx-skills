@@ -29,6 +29,23 @@ their SHA-256 provenance. If a legacy wrapper only prints a transcript, keep
 that result diagnostic until a machine-readable provenance record accompanies
 it.
 
+### Promoted vmlinux provenance
+
+- Build a kernel intended for promoted runtime evidence with
+  `tools/bringup/run_linux_vmlinux_build_clean.sh --fresh --target vmlinux`.
+  A successful build must produce and self-verify
+  `<out-dir>/vmlinux.provenance.json`.
+- Before promotion, verify that report with
+  `tools/bringup/linux_vmlinux_provenance.py verify` and require a clean source,
+  a fresh generation, the exact pinned Linux HEAD, and the expected Clang and
+  `ld.lld` SHA-256 values.
+- The report must bind the Linux source state, build argv, config, compiler,
+  linker, make/host tools, build helper, and resulting `vmlinux`. A directory
+  ownership or deletion marker is not artifact provenance.
+- A parent workload or release manifest must record the SHA-256 of the verified
+  provenance report. Without that binding, runtime output is diagnostic even
+  when the guest passes.
+
 ## Deterministic smoke repro
 
 - For early boot triage, prefer the pinned `vmlinux` + initramfs smoke form so
@@ -48,7 +65,7 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
   --out-dir /Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed \
   --clang /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang \
   --gmake /opt/homebrew/bin/gmake \
-  --target vmlinux
+  --target vmlinux --fresh
 ```
 
 - Reproduce the current BusyBox rootfs lane with the clean helper path and

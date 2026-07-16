@@ -621,6 +621,13 @@ Always record for each gate:
 - pass/fail,
 - artifact links.
 
+For promoted Linux runtime gates, the SHA manifest must also bind the SHA-256
+of a verified `vmlinux.provenance.json`. That report must prove a clean, fresh
+build at the pinned Linux HEAD and bind the exact compiler, linker, host/build
+tools, config, helper, and `vmlinux`. A cleanup/deletion marker is not build
+provenance, and an unbound report cannot upgrade diagnostic runtime output to
+same-manifest closure.
+
 Treat markdown status pages as generated views, not source-of-truth.
 
 ## Repin workflow discipline
