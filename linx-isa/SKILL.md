@@ -35,6 +35,13 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
   raw word has multiple architectural meanings, freeze the ISA/assembler
   contract first; decoder priority or a single-component decoder change is not
   a valid repair.
+- Before concatenating adjacent encoded fields into one logical operand, audit
+  the form's introduction history and exact sub-instruction boundaries. A
+  compound form that embeds independently relocatable operations keeps their
+  operand roles, PC bases, and side effects unless an explicit architecture
+  decision redefines it. Require metamorphic raw tests that vary each field
+  independently; field adjacency or equal aggregate width is not evidence of
+  concatenation.
 
 ## LinxArch mandatory gates
 
