@@ -63,3 +63,19 @@ For SPEC train diagnostics, report `live-timeout` separately from traps,
 panics, and silent stalls. A heartbeat/site-changing timeout proves liveness,
 not workload completion. Preserve the passing strict-output/hash sentinel and
 the clean QEMU/kernel provenance in the machine-readable packet.
+
+## TSVC differential sentinel
+
+Before paying for the full 151-kernel batched TSVC gate, use a four-kernel
+OFF-vs-AUTO differential sentinel over `s000`, `s2712`, `s311`, and `s332`.
+These rows cover a basic loop, predicated elemental operation, reduction, and
+early-exit control flow. Run OFF first, then AUTO serially against a clean
+current-HEAD QEMU; pass the OFF stdout to AUTO with
+`--compare-baseline-log`, `--fail-on-checksum-mismatch`, and
+`--strict-fail-under 4`.
+
+Accept only when both commands exit zero, each observes four kernels, AUTO
+reports `vectorized=4`, and the checksum report has `ok=true`, no missing rows,
+and zero mismatches. Record current LLVM/Clang/LLD and QEMU SHA provenance.
+This is a cheap compiler/QEMU transformation oracle, not a replacement for the
+required full batched TSVC gate.
