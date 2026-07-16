@@ -154,6 +154,15 @@ First-divergence rules:
   only. Call coverage executable and semantic only when the same form has L2
   runtime execution tied to a test ID and an L3 architectural result oracle;
   report missing L2/L3 evidence as unavailable rather than zero.
+- Keep tile hand allocation, source provenance, backing storage, ACR switching,
+  and VMState in one state-ownership contract. Shared backing requires shared
+  liveness; banked liveness requires equivalently banked backing.
+- For faultable tile helpers, plan descriptor allocation and source consumption
+  without mutating live state, then publish them only after the operation
+  succeeds. TMA Normal-memory beats may remain externally non-atomic when the
+  ISA allows restartable partial completion, but stale backing is never a
+  general substitute for a live source; any compiler-compatibility exception
+  must be provenance-bound and operand-exact.
 
 For recovered historical lines, insert one extra step before implementation:
 
