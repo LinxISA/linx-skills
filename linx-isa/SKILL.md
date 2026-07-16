@@ -30,6 +30,11 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - `BSTART.PAR` and `B.IOD` are retired spellings in v0.56.5. Their encodings
   remain reserved evidence, assemblers reject the names, and canonical decode
   never exposes them as instruction identities (`BSTART.TEPL` owns its code).
+- Before changing a form with a variable selector, enumerate its raw words
+  against every generic selector space at the same instruction length. If one
+  raw word has multiple architectural meanings, freeze the ISA/assembler
+  contract first; decoder priority or a single-component decoder change is not
+  a valid repair.
 
 ## LinxArch mandatory gates
 
