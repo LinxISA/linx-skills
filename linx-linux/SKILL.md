@@ -22,6 +22,13 @@ For the merged direct-kernel recovery lane, these wrappers are firmwareless by
 default. If you override `QEMU_EXTRA_ARGS`, preserve `-bios none` unless you
 are explicitly testing a firmware artifact.
 
+Treat every runtime wrapper as fail-closed: guest success markers never
+override a QEMU timeout or nonzero process exit. A strict published result must
+name the exact `KERNEL`, `INITRD` or rootfs image, and `QEMU` binary and retain
+their SHA-256 provenance. If a legacy wrapper only prints a transcript, keep
+that result diagnostic until a machine-readable provenance record accompanies
+it.
+
 ## Deterministic smoke repro
 
 - For early boot triage, prefer the pinned `vmlinux` + initramfs smoke form so

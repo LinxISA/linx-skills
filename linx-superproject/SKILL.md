@@ -196,6 +196,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_benchmark_linux_flow.py --prof
 - Stop at the first red hard-break stage in the same lane; do not debug
   downstream Linux/rootfs/SPEC failures while ISA/compiler/QEMU/TSVC
   prerequisites are red.
+- If a human explicitly runs downstream work after that hard break, publish it
+  only as `required=false` with an `out-of-order-diagnostic-*` classification.
+  It must not upgrade the blocked lane to closure. When execution and
+  publication manifests differ, do not describe the result as same-manifest
+  nightly or release evidence.
 - Put new benchmark artifacts under `workloads/generated/<run-id>/`, not
   ad-hoc `workloads/generated-*` sibling directories.
 
