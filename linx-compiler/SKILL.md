@@ -35,6 +35,13 @@ Clang rebuilt from the current `compiler/llvm` HEAD; if the binary's reported
 VCS revision is stale, classify existing analyzer output as provenance/audit
 evidence rather than a source defect.
 
+Treat `plain_c_reachable_contract.json` as a demonstrated plain-C
+non-regression baseline, not an exhaustive denominator for everything C can
+reach. Keep pure C/C++, intrinsic-directed C, inline assembly, and MC coverage
+as separate lanes. Add a new C/IR target to an independently reviewed inventory
+as a gap before implementation; only replayed object disassembly may close it.
+Never use total ISA mnemonic breadth as the plain-C reachability denominator.
+
 ## Toolchain lane policy
 
 - Pin lane defaults to in-repo binaries:
