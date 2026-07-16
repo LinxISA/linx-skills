@@ -157,6 +157,20 @@ First-divergence rules:
 - Keep tile hand allocation, source provenance, backing storage, ACR switching,
   and VMState in one state-ownership contract. Shared backing requires shared
   liveness; banked liveness requires equivalently banked backing.
+- Interpret B.IOT tile sources as six-bit hand/rank operands, with rank 1 as
+  the newest live entry in that hand. Never derive an architectural rank from
+  a physical TILE id. Freeze each header's source and output bindings before
+  executing its body, reserve outputs in distinct physical slots, then consume
+  inputs and publish outputs in descriptor order at successful block commit.
+- Stage tile queue metadata locally across TMA, CUBE, and vector execution.
+  Backing-memory beats may follow their documented restart rules, but live,
+  reserved, ordered, and ACR-pin metadata must become visible atomically. ACR
+  source pins and nonempty queue state are migration state: serialize them or
+  reject the unsupported migration shape explicitly.
+- Normalize typed vector destinations to queue publication rather than direct
+  physical replacement. The currently executable LTAR ABI maps TA..TD to
+  indices 0..3 and TO/TS to 4/5; do not invent a wider mapping until the
+  assembler, compiler, and QEMU parser adopt it together.
 - For faultable tile helpers, plan descriptor allocation and source consumption
   without mutating live state, then publish them only after the operation
   succeeds. TMA Normal-memory beats may remain externally non-atomic when the
