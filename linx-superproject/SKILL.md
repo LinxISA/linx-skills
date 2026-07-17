@@ -151,16 +151,33 @@ gh pr merge <PR> --squash
 ## Canonical gate commands
 
 Retired public `0.3`/`0.4` guard scripts and historical compatibility wrappers
-are not active gates. Use the canonical v0.56 checks directly:
+are not active gates. Use the canonical v0.57 checks directly. v0.57 is built
+as the sole active ISA release; the v0.57 release manifest records its
+reviewed assignments and conformance policy:
 
 ```bash
-python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
-python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
-python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.57 --check
+python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.57
+python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v057.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/check_pto_v057_manifest.py --root /Users/zhoubot/linx-isa
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_sail_model.py --require-parser --require-c-backend
 ```
 
-Keep CI/workflow names on `public-v056` surfaces.
+Keep CI/workflow names on active `public-v057` surfaces. Legacy `retired-public`
+surfaces are historical comparison only and must not be used to claim v0.57
+closure.
+
+v0.57 integration handoff must prove cross-repo agreement on:
+
+- scalar CAS and DMA forms in ISA golden, compiler MC coverage, and QEMU decode;
+- `TPREFETCH` as destination-free `TLOAD`, encoded adjacent to
+  `TLOAD`/`TSTORE` and publishing no destination/result;
+- dense TMA selector coverage `0..8`;
+- unique named `CUBE` block/template identities across ISA, compiler, PTOAS,
+  and QEMU metadata;
+- the 111-operation PTO map from the v0.57 PTO workbook/manifest; and
+- rejection of stale legacy selector, template, and PTO spellings unless the
+  v0.57 catalog explicitly admits them.
 
 PR tier strict closure:
 

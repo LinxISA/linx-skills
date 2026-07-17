@@ -89,12 +89,12 @@ bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
-python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
+python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.57/linxisa-v0.57.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
 ```
 
-Coverage and opcode-sync gates must target the live v0.56 catalog. Treat any
-`isa/v0.3` or `isa/v0.4` coverage command as archive-only unless explicitly
-running a historical comparison.
+Coverage and opcode-sync gates must target the live standalone v0.57 catalog.
+Treat any `isa/v0.3`, `isa/v0.4`, or other retired-profile coverage command as
+archive-only unless explicitly running a historical comparison.
 
 ## Incremental build policy
 
@@ -185,6 +185,21 @@ First-divergence rules:
   ISA allows restartable partial completion, but stale backing is never a
   general substitute for a live source; any compiler-compatibility exception
   must be provenance-bound and operand-exact.
+- For v0.57 PTO/tile decode, keep `TPREFETCH` adjacent to the `TLOAD`/`TSTORE`
+  encoding family but destination-free. Execute it as a TLOAD-like prefetch of
+  addressing and attributes with no tile destination operand and no queue
+  publication.
+- Decode TMA selectors as the dense v0.57 `0..8` PTO tile-memory family. Reject
+  holes, aliases, and legacy selector spellings unless the v0.57 golden manifest
+  explicitly reserves them.
+- Keep named `CUBE` opcode/template identities unique across QEMU metadata,
+  golden decode names, and compiler block templates; never collapse distinct
+  CUBE forms into one handler name without an explicit sub-op identity.
+- Add scalar CAS/DMA decode metadata and execution coverage as active v0.57
+  forms, not compatibility fallbacks.
+- When PTOAS/QEMU bridge metadata is involved, validate against the v0.57
+  111-operation PTO map and reject legacy PTO spellings rather than normalizing
+  them silently.
 
 For recovered historical lines, insert one extra step before implementation:
 
