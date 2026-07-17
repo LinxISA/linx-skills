@@ -22,6 +22,30 @@ For the merged direct-kernel recovery lane, these wrappers are firmwareless by
 default. If you override `QEMU_EXTRA_ARGS`, preserve `-bios none` unless you
 are explicitly testing a firmware artifact.
 
+Treat every runtime wrapper as fail-closed: guest success markers never
+override a QEMU timeout or nonzero process exit. A strict published result must
+name the exact `KERNEL`, `INITRD` or rootfs image, and `QEMU` binary and retain
+their SHA-256 provenance. If a legacy wrapper only prints a transcript, keep
+that result diagnostic until a machine-readable provenance record accompanies
+it.
+
+### Promoted vmlinux provenance
+
+- Build a kernel intended for promoted runtime evidence with
+  `tools/bringup/run_linux_vmlinux_build_clean.sh --fresh --target vmlinux`.
+  A successful build must produce and self-verify
+  `<out-dir>/vmlinux.provenance.json`.
+- Before promotion, verify that report with
+  `tools/bringup/linux_vmlinux_provenance.py verify` and require a clean source,
+  a fresh generation, the exact pinned Linux HEAD, and the expected Clang and
+  `ld.lld` SHA-256 values.
+- The report must bind the Linux source state, build argv, config, compiler,
+  linker, make/host tools, build helper, and resulting `vmlinux`. A directory
+  ownership or deletion marker is not artifact provenance.
+- A parent workload or release manifest must record the SHA-256 of the verified
+  provenance report. Without that binding, runtime output is diagnostic even
+  when the guest passes.
+
 ## Deterministic smoke repro
 
 - For early boot triage, prefer the pinned `vmlinux` + initramfs smoke form so
@@ -41,7 +65,7 @@ bash /Users/zhoubot/linx-isa/tools/bringup/run_linux_vmlinux_build_clean.sh \
   --out-dir /Users/zhoubot/linx-isa/kernel/linux/build-linx-fixed \
   --clang /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang \
   --gmake /opt/homebrew/bin/gmake \
-  --target vmlinux
+  --target vmlinux --fresh
 ```
 
 - Reproduce the current BusyBox rootfs lane with the clean helper path and
@@ -76,10 +100,19 @@ PATH=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin:$PATH \
 ## Trap triage
 
 1. capture first repeated trap tuple (`pc`, cause, context),
-2. symbolize with matching `vmlinux`,
+2. identify whether the PC belongs to the kernel or a user PIE; for a PIE,
+   subtract the mapped load base before symbolizing the matching user ELF,
 3. disassemble neighborhood,
 4. classify failure (target legality, ABI/call-ret, translation/fault),
 5. bisect Linux/QEMU SHAs when needed.
+
+When a user trap contains an implausibly small address after paired loads,
+also inspect T/U-hand queue age across the producer and every consumer. A
+multi-def instruction gives its destinations one instruction index but still
+pushes them in operand order; compiler queue allocation must therefore include
+same-instruction `DefOpNo` order. Two later consumers both reading `t#1` or
+`u#1` can be a compiler depth-assignment bug even when each instruction's
+standalone QEMU semantics is correct.
 
 ## Cross-stack checks
 

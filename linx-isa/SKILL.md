@@ -27,18 +27,47 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
   (`EBARG/BSTATE`, including `TQ/UQ` queues and continuation PCs).
 - `TIME` (SSR `0x0010`) is a read-only monotonic nanosecond counter modulo
   `2^64`; it is not wall-clock time.
-- `BSTART.PAR` and `B.IOD` are retired spellings in v0.56.5. Their encodings
+- `BSTART.PAR` and `B.IOD` are retired spellings in v0.57. Their encodings
   remain reserved evidence, assemblers reject the names, and canonical decode
   never exposes them as instruction identities (`BSTART.TEPL` owns its code).
+- v0.57 is the sole active ISA release. Do not revive legacy forms; active
+  specification, generator, compiler, and emulator gates use only v0.57.
+- v0.57 TPREFETCH is encoded adjacent to TLOAD/TSTORE and is destination-free:
+  model it as TLOAD addressing/attributes with no destination queue publication.
+- v0.57 TMA selectors are the contiguous PTO tile-memory family 0..8. Keep PTO
+  tile op selector tables dense and reject holes or aliases unless the golden
+  manifest explicitly reserves them.
+- CUBE block/template names are unique architectural identities in v0.57. Do
+  not reuse a CUBE mnemonic, template key, or generated block-template entry for
+  two distinct forms.
+- v0.57 scalar CAS/DMA forms are active ISA deltas; they must be present in the
+  golden catalog, generated codec tables, manual fragments, compiler MC
+  coverage, and QEMU decode metadata before closure.
+- v0.57 PTO ISA mapping has 111 PTO dialect operations. PTOAS and ISA manifest
+  checks must agree on the 111-entry map; missing PTO entries are blockers, and
+  legacy selector spellings are rejected rather than normalized.
+- Before changing a form with a variable selector, enumerate its raw words
+  against every generic selector space at the same instruction length. If one
+  raw word has multiple architectural meanings, freeze the ISA/assembler
+  contract first; decoder priority or a single-component decoder change is not
+  a valid repair.
+- Before concatenating adjacent encoded fields into one logical operand, audit
+  the form's introduction history and exact sub-instruction boundaries. A
+  compound form that embeds independently relocatable operations keeps their
+  operand roles, PC bases, and side effects unless an explicit architecture
+  decision redefines it. Require metamorphic raw tests that vary each field
+  independently; field adjacency or equal aggregate width is not evidence of
+  concatenation.
 
 ## LinxArch mandatory gates
 
 ```bash
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_linxcore_arch_contract.py --root /Users/zhoubot/linx-isa --strict --require-mkdocs
-python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.56 --check
-python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.56
-python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v056.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/build_golden.py --profile v0.57 --check
+python3 /Users/zhoubot/linx-isa/tools/isa/validate_spec.py --profile v0.57
+python3 /Users/zhoubot/linx-isa/tools/isa/check_canonical_v057.py --root /Users/zhoubot/linx-isa
+python3 /Users/zhoubot/linx-isa/tools/isa/check_pto_v057_manifest.py --root /Users/zhoubot/linx-isa
 python3 /Users/zhoubot/linx-isa/tools/isa/gen_sail_decode.py --check
 python3 /Users/zhoubot/linx-isa/tools/isa/gen_sail_status.py --check
 python3 /Users/zhoubot/linx-isa/tools/isa/sail_coverage.py --check
@@ -48,23 +77,24 @@ python3 /Users/zhoubot/linx-isa/docs/check_documentation.py --root /Users/zhoubo
 
 The Sail gate is toolchain-pinned by `isa/sail/toolchain.json`; required lanes
 must install that exact version and may not treat a missing parser or C backend
-as success. Semantic coverage is form-ID based and grades each form as
-`decode-only`, `executable-subset`, or `architecturally-complete`; never infer
-semantic completeness from mnemonic presence alone.
+as success. Semantic coverage is stable ISA form-ID based and grades each form
+as `decode-only`, `executable-subset`, or `architecturally-complete`; never
+infer semantic completeness from mnemonic presence alone. QEMU reporter form
+coverage instead uses the encoding signature `(mnemonic, length, mask,
+match)`; do not report that signature coverage as stable form-ID closure.
 All generated-artifact checks must compare both contents and the exact owned
 file set without rewriting the worktree.
 
 Historical compatibility wrappers are retired. Do not restore
 `check_public_v03.sh`, `check_canonical_v04.py`, or `check_no_legacy_v0*.py`
-paths; update callers to the canonical v0.56 checks above instead.
+paths; update callers to the canonical v0.57 checks above instead.
 
 ## Contract pages that must stay authoritative
 
-- `docs/architecture/v0.56-architecture-contract.md`
-- `docs/architecture/v0.56-workload-engine-model.md`
-- `docs/architecture/v0.56-rendering-command-contract.md`
+- `docs/architecture/v0.57-architecture-contract.md`
+- `docs/architecture/v0.57-encoding-decisions.md`
 - `docs/architecture/isa-manual/src/linxisa-isa-manual.adoc`
-- `isa/v0.56/linxisa-v0.56.json`
+- `isa/v0.57/linxisa-v0.57.json`
 - canonical LinxCore authoring:
   - `rtl/LinxCore/docs/architecture/overview.md`
   - `rtl/LinxCore/docs/architecture/microarchitecture.md`
@@ -103,4 +133,4 @@ This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.
 ## References
 
 - `references/spec_alignment.md`
-- `references/v0.3_contracts_and_asm.md` (archive-only historical baseline; not an active v0.56 gate source)
+- `references/v0.3_contracts_and_asm.md` (archive-only historical baseline; not an active v0.57 gate source)

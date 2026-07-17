@@ -36,6 +36,15 @@ For direct-boot AVS and SuperNPUBench AI workload runs, set
 That env makes test finisher MMIO writes report pass/fail to the host instead
 of relying on timeout behavior.
 
+The finisher is a post-store MMIO contract. Translation helpers must not stop
+the CPU before the terminal store executes and retires: route the write through
+the `linx-test-finisher` device, let the normal store/commit path record the
+instruction, then use `stop_after_commit` to close commit/Minst traces. Minst
+store records must carry the real store value in `mem_wdata`. A focused
+regression must end with exactly one retired finisher store at `0x10009000`
+with the expected status value; never obtain trace parity by dropping or
+normalizing away the terminal record.
+
 QEMU linux-user mode is a separate process ABI lane. Use it only when the
 checked-out or recovered QEMU tree actually provides a `qemu-linx` binary; the
 current canonical checked-in target list may still expose only softmmu targets.
@@ -80,12 +89,12 @@ bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
-python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.56/linxisa-v0.56.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
+python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.57/linxisa-v0.57.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
 ```
 
-Coverage and opcode-sync gates must target the live v0.56 catalog. Treat any
-`isa/v0.3` or `isa/v0.4` coverage command as archive-only unless explicitly
-running a historical comparison.
+Coverage and opcode-sync gates must target the live standalone v0.57 catalog.
+Treat any `isa/v0.3`, `isa/v0.4`, or other retired-profile coverage command as
+archive-only unless explicitly running a historical comparison.
 
 ## Incremental build policy
 
@@ -131,6 +140,66 @@ ninja qemu-system-linx64
    shifts it into a byte offset.
 8. Patch decode/execute or exception path and add a focused regression.
 9. Re-run runtime and system strict gates.
+
+First-divergence rules:
+
+- For current `ET_REL` direct-boot relocation failures, first compare QEMU
+  loader relocation types with LLVM `ELFRelocs/LinxISA.def`. Enter opcode
+  dispatch only for an explicit whitelist of current relocation types; never
+  infer dynamic, TLS, GOT, or unsupported relocations from instruction bits.
+- Do not close platform-defined `XB`/`CAC_TABLE` coverage with decoder-only or
+  no-op handling. First freeze the table-entry layout plus the `XBINFO`,
+  permission, and `E_INST` ABI tracked by `LinxISA/linx-isa#140`.
+- Treat `report_qemu_isa_coverage.py` as L1 decoder/source-mapping evidence
+  only. Call coverage executable and semantic only when the same form has L2
+  runtime execution tied to a test ID and an L3 architectural result oracle;
+  report missing L2/L3 evidence as unavailable rather than zero.
+- Keep tile hand allocation, source provenance, backing storage, ACR switching,
+  and VMState in one state-ownership contract. Shared backing requires shared
+  liveness; banked liveness requires equivalently banked backing.
+- Interpret B.IOT tile sources as six-bit hand/rank operands, with rank 1 as
+  the newest live entry in that hand. Never derive an architectural rank from
+  a physical TILE id. Freeze each header's source and output bindings before
+  executing its body, reserve outputs in distinct physical slots, then consume
+  inputs and publish outputs in descriptor order at successful block commit.
+- Stage tile queue metadata locally across TMA, CUBE, and vector execution.
+  Backing-memory beats may follow their documented restart rules, but live,
+  reserved, ordered, and ACR-pin metadata must become visible atomically. ACR
+  source pins and nonempty queue state are migration state: serialize them or
+  reject the unsupported migration shape explicitly.
+- Normalize typed vector destinations to queue publication rather than direct
+  physical replacement. The currently executable LTAR ABI maps TA..TD to
+  indices 0..3 and TO/TS to 4/5; do not invent a wider mapping until the
+  assembler, compiler, and QEMU parser adopt it together.
+- Keep vector LTAR lifetime tied to descriptor provenance. Source-less
+  MSEQ/MPAR B.IOT outputs are block-local scratch: reserve them for TO/TS while
+  the body runs, then discard them without publishing into a tile hand.
+  Input-bound VPAR/TEPL outputs are persistent tile dataflow and must consume
+  frozen inputs before publishing the independently reserved output. Until
+  general vector lowering becomes queue-relative as one cross-layer change,
+  do not apply the tile-body queue-head destination compatibility rule to
+  ordinary fixed-slot MSEQ/MPAR code.
+- For faultable tile helpers, plan descriptor allocation and source consumption
+  without mutating live state, then publish them only after the operation
+  succeeds. TMA Normal-memory beats may remain externally non-atomic when the
+  ISA allows restartable partial completion, but stale backing is never a
+  general substitute for a live source; any compiler-compatibility exception
+  must be provenance-bound and operand-exact.
+- For v0.57 PTO/tile decode, keep `TPREFETCH` adjacent to the `TLOAD`/`TSTORE`
+  encoding family but destination-free. Execute it as a TLOAD-like prefetch of
+  addressing and attributes with no tile destination operand and no queue
+  publication.
+- Decode TMA selectors as the dense v0.57 `0..8` PTO tile-memory family. Reject
+  holes, aliases, and legacy selector spellings unless the v0.57 golden manifest
+  explicitly reserves them.
+- Keep named `CUBE` opcode/template identities unique across QEMU metadata,
+  golden decode names, and compiler block templates; never collapse distinct
+  CUBE forms into one handler name without an explicit sub-op identity.
+- Add scalar CAS/DMA decode metadata and execution coverage as active v0.57
+  forms, not compatibility fallbacks.
+- When PTOAS/QEMU bridge metadata is involved, validate against the v0.57
+  111-operation PTO map and reject legacy PTO spellings rather than normalizing
+  them silently.
 
 For recovered historical lines, insert one extra step before implementation:
 
@@ -303,6 +372,14 @@ For recovered historical lines, insert one extra step before implementation:
   split the next speed lanes into template/TB/MMU dispatch for `500`, `502`,
   `505`, `520`, `523`, and `541`; Linux TLBI source reduction for `531` and
   `557`; and separate 9p/kernel transport profiling for `525`.
+- Never promote `--qemu-speed-stack` without a same-manifest, default-off
+  `999.specrand_ir` train A/B first. On 2026-07-17 the default-off sentinel
+  completed with its strict hash in 108.581 seconds, while the speed-stack
+  lane timed out at 180 seconds; the same speed-stack run timed out all ten
+  train rows before hash checking. For timeout diagnosis, also set a nonzero
+  `--qemu-heartbeat-interval`: enabling extended heartbeat fields alone does
+  not emit `LINX_HEARTBEAT`, so `running` and site-progress remain
+  unobservable and must not be reported as proof of either liveness or stall.
 - For SPEC frame restore-load experiments, keep
   `LINX_QEMU_FRAME_RESTORE_HOST_LOAD=1` / `LINX_FRAME_RESTORE_HOST_LOAD=1`
   opt-in and normally drive it through the SPEC runner's
