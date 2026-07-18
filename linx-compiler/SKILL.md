@@ -151,4 +151,3 @@ This consolidated skill absorbs prior `llvm-backend` and compiler-side `call-ret
 ## References
 
 - `references/compiler_checks.md`
-- `references/v0.3_codegen_and_asm_contracts.md` (archive-only historical baseline; not an active v0.57 gate source)

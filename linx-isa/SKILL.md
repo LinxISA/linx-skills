@@ -85,9 +85,8 @@ match)`; do not report that signature coverage as stable form-ID closure.
 All generated-artifact checks must compare both contents and the exact owned
 file set without rewriting the worktree.
 
-Historical compatibility wrappers are retired. Do not restore
-`check_public_v03.sh`, `check_canonical_v04.py`, or `check_no_legacy_v0*.py`
-paths; update callers to the canonical v0.57 checks above instead.
+Historical compatibility wrappers are retired. Update every caller to the
+canonical v0.57 checks above instead of restoring versioned wrappers.
 
 ## Contract pages that must stay authoritative
 
@@ -133,4 +132,3 @@ This consolidated skill absorbs prior `arch-bringup` and `isa-manual` scopes.
 ## References
 
 - `references/spec_alignment.md`
-- `references/v0.3_contracts_and_asm.md` (archive-only historical baseline; not an active v0.57 gate source)
