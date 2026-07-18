@@ -54,7 +54,7 @@ def list_worktree_skill_changes(repo: Path) -> tuple[set[str], set[str]]:
             top = candidate.split("/", 1)[0]
             if top.startswith("linx-"):
                 changed.add(top)
-                if "D" in status:
+                if "D" in status and candidate.rstrip("/") == top:
                     removed.add(top)
     return changed, removed
 
