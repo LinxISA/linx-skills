@@ -255,7 +255,7 @@ multi-agent Chisel development. Each module packet must:
   because `ReducedBfuGeometryPredictionLatch` is registered. Keep
   `ReducedBfuBodyCutArm` as diagnostic/oracle comparison until a real
   branch/BFU resolver replaces the external replay source. Drive local
-  body-window D1 scans from registered F4/IB entry validity rather than source out-fire
+  body-window D1 scans from registered Inst Buffer entry validity rather than source out-fire
   to avoid body-cut/source-advance combinational cycles;
 - close with `skill-evolve: update ...` or `skill-evolve: no-update ...`.
 
@@ -306,8 +306,10 @@ Toolchain facts from initial Chisel bring-up:
 
 Compatibility terminology: historical Chisel module/test names such as
 `F4DecodeWindow` remain literal code identifiers. In the bring-up notes below,
-an "F4 slot/window" means a D1 decode slot/view read from F4/IB state; it never
-defines a separate F4 decode stage.
+an "F4 slot/window" means a legacy D1 decode slot/view read from Inst Buffer
+state; it never defines architectural I-F4 state. Architectural I-F4 is the
+final I-SIDE fetch stage and writes a separate Inst Buffer through a decoupled
+interface.
 
 - Homebrew `openjdk@17` works with the wrappers.
 - Homebrew `sbt` 2.0.0 works when the project uses Scala `2.13.17`.
@@ -324,7 +326,7 @@ defines a separate F4 decode stage.
   work uses `BID_W`, and a width migration must update all producers,
   consumers, traces, and fixtures coherently.
 - Phase 2 `F4DecodeWindow` is a legacy module name for a D1 decode-window
-  helper; it is not architectural F4. Work on it must preserve LinxCoreModel `CheckMInstSize`
+  helper; it is not architectural I-F4. Work on it must preserve LinxCoreModel `CheckMInstSize`
   instruction sizing: bit 0 clear gives 2 bytes unless header bits `[3:1]` are
   `111`, which gives 6 bytes; bit 0 set gives 4 bytes unless header bits
   `[3:1]` are `111`, which gives 8 bytes. The Chisel gate is
@@ -344,14 +346,14 @@ defines a separate F4 decode stage.
   occupancy stable, and keep full-state backpressure based on pre-cycle
   occupancy.
 - Chisel frontend buffers must carry `checkpointId` as packet-owned state
-  alongside PC/window/packet UID. Do not reconstruct F4/IB-to-D1 packet checkpoint
-  identity from adjacent control wiring once a packet enters the Chisel
-  frontend queue.
+  alongside PC/window/packet UID. Do not reconstruct Inst Buffer-to-D1 packet
+  checkpoint identity from adjacent control wiring once a packet enters the
+  Chisel frontend queue.
 - Phase 2 `FrontendDecodeIngress` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeIngress`.
-  Architecturally this is the F4/IB-to-D1 transport boundary: F4 is the fourth
-  fetch stage and the instruction-buffer boundary, not a four-slot decode
-  stage. The current implementation composes
+  Architecturally this is the Inst Buffer-to-D1 transport boundary: F4 is the
+  final I-SIDE fetch stage and writes the separate Inst Buffer, not a four-slot
+  decode stage and not an alias for the buffer. The current implementation composes
   `FrontendInstructionBuffer` with `F4DecodeWindow`, pop only on
   `decodeReady && f4.d1.valid`, preserve no same-cycle push-to-D1 bypass,
   clear/mask both children on flush, and keep opcode decode, macro-boundary
@@ -359,7 +361,7 @@ defines a separate F4 decode stage.
 - Phase 2/R39/R40 `FrontendDecodeStage` work must run
   `bash tools/chisel/run_chisel_tests.sh --only FrontendDecodeStage` plus the
   affected `F4DecodeWindow`, `FrontendDecodeIngress`, and `InterfaceBundles`
-  gates. This module is the first D1 decode-shape owner after F4/IB: use the
+  gates. This module is the first D1 decode-shape owner after Inst Buffer: use the
   generated pyCircuit opcode metadata mask/match table, preserve the
   most-specific-mask rule (`decode16_meta`/`decode32_meta`/`decode48_meta`/
   `decode64_meta`), emit `DecodedUop` records with slot PC/raw/len/opcode and
@@ -431,7 +433,7 @@ defines a separate F4 decode stage.
   reservation owner exists, stamp allocator BID/RID identity at the queue head
   before `ScalarDecodeRenameBridge`; do not stamp or reserve allocator cursors
   for multiple queued rows at enqueue because that duplicates identities. Later
-  top-level frontend integration must advance D1 and consume F4/IB only on `decodeReady` /
+  top-level frontend integration must advance D1 and consume Inst Buffer only on `decodeReady` /
   queue acceptance.
 - Phase 5/R45 `DecodeLoadStoreIdAssign` / `DecodeRenameROBPath` work must run
   `bash tools/chisel/run_chisel_tests.sh --only DecodeLoadStoreIdAssign` plus
@@ -1066,7 +1068,7 @@ defines a separate F4 decode stage.
   reduced marker-consume evidence, not dense packet support and not full
   `BSTART`/`BSTOP` scalar_done/BROB retirement semantics.
 - Phase 5/R102 reduced dense D1-slot work lets the same live fetch RF/ALU gate
-  feed natural 8-byte F4/IB windows instead of one instruction per response. The
+  feed natural Inst Buffer windows instead of one instruction per response. The
   reduced bridge must preserve every valid D1 slot from the window in order,
   keep each slot's original slot index, and drain one slot per cycle into the
   existing serialized decode/ROB path. Build the fixture with
@@ -1332,7 +1334,7 @@ defines a separate F4 decode stage.
   Commit rows must remain no-writeback and carry one 8-byte store sideband;
   scalar P sources are visible while local T/U bases are consumed internally and
   suppressed to match QEMU. Do not promote live CoreMark captures that cut
-  inside a dense F4/IB window: 41 rows cuts inside the SDI/ADDI two-slot packet, 43
+  inside a dense Inst Buffer window: 41 rows cuts inside the SDI/ADDI two-slot packet, 43
   rows cuts inside the following three-slot branch packet, and the promoted R118
   gate uses `--capture-rows 42`. Run
   `python3 tools/chisel/frontend_fetch_rf_alu_qemu_rows.py --self-test`,
@@ -1389,7 +1391,7 @@ defines a separate F4 decode stage.
   real LSU/data-memory implementation. `OP_C_SETC_EQ` shares the no-writeback
   compare-row shape with `C.SETC_NE` but publishes equality on the reduced
   branch-decision sideband. Bounded live-QEMU captures may end inside an
-  8-byte F4/IB window; in that case the frontend fetch RF/ALU harness may accept a
+  fixed-width Inst Buffer window; in that case the frontend fetch RF/ALU harness may accept a
   DUT dense-packet superset only for the final captured expected row while
   still comparing every committed row in the captured prefix. If that final
   packet contains post-prefix slots, stop after the compared prefix instead of
@@ -2387,25 +2389,73 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
   or commit.
 - When adding new owner tables or wake structures such as qtag wait crossbars or IQ owner tables, place them in the queue-owner module/file instead of generic top-level helpers.
 - For LSU-side work, keep `LIQ/LHQ/MDB/STQ/SCB/L1D` transitions in an LSU-owner module/file and keep redirect pruning plus LSID rebasing in a recovery-owner module/file. Do not mix memory-owner progression and recovery-domain pruning into generic scheduler glue.
-- For frontend-side work, keep instruction-to-uop build/decode in a decode-owner module/file, `F0/F1..F4/IB/D1..D3/S1..S3` movement and routing in a frontend-owner module/file, and stage-event generation in a trace-owner module/file. F0 is canonical thread/PC control. F1-F4 are the four fetch stages; F4 owns final lightweight predecode/prediction and aliases IB, never four decode slots. Internal serial `IB -> F4` and `F4DecodeWindow` names are migration aliases. Do not mix uop construction, stage transport, and trace emission back into one scheduler file; that obscures which part of the model owns fetch barriers, ROB admission, and visible stage residency.
-- Template parents are marked at F4 but must pass D1/D2 before D3 atomically
+- For frontend-side work, keep instruction-to-uop build/decode in a decode-owner
+  module/file, I-SIDE fetch and Inst Buffer transport in a frontend-owner
+  module/file, B-SIDE prediction in a prediction-owner module/file, and
+  stage-event generation in a trace-owner module/file. The frontend is two
+  independently backpressured, decoupled, non-lockstep five-stage engines:
+  - I-SIDE owns architectural `I-F0..I-F4`. I-F0 owns thread/PC selection,
+    aligns the request to a cacheline, allocates request/epoch identity, and
+    sends the identity-qualified prediction request to B-F0. I-F1 launches
+    ITLB translation and L1I lookup in parallel. I-F2 joins their results,
+    owns refill/translation replay, and on an ITLB miss issues an
+    identity-qualified frontend inner flush that cancels matching/younger
+    I-SIDE and B-SIDE work before restarting the replay PC at I-F0. BHC is the
+    I-SIDE L1I/BHC owner. I-F3 owns cacheline capture, cross-line carry, and
+    byte-stream alignment. I-F4 performs only lightweight predecode for
+    `BSTART`/`BSTOP` and instruction length, extends each instruction payload
+    to 64 bits, and writes a separate Inst Buffer over a decoupled interface.
+    The Inst Buffer is not I-F4 state.
+  - B-SIDE owns architectural `B-F0..B-F4` and follows the LinxCoreModel BFU
+    predictor composition. B-F0 performs L0/Nano-BTB or NLP prediction and
+    snapshots GHR/GHRQ/RAS checkpoint state. B-F1 reads uBTB and fast RAS while
+    launching the larger tables. B-F2 collects PBTB/main-BTB and BIM. B-F3
+    collects short/medium-history TAGE and launches an identity-tagged IBTB
+    lookup. B-F4 collects long-history TAGE provider/alternate state, the
+    final IBTB target, Loop Predictor/Loop Buffer result, and the final RAS
+    check, then performs unified arbitration. It exchanges request,
+    prediction, correction, cancellation, training, and backpressure
+    information with I-SIDE only through explicit decoupled interfaces.
+  - Cross-stage provider rank is fixed:
+    `B-F4 > B-F3 > B-F2 > B-F1 > B-F0 > sequential`. Within one arbitration
+    point, exact RAS return and high-confidence IBTB indirect targets have
+    target-type priority; direction override priority is
+    `loop > long-TAGE > short-TAGE > BIM`; BTB/PBTB supplies direct targets.
+    A backend typed-recovery restart is not a predictor provider and always
+    overrides every B-stage result.
+  - I-SIDE and B-SIDE may occupy unrelated stage numbers in the same cycle.
+    No channel may infer readiness, correspondence, or cancellation from
+    stage-number alignment; every cross-engine transaction is matched by
+    STID, request ID, epoch, and checkpoint identity.
+  - D1 reads four fixed 64-bit Inst Buffer entries. Instruction-length metadata
+    selects decode semantics but never changes the D1 payload width. All
+    opcode/uop decode begins at D1; I-F4 remains limited to marker and length
+    classification.
+  Historical identifiers such as `F4DecodeWindow`, an "F4 slot/window", or
+  the existing serial frontend wiring are implementation migration names, not the target
+  architecture. Do not mix uop construction, fetch transport, prediction,
+  and trace emission back into one scheduler file; that obscures which domain
+  owns fetch barriers, prediction recovery, ROB admission, and visible stage
+  residency.
+- Template parents are identified by full decode at D1 and must pass D2 before D3 atomically
   reserves one `(STID,BID)`, child ROB rows, and a final template trace/commit
   row. CTU fills child rows in order; children reuse the parent BID and retire
   before the final row. Flush removes filled/unfilled reservations by STID and
   checkpoint. Do not use a ROB-head direct-write CTU path as canonical evidence.
-- Preserve the ARM-style retirement coordinates: R0 captures resolve, R1 forms the precise decision, R2 publishes CMT and FLS coherently, R3 performs registered recovery processing, and R4 publishes restart state to F0. Do not move CMT to R3 or conflate the R2 flush broadcast with the R4 restart.
-- Model architectural redirect restart as the registered `R2 FLS -> R3 recovery -> R4 restart -> F0` sequence, not as an implicit side effect of generic fetch iteration. F0 must honor the R4 restart boundary; do not let fetch resume in the same abstract step that resolved the redirect just because the software loop can see the corrected target immediately.
-- Keep redirect restart-source selection in the recovery owner too. The R1/R2 path resolves the legal restart source from redirect metadata and block-boundary legality (`BSTART`, `FENTRY`, `FEXIT`, `FRET.*`); R4 then hands F0 a concrete restart token `(target_pc, restart_seq, resume_cycle)`. Do not let generic fetch code infer restart by “next surviving seq” once wrong-path/frontend occupancy exists.
+- Preserve the ARM-style retirement coordinates: R0 captures resolve, R1 forms the precise decision, R2 publishes CMT and FLS coherently, R3 performs registered recovery processing, and R4 publishes restart state to I-F0. Do not move CMT to R3 or conflate the R2 flush broadcast with the R4 restart.
+- Keep frontend inner flush and backend typed recovery as separate recovery classes. An I-F2 translation miss or a later B-SIDE stage correcting an accepted earlier prediction in `{taken, branchPc, target, kind}` may restore its frontend/predictor checkpoint, cancel matching/younger frontend transactions, and restart I-F0; B-F4 is the final correction point. A frontend inner flush must not prune ROB/backend architectural state. A backend-resolved misprediction enters the typed precise-recovery fabric, restores accepted predictor/backend checkpoints, invalidates matching wrong-path frontend work through the typed recovery boundary, and publishes the architectural restart PC to I-F0. Backend restart always overrides every outstanding B-F0..B-F4 provider result.
+- Model architectural redirect restart as the registered `R2 FLS -> R3 recovery -> R4 restart -> I-F0` sequence, not as an implicit side effect of generic fetch iteration. I-F0 must honor the R4 restart boundary; do not let fetch resume in the same abstract step that resolved the redirect just because the software loop can see the corrected target immediately.
+- Keep redirect restart-source selection in the recovery owner too. The R1/R2 path resolves the legal restart source from redirect metadata and block-boundary legality (`BSTART`, `FENTRY`, `FEXIT`, `FRET.*`); R4 then hands I-F0 a concrete restart token `(target_pc, restart_seq, resume_cycle)`. Do not let generic fetch code infer restart by “next surviving seq” once wrong-path/frontend occupancy exists.
 - Keep architectural redirect ownership boundary-only. In the CA reference model, a non-fallthrough BRU commit is not itself an `FLS` redirect owner; treat it as pre-boundary correction metadata and let the later architectural boundary (`BSTART`/`BSTOP`/macro boundary) own the visible redirect and frontend restart.
 - Model deferred BRU correction as explicit recovery-owner state, and let the later architectural boundary consume it before any boundary-local redirect target. A BRU mismatch should publish pending correction metadata when it becomes architecturally visible, but `FLS` should only resolve at the boundary, using pending BRU correction first and clearing that state once the boundary-owned redirect/restart token is issued.
 - Match deferred BRU correction by block/branch epoch, not plain age. In the CA reference model, a later boundary may consume deferred BRU correction only when the correction epoch matches that boundary's block epoch; a stale correction from an older dynamic block instance must not leak across a head-`BSTART` epoch advance into the next loop iteration.
 - Model recovery-target safety as a BRU-side precise trap, not a boundary fallback. If deferred BRU correction resolves to a target that lacks legal block-start metadata (`BSTART*` or a valid template start), report architectural `E_BLOCK(EC_CFI)` with `CFI_BAD_TARGET`, source PC/TPC in `TRAPARG0`, and `ECSTATE.BI=0`. `TRAP_BRU_RECOVERY_NOT_BSTART (0xB001)` is legacy internal diagnostics only and must be mapped before trap export; do not silently convert the fault into a boundary-local redirect or guessed restart sequence.
 - Carry checkpoint identity through recovery-owner state and trace visibility. Deferred BRU correction, boundary redirect selection, and BRU recovery faults should preserve the checkpoint id associated with the owning row, and `FLS/CMT` trace emission should surface that checkpoint/trap metadata instead of collapsing recovery events to an unlabeled redirect cause.
 - Carry live boundary kind through recovery trace visibility as well. `FLS/CMT` events that represent redirect ownership, BRU recovery faults, or rows retiring under a live branch-validation context should surface the owning branch class (`fall/cond/call/ret/direct/ind/icall`) so DFX can distinguish which architectural boundary kind drove recovery instead of reducing everything to a generic redirect cause.
-- Keep checkpoint ownership split by domain: frontend owns fetch-packet checkpoint assignment, and recovery owns `flush_checkpoint_id` / redirect-checkpoint propagation. Do not synthesize backend-visible checkpoint ids from unrelated notions like block epoch once a fetch/F4 packet boundary exists; derive/store checkpoint id at packet ingress and carry the boundary row's checkpoint through redirect/fault handling.
+- Keep checkpoint ownership split by domain: frontend owns fetch-packet checkpoint assignment, and recovery owns `flush_checkpoint_id` / redirect-checkpoint propagation. Do not synthesize backend-visible checkpoint ids from unrelated notions like block epoch once an Inst Buffer packet boundary exists; derive/store checkpoint id at packet ingress and carry the boundary row's checkpoint through redirect/fault handling.
 - Model flush cleanup as registered recovery state, not same-cycle helper cleanup. In the CA reference model, boundary redirect resolution should publish `flush_pending` / `flush_checkpoint_id`-like state first, and speculative prune plus LSID/memory-owner cleanup should apply on the later recovery cycle when that pending flush becomes visible; do not prune wrong-path state in the same abstract step that retired the redirect owner just because the software scheduler can see both events at once.
 - For rename-like owner state, checkpoint snapshots belong to start-marker dispatch and restore belongs to `flush_checkpoint_id`. In the CA reference model, if you do not yet model full SMAP/CMAP/freelist state, at least snapshot the owned logical-ready/rename-visible state when a start marker dispatches and restore that snapshot when the registered flush applies; do not try to reconstruct rename recovery solely from age-based wrong-path pruning after the fact.
-- Keep fetch checkpoint ids and ROB-visible checkpoint ids distinct. In the hardware contract, packet/fetch checkpoint identity comes from the frontend, while start-marker/ROB checkpoint identity is derived at decode/dispatch (for example `f4_checkpoint_id + slot`) and only start markers carry that backend-visible checkpoint token. A CA model should not reuse fetch-packet checkpoint ids as if every row had a ROB checkpoint; recovery, BRU correction ownership, and commit/trace checkpoint fields should use the start-marker/ROB-visible namespace.
+- Keep fetch checkpoint ids and ROB-visible checkpoint ids distinct. In the hardware contract, packet/fetch checkpoint identity comes from the frontend's Inst Buffer entry, while start-marker/ROB checkpoint identity is derived at decode/dispatch (the current implementation may expose a legacy `f4_checkpoint_id + slot` expression) and only start markers carry that backend-visible checkpoint token. A CA model should not reuse fetch-packet checkpoint ids as if every row had a ROB checkpoint; recovery, BRU correction ownership, and commit/trace checkpoint fields should use the start-marker/ROB-visible namespace.
 - BRU correction ownership uses the active start-marker checkpoint context, not the non-start BRU row's trivial checkpoint id. In the hardware contract, deferred BRU correction carries the ROB-visible checkpoint state of the current recovery context (the latest active start-marker/boundary checkpoint), even when the offending BRU row is not itself a start marker. A CA model should therefore resolve BRU correction and BRU recovery-fault checkpoint ids from the active checkpoint context, while boundary-owned redirect/flush state still uses the boundary row's own checkpoint token.
 - Once that checkpoint context is live in the backend, carry it as backend-owned row state instead of reconstructing it by stream scans. In the hardware contract, BRU/recovery paths consume the checkpoint token already attached to backend-visible row state (`ROB`/issue-visible ownership). A CA model should assign recovery checkpoint context when rows enter backend ownership and let BRU correction/fault paths read that live token directly; backward scans over prior `BSTART` rows are only a bootstrap fallback, not the steady-state owner path.
 - Apply the same owner rule to branch/block epoch metadata. In the hardware contract, BRU validation compares live backend `bru_epoch` against live branch state epoch, and deferred correction carries that backend-owned epoch forward. A CA model should assign row epoch when rows enter backend ownership and restore that epoch context on checkpoint flush; do not gate BRU correction or stale-correction suppression by recomputing epoch only from the committed stream once backend-owned row state exists.
@@ -2658,8 +2708,10 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
 - The rule selection contract is **most-specific mask wins**: among matching
   rules for the current instruction length, choose the rule with the largest
   `mask.bit_count()`. Equal specificity keeps source/catalog order.
-- Use the F4/IB entry length carried into D1 to select the 16/32/48/64-bit rule
-  domain; do not let a wider table match a shorter D1 slot.
+- D1 reads four fixed 64-bit Inst Buffer entries. Use each entry's instruction
+  length metadata to select the 16/32/48/64-bit rule domain; do not let a wider
+  table match a shorter instruction, and do not reinterpret D1 as a
+  variable-width transport.
 - `FrontendDecodeStage` owns opcode catalog ID, basic dispatch target,
   block-boundary/stop, load, and store sideband masks.
 - The generated Chisel table must carry the pyCircuit operand-shape metadata
@@ -3363,6 +3415,13 @@ Confirmed in #linx-core (2026-02-25):
   state. Apply the same rule at bank-local pick, global I1 admission, and
   shared I2 output arbitration. Advance fairness only when the selected
   transaction advances.
+- When a delayed I1 denial cancels an attempt after queue compaction, treat the
+  captured physical slot as diagnostic only. Re-find the current resident by
+  unique full `(STID, BID, RID)` identity, including each ROBID `valid`, `wrap`,
+  and `value` field, then clear only that row's in-flight/issued attempt.
+  `ROBID.equal` helpers may compare only wrap/value; add explicit valid-bit
+  equality when that is their contract. An absent or ambiguous full match must
+  clear no row.
 - Treat unresolved control as an admission frontier, not merely an arbiter
   preference. A younger same-STID row must not enter I1 while an older control
   row is resident. For Linx, BRU rows and redirecting `FRET.STK` own this
@@ -3422,6 +3481,22 @@ Confirmed in #linx-core (2026-02-25):
   mechanisms. Reject ARM exception levels, condition flags, exclusive
   monitors, barrier encodings, acquire/release opcode policy, and ARM-specific
   return state.
+
+## Natural benchmark workload paths
+
+- Freeze the canonical workload before assigning a natural Chisel benchmark:
+  record the exact ELF path and SHA-256, the accepted upstream ELF/ABI
+  evidence, the completion signature, and the runner SHA-256. Model and RTL
+  evidence must consume the same ELF bytes.
+- `tools/chisel/run_chisel_benchmark_autonomous_top_natural.sh` resolves a
+  relative `--elf` path from the `rtl/LinxCore` repository root. Use an
+  absolute ELF path in FishToucher required commands (or an explicitly
+  runner-relative path when that is the frozen identity). A later
+  absolute-path supplemental run cannot repair a failed byte-for-byte required
+  command; open a fresh campaign instead.
+- Treat alternate or relocated ELFs as diagnostic-only evidence. They cannot
+  establish benchmark progress for the frozen workload, and changing the ELF
+  bytes starts a new verification campaign.
 
 ## When merging LinxCore PRs
 
