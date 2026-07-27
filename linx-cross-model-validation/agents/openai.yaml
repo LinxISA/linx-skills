@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx Cross-Model Validation"
+  short_description: "Validate QEMU and gfrun architectural results"
+  default_prompt: "Use $linx-cross-model-validation to run and extend QEMU-gfrun architectural result comparison."
