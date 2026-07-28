@@ -2602,6 +2602,14 @@ These are the canonical LinxCore contract and must be preserved by future change
 - Derive IEX IQ-watchdog replay identity from the selected STID's authoritative
   full BROB commit pointer and valid/incomplete oldest state. Increment the full
   pointer with rollover; never increment a canonical BID slot and invent wrap.
+- Keep recovery reference state in independent owner domains. A D3 transaction
+  ID is monotonic modulo its own width and must not rewind when recovery restores
+  a wrap-qualified ROB tail. Head advances on exact release; tail advances on
+  reserve and may rewind only to an owner-authorized surviving suffix; tail
+  epoch advances whenever the reservation view changes so stale D2 plans fail.
+  Live occupancy shrinks on release/recovery and is not a transaction counter.
+  Directed and randomized models must not derive transaction ID, tail, epoch,
+  instruction serial, and occupancy from one cumulative issued sequence.
 - Tied-off reduced shells prove integration shape only. Do not claim live BCC,
   IEX, or PE recovery until the actual trigger owner drives the raw event port
   and generated RTL proves positive activation.
