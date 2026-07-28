@@ -2610,6 +2610,12 @@ These are the canonical LinxCore contract and must be preserved by future change
   Live occupancy shrinks on release/recovery and is not a transaction counter.
   Directed and randomized models must not derive transaction ID, tail, epoch,
   instruction serial, and occupancy from one cumulative issued sequence.
+- Treat MapQ subbanking as a physical address transform unless a separate
+  retained pipeline explicitly changes timing. Keep one logical per-STID head,
+  tail, count, and stored queue index; derive subbank from low index bits and
+  row from high bits, and route publication, commit, killed-tail drain, and
+  survivor replay through the same decoder. Storage partitioning alone is not
+  evidence that the entry-read-to-pointer-update loop has been timing-closed.
 - Tied-off reduced shells prove integration shape only. Do not claim live BCC,
   IEX, or PE recovery until the actual trigger owner drives the raw event port
   and generated RTL proves positive activation.
