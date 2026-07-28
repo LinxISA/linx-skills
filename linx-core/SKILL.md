@@ -2619,6 +2619,17 @@ These are the canonical LinxCore contract and must be preserved by future change
   does not close the entry-read-to-retirement-pointer loop: claim two-cycle
   timing only after read/selection state is retained and pointer mutation is
   driven solely from that retained state.
+- For a readyless multi-read owner, keep allocation, age, commit, recovery, and
+  release metadata canonical. Replicate only the minimal stable consumer
+  payload, map each logical read port to one replica at elaboration, and bound
+  the physical reads per replica. Broadcast allocation and terminal free or
+  recovery writes to every replica only on the canonical owner's accepted
+  mutation; never duplicate allocator pointers or recovery state. Generated
+  RTL and directed tests must prove that every intended replica is retained,
+  that request-only fields are absent from the replicated row, and that all
+  replicas observe allocation and exact free. If a synchronous memory macro is
+  selected later, replace the readyless boundary with an explicit retained
+  request/response stage contract rather than hiding the extra latency.
 - Treat MapQ subbanking as a physical address transform unless a separate
   retained pipeline explicitly changes timing. Keep one logical per-STID head,
   tail, count, and stored queue index; derive subbank from low index bits and
