@@ -12,6 +12,14 @@ import check_skill_change_scope
 
 
 class WorktreeScopeTests(unittest.TestCase):
+    @patch.object(check_skill_change_scope.subprocess, "check_output")
+    def test_run_git_preserves_porcelain_status_prefix(self, check_output) -> None:
+        check_output.return_value = " M linx-core/SKILL.md\n"
+
+        output = check_skill_change_scope.run_git(Path("."), "status", "--porcelain")
+
+        self.assertEqual(output, " M linx-core/SKILL.md")
+
     @patch.object(check_skill_change_scope, "run_git")
     def test_deleted_file_does_not_remove_its_skill(self, run_git) -> None:
         run_git.return_value = (

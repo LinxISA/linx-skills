@@ -10,7 +10,7 @@ from pathlib import Path
 
 def run_git(repo: Path, *args: str) -> str:
     out = subprocess.check_output(["git", "-C", str(repo), *args], text=True)
-    return out.strip()
+    return out.rstrip()
 
 
 def list_skill_dirs_from_tree(repo: Path, ref: str) -> set[str]:

@@ -2616,6 +2616,16 @@ These are the canonical LinxCore contract and must be preserved by future change
   row from high bits, and route publication, commit, killed-tail drain, and
   survivor replay through the same decoder. Storage partitioning alone is not
   evidence that the entry-read-to-pointer-update loop has been timing-closed.
+- To close a MapQ entry-read-to-pointer-update loop, make the read and return
+  states structurally distinct. A read slice may select at most one logical row
+  per configured subbank and must retain its full rows, logical indices, and
+  count without mutating CMAP or queue pointers. The return state must drive
+  PTag payload, `valid/fire`, CMAP mutation, and head/tail/count updates only
+  from that retained state. A live storage reread may appear in assertions but
+  must not gate the functional return path, or the combinational loop remains.
+  Verify the empty read cycle, stable retained return under backpressure, and
+  pointer mutation only on the exact return handshake; upper tests must wait on
+  protocol events rather than a fixed old cycle count.
 - Tied-off reduced shells prove integration shape only. Do not claim live BCC,
   IEX, or PE recovery until the actual trigger owner drives the raw event port
   and generated RTL proves positive activation.
