@@ -2812,6 +2812,19 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
     - **Dealloc point is I2**: only clear `valid` when the uop is confirmed non-cancellable.
 - Age/oldest-ready ordering must be preserved across `inflight`:
   - inflight entries are simply ineligible; their age does not change.
+- Make PC-read demand a generated **child-uop contract**, not an
+  instruction-wide bit and not an inference from physical issue class alone.
+  The opcode recipe must name both the architectural parent source index and
+  the child `uop_kind` that consumes it; the retained IQ sidecar carries the
+  parent index and the picker-to-P1 join enables the read only when the
+  selected child's class matches. In particular, a split PCR store's AGU
+  address child reads PC while its STD data child does not.
+- A failure detected on the same edge as pick claim may repick only by exact
+  token identity. Retry matching may recognize either an already-`inflight`
+  resident row or the exact current pick being claimed on that edge; it must
+  never use slot-only or class-only bypass. If the single retry path cannot
+  accept the failure, hold the join result until it can be returned without
+  losing or duplicating the resident row.
 
 ### Load speculative wakeup + forward + miss
 
