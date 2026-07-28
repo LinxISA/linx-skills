@@ -2610,6 +2610,15 @@ These are the canonical LinxCore contract and must be preserved by future change
   Live occupancy shrinks on release/recovery and is not a transaction counter.
   Directed and randomized models must not derive transaction ID, tail, epoch,
   instruction serial, and occupancy from one cumulative issued sequence.
+- Treat grouped-ROB banking as one shared RID-slot address transform. Use low
+  slot bits for the bank, the following bits for even/odd subbank selection,
+  and the remaining high bits for the row; route publication, completion,
+  evidence, commit, and recovery through the same decoder. Publication and
+  retirement widths must not exceed the effective bank count, so one ordered
+  prefix cannot request a bank twice. As with MapQ, physical partitioning alone
+  does not close the entry-read-to-retirement-pointer loop: claim two-cycle
+  timing only after read/selection state is retained and pointer mutation is
+  driven solely from that retained state.
 - Treat MapQ subbanking as a physical address transform unless a separate
   retained pipeline explicitly changes timing. Keep one logical per-STID head,
   tail, count, and stored queue index; derive subbank from low index bits and
