@@ -2619,6 +2619,12 @@ These are the canonical LinxCore contract and must be preserved by future change
   does not close the entry-read-to-retirement-pointer loop: claim two-cycle
   timing only after read/selection state is retained and pointer mutation is
   driven solely from that retained state.
+- Recovery planning must retain the pre-mutation published memory tail
+  separately from the post-trim surviving tail. For a partial-pivot recovery,
+  the original pivot tail proves the live suffix being removed, while the
+  recomputed survivor tail becomes the restored publication state; one
+  snapshot cannot serve both roles without accepting a truncated or stale
+  memory-order chain.
 - For a readyless multi-read owner, keep allocation, age, commit, recovery, and
   release metadata canonical. Replicate only the minimal stable consumer
   payload, map each logical read port to one replica at elaboration, and bound
@@ -2762,6 +2768,12 @@ Confirmed from `rtl/LinxCore/src/common/opcode_meta_gen.py`,
   (`rdKind`, `rs1Kind`, `rs2Kind`, `immKind`) alongside opcode/category
   metadata; future decode packets should extend that source table rather than
   duplicating ad-hoc opcode lists.
+- Treat the opcode/recipe generator as the source of truth for every encoded
+  architectural source and every child-specific execution sidecar. Source
+  counts must include all encoded operands (including indexed-store data
+  fields), and deterministic regeneration must preserve which late-split child
+  owns PC reads. Never repair only the checked-in generated catalog: update the
+  generator input/logic, regenerate, and prove the output is stable.
 - `FrontendOperandDecode` owns only scalar architectural field extraction and
   reg6 alias classification:
   generic 16/32/48 GPR fields, fixed-destination compressed scalar forms,
@@ -2825,6 +2837,16 @@ Confirmed in #linx-core (2026-02-24). This section is the checklist to avoid for
   never use slot-only or class-only bypass. If the single retry path cannot
   accept the failure, hold the join result until it can be returned without
   losing or duplicating the resident row.
+- When one logical uop becomes several physical issue children, preserve each
+  child member for IQ/IEX ownership but normalize back to the logical first
+  member before acquiring a shared external resource such as one STQ lease.
+  The normalization is `logicalMember = physicalMember - childIndex` only
+  after exact group/BID/generation validation; child-local member indices must
+  not become distinct logical stores.
+- Terminal comparisons for narrow stage/beat cursors must widen the increment
+  (`+&` or an explicitly widened equivalent) before comparing against the full
+  request count. A one-bit cursor for a two-beat operation otherwise wraps on
+  `1 + 1` and can leave a fully emitted retained owner permanently resident.
 
 ### Load speculative wakeup + forward + miss
 
@@ -2995,6 +3017,16 @@ Confirmed in #linx-core (2026-02-25).
   `(STID, BID, full LSID)`; equal BID/LSID values from different STIDs never
   merge or compare. Every cache-line fragment and reduced-top commit bypass
   must retain the originating BID and full LSID metadata.
+- The canonical STQ is the only STA/STD convergence owner. Reserve physical
+  rows before execution and return generation-qualified leases; retained STA
+  and STD lanes may arrive in either order but may only fill those exact rows.
+  Do not add a pre-STQ address/data join buffer that duplicates store state.
+- One/two-beat store reservation is all-or-none. Pair requests must carry one
+  normalized logical owner, consecutive full LSID and store-ID ranges, and
+  worst-case row credit. While a valid pair waits for two slots, lower-priority
+  single or compatibility allocation must not consume the remaining slot;
+  malformed or duplicate reservations fail closed rather than partially
+  allocate.
 - R671 carries `lsIdFullValid/lsIdFull` through `FullBidFlushReq`, producer
   retention, recovery arbitration/class merge, full-BID/ring bridges, and
   `RecoveryCleanupIntent.flush`. Scalar redirect sources must capture the
