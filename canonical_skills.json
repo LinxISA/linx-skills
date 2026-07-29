@@ -13,10 +13,12 @@
     { "name": "linx-isa", "module": "isa+docs" }
   ],
   "managed_utility_skills": [
-    "linx-skills-submodule"
+    "linx-skills-submodule",
+    "linx-cross-model-validation"
   ],
   "protected_non_module_skills": [
-    "linx-skills-submodule"
+    "linx-skills-submodule",
+    "linx-cross-model-validation"
   ],
   "deprecated_skills": [
     "linxcore",

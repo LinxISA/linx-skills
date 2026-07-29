@@ -21,6 +21,11 @@ Linx ISA bring-up related Codex skills.
 
 ## Managed utility skills
 - linx-skills-submodule
+- linx-cross-model-validation
+
+`linx-cross-model-validation` owns the reusable QEMU-gfrun-gfsim
+architecture-visible result comparison workflow. It is a cross-repository
+validation utility, not the owner of any single superproject module.
 
 ## Module ownership map
 | Skill | Module scope |
