@@ -8,48 +8,20 @@ description: Run, diagnose, or extend Linx architectural result validation acros
 Validate architecture-visible results. Do not treat matching logs, internal Tile
 IDs, process exits, or two models failing in the same way as semantic agreement.
 
-## Current comparison contract
+## Comparison contract
 
-The current harness is an end-of-program architectural-result comparison, not
-instruction lockstep:
+- Run the exact same ELF and deterministic initialized data on every model.
+- Resolve the result address and size from the ELF symbols
+  `cross_model_result` and `cross_model_result_size`.
+- Export each model's own architecture-visible memory into an isolated
+  `result.bin` after a passing finisher.
+- Compare every selected model with independently generated golden bytes and
+  generate all available pairwise comparisons.
+- Treat this as end-of-program result validation, not instruction lockstep or
+  microarchitectural-state comparison.
 
-1. `tests/cross_model/build_elf.py` builds one test ELF. Deterministic input
-   arrays are embedded in that ELF, so every model receives identical code,
-   addresses, and initial bytes.
-2. The ELF declares `cross_model_result` and `cross_model_result_size`. The
-   runner resolves both from the symbol table; manifests must not duplicate a
-   hard-coded guest address or total size.
-3. QEMU, gfrun, and optionally gfsim run the exact same ELF in isolated artifact
-   directories. A pass finisher permits termination, then each model exports
-   the declared architecture-visible memory range to its own `result.bin`.
-4. The JSON case manifest partitions that range into typed, non-overlapping
-   segments and independently generates `golden.bin` from the documented
-   operation semantics and deterministic inputs.
-5. The runner checks every model against golden and every available model pair:
-
-```text
-qemu  <-> golden      qemu  <-> gfrun
-gfrun <-> golden      qemu  <-> gfsim
-gfsim <-> golden      gfrun <-> gfsim
-```
-
-Integer and byte segments use exact comparison. Floating-point tolerance is
-valid only when the manifest explicitly selects a comparison policy such as
-`fp32_ulp` and supplies its bound. The first mismatch reports the segment,
-byte/element offset, row/column, raw bits, and typed values.
-
-The harness does not currently compare TileReg, ACC, GPR, trace, or internal
-microarchitectural state after every operation. Tile/ACC results must be made
-architecture-visible by the carrier, normally through `TSTORE` or `ACCCVT`
-followed by `TSTORE`. Final memory proves end-to-end behavior but may not identify
-the first bad operation in a long dependency chain.
-
-Do not insert validation stores when claiming unchanged timing behavior: those
-stores consume modeled resources. For non-perturbing intermediate checkpoints,
-use a future passive observer at architectural operation completion/retirement
-that cannot enqueue requests, consume ports, stall retirement, or change model
-cycles. Keep final-memory comparison as the acceptance oracle even when such a
-diagnostic trace exists.
+Read `references/validation_contract.md` before changing result observation,
+comparison policy, artifacts, checkpoints, or failure classification.
 
 ## Run the focused gate
 
@@ -82,11 +54,6 @@ python3 scripts/cross_model/run_diff.py \
   --models qemu,gfrun,gfsim \
   --case tests/cross_model/cases/model_smoke.json
 ```
-
-Artifacts are published below
-`regression_results/cross_model/<run-id>/cases/<case>/`: `golden.bin`,
-`resolved_manifest.json`, `compare.json`, `report.md`, and one model directory
-containing `result.bin`, `run.json`, `stdout.log`, and `stderr.log`.
 
 ## Preserve validation integrity
 
@@ -148,12 +115,6 @@ For an exact integer profile:
 5. Run `python3 -m unittest tests/cross_model/test_run_diff.py` and the real gate.
 6. Update `docs/tile_instruction_status.md` only for the exact validated profile.
 
-For a dependency chain that needs better localization, reserve one manifest
-segment per important operation and have the functional carrier export those
-intermediate Tile results. This improves functional diagnosis but changes gfsim
-timing and therefore must not be used as evidence of an uninstrumented cycle
-count.
-
 Do not silently apply floating-point tolerance. Add an explicit manifest mode
 with documented NaN, signed-zero, absolute/relative error, and ULP policy first.
 
@@ -179,3 +140,7 @@ typed value to select the next probe.
 
 Keep QEMU and SuperScalarModel commits/PRs separate. Merge QEMU first, then update
 the linx-isa QEMU gitlink to the upstream merge commit in a separate change.
+
+## References
+
+- `references/validation_contract.md`
