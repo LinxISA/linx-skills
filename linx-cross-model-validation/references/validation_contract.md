@@ -45,6 +45,15 @@ Treat missing, short, long, or late result files as harness/model failures.
 Classify timeout, assertion, crash, fail finisher, dump error, result mismatch,
 and harness error separately. Two models failing the same way never pass.
 
+Before running QEMU, probe the selected `qemu-system-linx64` with the `virt`
+machine properties `cross-model-dump`, `cross-model-address`, and
+`cross-model-size`, and reject an explicit `Property ... not found` result.
+Do not rely only on `virt,help`: dynamically added instance properties may be
+absent from its class-property listing. A binary without the properties cannot
+publish the architectural result and is a harness/QEMU-head mismatch. Prefer
+an explicit `QEMU_BIN`; otherwise use the matching QEMU checkout's `build-linx`
+output.
+
 ## Checkpoints and model state
 
 The current harness compares final architecture-visible memory. It does not

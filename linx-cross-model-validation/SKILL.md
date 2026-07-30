@@ -25,21 +25,77 @@ comparison policy, artifacts, checkpoints, or failure classification.
 
 ## Run the focused gate
 
-1. Locate the `SuperScalarModel` checkout and inspect its Git status.
-2. Ensure the matching QEMU branch contains the result-dump machine properties.
-3. Build the models before interpreting failures:
+1. Locate the `SuperScalarModel`, LinxISA, and QEMU checkouts and inspect their
+   Git status. Prefer explicit paths, then discover common adjacent layouts:
 
 ```bash
-python3 build.py configure --warnings-as-errors
-python3 build.py build --target gfrun -j8
-python3 build.py build --target gfsim -j8
-ninja -C ../linx-isa/emulator/qemu/build qemu-system-linx64
+SSM_ROOT="${SSM_ROOT:-$(git rev-parse --show-toplevel)}"
+LINX_ISA_ROOT="${LINX_ISA_ROOT:-$(git -C "${SSM_ROOT}/../linx-isa" rev-parse --show-toplevel)}"
+QEMU_ROOT="${QEMU_ROOT:-${LINX_ISA_ROOT}/emulator/qemu}"
+QEMU_BIN="${QEMU_BIN:-${QEMU_ROOT}/build-linx/qemu-system-linx64}"
 ```
 
-4. Run the comparator from the SuperScalarModel root:
+   Do not assume `SuperScalarModel` is nested inside `linx-isa`. If adjacent
+   discovery fails, stop and require `SSM_ROOT`, `LINX_ISA_ROOT`, `QEMU_ROOT`,
+   or `QEMU_BIN` explicitly. Resolve every selected path with `realpath` and
+   verify its expected marker before building (`build.py`, `target/linx`, or
+   `qemu-system-linx64`).
+
+2. Preflight the QEMU validation transport before interpreting model results:
 
 ```bash
-python3 scripts/cross_model/run_diff.py
+test -x "${QEMU_BIN}"
+for property in \
+  cross-model-dump=/tmp/linx-cross-model-probe \
+  cross-model-address=0 \
+  cross-model-size=1
+do
+  output=$("${QEMU_BIN}" -machine "virt,${property}" \
+    -S -display none -nodefaults 2>&1 || true)
+  name=${property%%=*}
+  if printf '%s\n' "${output}" | \
+      grep -q "Property 'virt-machine.${name}' not found"; then
+    printf 'missing QEMU machine property: %s\n' "${name}" >&2
+    exit 1
+  fi
+done
+```
+
+   A missing property is a harness/QEMU-head mismatch, not an ISA result
+   mismatch. `virt,help` is insufficient because these instance properties are
+   added dynamically and may not appear in its class-property list. Rebuild the
+   matching QEMU checkout or select the correct binary when the probe fails.
+
+3. Build QEMU and the functional model before interpreting failures. Use the
+   current `build-linx` directory by default; configure it only when absent:
+
+```bash
+cd "${SSM_ROOT}"
+python3 build.py configure --warnings-as-errors
+python3 build.py build --target gfrun -j8
+
+if [ ! -f "${QEMU_ROOT}/build-linx/build.ninja" ]; then
+  mkdir -p "${QEMU_ROOT}/build-linx"
+  (cd "${QEMU_ROOT}/build-linx" && \
+    "${QEMU_ROOT}/configure" --target-list=linx64-softmmu \
+      --disable-docs --disable-werror)
+fi
+ninja -C "${QEMU_ROOT}/build-linx" qemu-system-linx64
+```
+
+   Build gfsim only when it is selected for the three-model lane:
+
+```bash
+python3 build.py build --target gfsim -j8
+```
+
+4. Run the comparator from the SuperScalarModel root and pass the resolved
+   binaries when they are not at the runner defaults:
+
+```bash
+python3 scripts/cross_model/run_diff.py \
+  --qemu "${QEMU_BIN}" \
+  --gfrun "${SSM_ROOT}/bin/gfrun"
 ```
 
 5. Read `summary.json` first, then the case `compare.json`. Inspect per-model
@@ -52,6 +108,9 @@ timing-model parity:
 ```bash
 python3 scripts/cross_model/run_diff.py \
   --models qemu,gfrun,gfsim \
+  --qemu "${QEMU_BIN}" \
+  --gfrun "${SSM_ROOT}/bin/gfrun" \
+  --gfsim "${SSM_ROOT}/bin/gfsim" \
   --case tests/cross_model/cases/model_smoke.json
 ```
 
