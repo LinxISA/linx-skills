@@ -53,6 +53,11 @@ QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
 - ABI/register conventions align with Linux UAPI.
 - Relocation IDs/contracts align across libc + linker + kernel.
 - signal/ucontext/setjmp behavior is cross-stack consistent.
+- glibc and musl dynamic loaders enforce the same `.note.pto.isa` identity on
+  the main executable, every `DT_NEEDED` object, and every `dlopen` object.
+  Owner is `PTO\0`, type is 1, alignment is four bytes, and the compact JSON
+  descriptor has no trailing NUL; missing, old, and mismatched identities are
+  rejected before constructors or application code run.
 
 ## Skill evolve loop (mandatory closeout)
 

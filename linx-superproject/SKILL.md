@@ -167,7 +167,7 @@ Keep CI/workflow names on active `public-v057` surfaces. Legacy `retired-public`
 surfaces are historical comparison only and must not be used to claim v0.57
 closure.
 
-v0.57 integration handoff must prove cross-repo agreement on:
+PTO ISA 0.57.1 integration handoff must prove cross-repo agreement on:
 
 - scalar CAS and DMA forms in ISA golden, compiler MC coverage, and QEMU decode;
 - `TPREFETCH` as destination-free `TLOAD`, encoded adjacent to
@@ -175,9 +175,14 @@ v0.57 integration handoff must prove cross-repo agreement on:
 - dense TMA selector coverage `0..8`;
 - unique named `CUBE` block/template identities across ISA, compiler, PTOAS,
   and QEMU metadata;
-- the 111-operation PTO map from the v0.57 PTO workbook/manifest; and
-- rejection of stale legacy selector, template, and PTO spellings unless the
-  v0.57 catalog explicitly admits them.
+- the exact 120-operation map (98 TEPL + 9 TMA + 13 CUBE) from the locked
+  `PTO-ISA/pto-spec` release manifest, with zero optional direct operations;
+- reservation/rejection of `TFMA`, `TFMOD`, `TFMODS`, `TADDC`, `TSUBC`,
+  `TADDSC`, `TSUBSC`, `TLRELU`, and `TRANDOM`, plus every stale selector,
+  template, and PTO spelling not admitted by the 0.57.1 catalog; and
+- one `.note.pto.isa` identity from producer through LLD, Linux, glibc, and
+  musl: owner `PTO\0`, type 1, four-byte alignment, compact JSON descriptor
+  without trailing NUL, and fail-closed missing/old/mixed/mismatch handling.
 
 PR tier strict closure:
 

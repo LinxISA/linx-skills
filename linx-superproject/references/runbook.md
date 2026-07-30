@@ -22,7 +22,8 @@
 
 The v0.57 gate pack must include the release additions: scalar CAS/DMA,
 destination-free `TPREFETCH` adjacent to `TLOAD`/`TSTORE`, dense TMA selectors
-`0..8`, unique named `CUBE` forms, the 111-operation PTO map, and rejection of
+`0..8`, unique named `CUBE` forms, the 120-operation PTO map (98 TEPL + 9 TMA
++ 13 CUBE), and rejection of
 legacy selector/template/PTO spellings.
 
 ## Reliability notes
