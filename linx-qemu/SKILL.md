@@ -197,9 +197,11 @@ First-divergence rules:
   CUBE forms into one handler name without an explicit sub-op identity.
 - Add scalar CAS/DMA decode metadata and execution coverage as active v0.57
   forms, not compatibility fallbacks.
-- When PTOAS/QEMU bridge metadata is involved, validate against the v0.57
-  111-operation PTO map and reject legacy PTO spellings rather than normalizing
-  them silently.
+- When PTOAS/QEMU bridge metadata is involved, validate against the PTO ISA
+  0.57.1 map of exactly 120 direct operations (98 TEPL + 9 TMA + 13 CUBE).
+  Reject the nine deleted D operations and legacy PTO spellings rather than
+  normalizing them silently. TEPL accepts exactly 98 `Mode + Function`
+  positions and rejects the other 30 without generic fallback.
 
 For recovered historical lines, insert one extra step before implementation:
 

@@ -32,7 +32,7 @@ generated from the live v0.57 ISA catalog. The coverage denominator must be
 derived from `isa/v0.57/linxisa-v0.57.json`, not carried forward from retired profiles
 closure counts. Coverage must include all active v0.57 scalar CAS/DMA forms and
 the tile/PTO deltas (`TPREFETCH`, dense TMA `0..8`, unique named `CUBE` forms,
-and the 111-operation PTO map where PTOAS/MC surfaces overlap). Coverage
+and the exact 120-operation map: 98 TEPL + 9 TMA + 13 CUBE). Coverage
 conclusions require a fresh `run.sh` using Clang rebuilt from the current
 `compiler/llvm` HEAD; if the binary's reported VCS revision is stale, classify
 existing analyzer output as provenance/audit evidence rather than a source
@@ -128,9 +128,13 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
 9. Keep TMA selector coverage dense over `0..8`; reject holes, aliases, and
    stale selector spellings. Keep named CUBE TableGen/block-template entries
    one-to-one with v0.57 architectural identities.
-10. Run both linx64 and linx32 compile/coverage gates.
-11. Confirm no cross-stack call/ret regressions.
-12. Handoff gate evidence to integration owner before repin.
+10. Emit `.note.pto.isa` with owner `PTO\0`, type 1, four-byte alignment, and
+    compact JSON without a trailing NUL. LLD must require strict identity
+    equality across every input, reject missing/old/mixed/mismatched inputs,
+    and preserve the agreed note in its output.
+11. Run both linx64 and linx32 compile/coverage gates.
+12. Confirm no cross-stack call/ret regressions.
+13. Handoff gate evidence to integration owner before repin.
 
 ## Skill evolve loop (mandatory closeout)
 

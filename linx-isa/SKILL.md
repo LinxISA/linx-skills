@@ -30,8 +30,10 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - `BSTART.PAR` and `B.IOD` are retired spellings in v0.57. Their encodings
   remain reserved evidence, assemblers reject the names, and canonical decode
   never exposes them as instruction identities (`BSTART.TEPL` owns its code).
-- v0.57 is the sole active ISA release. Do not revive legacy forms; active
-  specification, generator, compiler, and emulator gates use only v0.57.
+- PTO ISA 0.57.1 is the sole active Tile/PTO release and
+  `PTO-ISA/pto-spec` is its normative source. LinxISA, compiler, emulator,
+  RTL/model, workloads, and DavinciOO consume one locked pto-spec commit and
+  release-manifest identity; none may maintain an overriding selector table.
 - v0.57 TPREFETCH is encoded adjacent to TLOAD/TSTORE and is destination-free:
   model it as TLOAD addressing/attributes with no destination queue publication.
 - v0.57 TMA selectors are the contiguous PTO tile-memory family 0..8. Keep PTO
@@ -43,9 +45,20 @@ Use this skill for ISA-level decisions and spec-quality updates that must stay c
 - v0.57 scalar CAS/DMA forms are active ISA deltas; they must be present in the
   golden catalog, generated codec tables, manual fragments, compiler MC
   coverage, and QEMU decode metadata before closure.
-- v0.57 PTO ISA mapping has 111 PTO dialect operations. PTOAS and ISA manifest
-  checks must agree on the 111-entry map; missing PTO entries are blockers, and
-  legacy selector spellings are rejected rather than normalized.
+- PTO ISA 0.57.1 has exactly 120 direct operations: 98 TEPL, 9 TMA, and
+  13 CUBE, with no optional direct operations. PTOAS and every projection must
+  agree on that inventory. `TFMA`, `TFMOD`, `TFMODS`, `TADDC`, `TSUBC`,
+  `TADDSC`, `TSUBSC`, `TLRELU`, and `TRANDOM` are deleted and their selector
+  positions remain reserved evidence; reject them instead of normalizing them.
+- The TEPL raw selector is `Mode[1:0] + Function[4:0]`: exactly 98 of 128
+  positions are accepted and 30 are reserved. B.IOT destination codes 4..6
+  are reserved and 7 is illegal; ACC is implicit state selected by the CUBE
+  opcode, never encoded as a B.IOT destination.
+- PTO ISA objects and executables carry `.note.pto.isa`: owner bytes `PTO\0`,
+  owner-local type 1 (`PTO_NT_ISA_IDENTITY`), four-byte alignment, and a
+  compact UTF-8 JSON descriptor without a trailing NUL. Producers emit the
+  locked release/manifest identity; linkers and loaders reject missing, old,
+  mixed, or mismatched identities.
 - Before changing a form with a variable selector, enumerate its raw words
   against every generic selector space at the same instruction length. If one
   raw word has multiple architectural meanings, freeze the ISA/assembler
