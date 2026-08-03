@@ -8,6 +8,11 @@ description: Run, diagnose, or extend Linx architectural result validation acros
 Validate architecture-visible results. Do not treat matching logs, internal Tile
 IDs, process exits, or two models failing in the same way as semantic agreement.
 
+The superproject's pinned `tools/LinxCoreModel` is the canonical model closure.
+An adjacent or otherwise external `SuperScalarModel` checkout supplies companion
+diagnostic evidence only; it cannot replace that pinned closure for promotion
+unless a separate governance change explicitly transfers ownership.
+
 ## Comparison contract
 
 - Run the exact same ELF and deterministic initialized data on every model.
@@ -23,96 +28,131 @@ IDs, process exits, or two models failing in the same way as semantic agreement.
 Read `references/validation_contract.md` before changing result observation,
 comparison policy, artifacts, checkpoints, or failure classification.
 
-## Run the focused gate
+## Run the current PTO v0.2 gate
 
-1. Locate the `SuperScalarModel`, LinxISA, and QEMU checkouts and inspect their
-   Git status. Prefer explicit paths, then discover common adjacent layouts:
+Execute the stages in this order: resolve paths, build, preflight, write
+provenance, run the explicit v5 cases, then verify provenance again. Run the
+following as one Bash block; `set -euo pipefail` makes every failed prerequisite
+abort before the runner:
 
 ```bash
+# CURRENT_V02_GATE
+set -euo pipefail
+
 SSM_ROOT="${SSM_ROOT:-$(git rev-parse --show-toplevel)}"
 LINX_ISA_ROOT="${LINX_ISA_ROOT:-$(git -C "${SSM_ROOT}/../linx-isa" rev-parse --show-toplevel)}"
 QEMU_ROOT="${QEMU_ROOT:-${LINX_ISA_ROOT}/emulator/qemu}"
 QEMU_BIN="${QEMU_BIN:-${QEMU_ROOT}/build-linx/qemu-system-linx64}"
-```
+SKILL_ROOT="${SKILL_ROOT:?set SKILL_ROOT to linx-cross-model-validation}"
+RUN_ID="${RUN_ID:?set a unique immutable run id}"
+RESULTS_ROOT="${RESULTS_ROOT:-${SSM_ROOT}/regression_results/cross_model}"
+CLANGXX="${CLANGXX:-${LINX_ISA_ROOT}/compiler/llvm/build-linxisa-clang/bin/clang++}"
+LLD="${LLD:-${LINX_ISA_ROOT}/compiler/llvm/build-linxisa-clang/bin/ld.lld}"
+MODELS="${MODELS:-qemu,gfrun}"
 
-   Do not assume `SuperScalarModel` is nested inside `linx-isa`. If adjacent
-   discovery fails, stop and require `SSM_ROOT`, `LINX_ISA_ROOT`, `QEMU_ROOT`,
-   or `QEMU_BIN` explicitly. Resolve every selected path with `realpath` and
-   verify its expected marker before building (`build.py`, `target/linx`, or
-   `qemu-system-linx64`).
+test -f "${SSM_ROOT}/build.py"
+test -d "${LINX_ISA_ROOT}/isa"
+test -f "${QEMU_ROOT}/configure"
+SSM_ROOT=$(realpath "${SSM_ROOT}")
+LINX_ISA_ROOT=$(realpath "${LINX_ISA_ROOT}")
+QEMU_ROOT=$(realpath "${QEMU_ROOT}")
+SKILL_ROOT=$(realpath "${SKILL_ROOT}")
+export SSM_ROOT LINX_ISA_ROOT QEMU_ROOT QEMU_BIN SKILL_ROOT
+export RUN_ID RESULTS_ROOT CLANGXX LLD MODELS
+test -x "${CLANGXX}"
+test -x "${LLD}"
 
-2. Preflight the QEMU validation transport before interpreting model results:
-
-```bash
-test -x "${QEMU_BIN}"
-for property in \
-  cross-model-dump=/tmp/linx-cross-model-probe \
-  cross-model-address=0 \
-  cross-model-size=1
-do
-  output=$("${QEMU_BIN}" -machine "virt,${property}" \
-    -S -display none -nodefaults 2>&1 || true)
-  name=${property%%=*}
-  if printf '%s\n' "${output}" | \
-      grep -q "Property 'virt-machine.${name}' not found"; then
-    printf 'missing QEMU machine property: %s\n' "${name}" >&2
-    exit 1
-  fi
-done
-```
-
-   A missing property is a harness/QEMU-head mismatch, not an ISA result
-   mismatch. `virt,help` is insufficient because these instance properties are
-   added dynamically and may not appear in its class-property list. Rebuild the
-   matching QEMU checkout or select the correct binary when the probe fails.
-
-3. Build QEMU and the functional model before interpreting failures. Use the
-   current `build-linx` directory by default; configure it only when absent:
-
-```bash
-cd "${SSM_ROOT}"
-python3 build.py configure --warnings-as-errors
-python3 build.py build --target gfrun -j8
+(cd -- "${SSM_ROOT}" && env \
+  SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+  QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+  python3 build.py configure --warnings-as-errors)
+(cd -- "${SSM_ROOT}" && env \
+  SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+  QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+  python3 build.py build --target gfrun -j8)
 
 if [ ! -f "${QEMU_ROOT}/build-linx/build.ninja" ]; then
   mkdir -p "${QEMU_ROOT}/build-linx"
-  (cd "${QEMU_ROOT}/build-linx" && \
+  (cd -- "${QEMU_ROOT}/build-linx" && env \
+    SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+    QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
     "${QEMU_ROOT}/configure" --target-list=linx64-softmmu \
       --disable-docs --disable-werror)
 fi
-ninja -C "${QEMU_ROOT}/build-linx" qemu-system-linx64
+env SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+  QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+  ninja -C "${QEMU_ROOT}/build-linx" qemu-system-linx64
+QEMU_BIN=$(realpath "${QEMU_BIN}")
+export QEMU_BIN
+test -x "${QEMU_BIN}"
+
+case ",${MODELS}," in
+  *,gfsim,*)
+    (cd -- "${SSM_ROOT}" && env \
+      SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+      QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+      python3 build.py build --target gfsim -j8)
+    ;;
+esac
+
+python3 "${SKILL_ROOT}/scripts/preflight_qemu.py" "${QEMU_BIN}" \
+  --qemu-root "${QEMU_ROOT}" --timeout 5
+
+cases=(v5_tile_smoke v5_shared_tma_smoke v5_group_mma_smoke)
+runner_cases=()
+provenance_files=()
+for case_name in "${cases[@]}"; do
+  manifest="${SSM_ROOT}/tests/cross_model/cases/${case_name}.json"
+  test -s "${manifest}"
+  elf=$(cd -- "${SSM_ROOT}" && env \
+    SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+    QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+    python3 tests/cross_model/build_elf.py \
+      --case "cases/${case_name}.json" --linx-isa "${LINX_ISA_ROOT}" \
+      --clangxx "${CLANGXX}" --lld "${LLD}")
+  test -s "${elf}"
+  pe_count=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["execution"]["pe_count"])' "${manifest}")
+  model_profile=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["isa"]["tile_profile"])' "${manifest}")
+  provenance="${RESULTS_ROOT}/${RUN_ID}/cases/${case_name}/provenance.json"
+  python3 "${SKILL_ROOT}/scripts/write_provenance.py" \
+    --output "${provenance}" \
+    --ssm-root "${SSM_ROOT}" --linx-isa-root "${LINX_ISA_ROOT}" \
+    --qemu-root "${QEMU_ROOT}" --qemu-bin "${QEMU_BIN}" \
+    --gfrun-bin "${SSM_ROOT}/bin/gfrun" --gfsim-bin "${SSM_ROOT}/bin/gfsim" \
+    --compiler "${CLANGXX}" --linker "${LLD}" \
+    --elf "${elf}" --manifest "${manifest}" \
+    --models "${MODELS}" --pe-count "${pe_count}" \
+    --linxisa-encoding-version v0.57 --pto-isa-version v0.2 \
+    --model-profile "${model_profile}"
+  test -s "${provenance}"
+  runner_cases+=(--case "${manifest}")
+  provenance_files+=("${provenance}")
+done
+
+(cd -- "${SSM_ROOT}" && env \
+  SSM_ROOT="${SSM_ROOT}" LINX_ISA_ROOT="${LINX_ISA_ROOT}" \
+  QEMU_ROOT="${QEMU_ROOT}" QEMU_BIN="${QEMU_BIN}" \
+  python3 scripts/cross_model/run_diff.py --no-build \
+    --models "${MODELS}" --qemu "${QEMU_BIN}" \
+    --gfrun "${SSM_ROOT}/bin/gfrun" --gfsim "${SSM_ROOT}/bin/gfsim" \
+    --output "${RESULTS_ROOT}" --run-id "${RUN_ID}" "${runner_cases[@]}")
+
+test -s "${RESULTS_ROOT}/${RUN_ID}/summary.json"
+for provenance in "${provenance_files[@]}"; do
+  python3 "${SKILL_ROOT}/scripts/write_provenance.py" --verify "${provenance}"
+done
 ```
 
-   Build gfsim only when it is selected for the three-model lane:
+Do not assume `SuperScalarModel` is nested inside LinxISA. Require explicit
+roots when discovery or marker checks fail. The block builds the exact
+`build-linx/qemu-system-linx64` target and the preflight rejects any selected
+binary that does not resolve to that target under `QEMU_ROOT`. QMP introspection
+of `/machine` must list `cross-model-dump`, `cross-model-address`, and
+`cross-model-size`; class help and property-order side effects are insufficient.
 
-```bash
-python3 build.py build --target gfsim -j8
-```
-
-4. Run the comparator from the SuperScalarModel root and pass the resolved
-   binaries when they are not at the runner defaults:
-
-```bash
-python3 scripts/cross_model/run_diff.py \
-  --qemu "${QEMU_BIN}" \
-  --gfrun "${SSM_ROOT}/bin/gfrun"
-```
-
-5. Read `summary.json` first, then the case `compare.json`. Inspect per-model
-   stdout/stderr and traces only after locating the first architectural mismatch.
-
-The default gate remains QEMU-gfrun and uses consolidated TMA, TEPL, and CUBE
-cases. Select gfsim explicitly only when promoting an adapted profile to
-timing-model parity:
-
-```bash
-python3 scripts/cross_model/run_diff.py \
-  --models qemu,gfrun,gfsim \
-  --qemu "${QEMU_BIN}" \
-  --gfrun "${SSM_ROOT}/bin/gfrun" \
-  --gfsim "${SSM_ROOT}/bin/gfsim" \
-  --case tests/cross_model/cases/model_smoke.json
-```
+Historical runner defaults are not current PTO v0.2 evidence. Read
+`summary.json` first, then each `compare.json`; inspect logs only after locating
+the first architectural mismatch. A promotable case must retain its provenance.
 
 ## Preserve validation integrity
 
@@ -140,6 +180,9 @@ python3 scripts/cross_model/run_diff.py \
 Keep QEMU-gfrun functional adaptation and three-model timing parity as separate
 status levels. Pending gfsim parity does not invalidate an established
 QEMU-gfrun result.
+
+This promotion applies only to the external companion lane. It does not promote
+or repin the superproject's canonical `tools/LinxCoreModel` closure.
 
 1. Run `model_smoke` first. It must prove that scalar stores older than the pass
    finisher are visible in gfsim's exported architectural memory.

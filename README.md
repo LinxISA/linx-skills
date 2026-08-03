@@ -25,7 +25,9 @@ Linx ISA bring-up related Codex skills.
 
 `linx-cross-model-validation` owns the reusable QEMU-gfrun-gfsim
 architecture-visible result comparison workflow. It is a cross-repository
-validation utility, not the owner of any single superproject module.
+validation utility, not the owner of any single superproject module. An
+external SuperScalarModel run is companion diagnostic evidence and does not
+replace the superproject's canonical pinned `tools/LinxCoreModel` closure.
 
 ## Module ownership map
 | Skill | Module scope |

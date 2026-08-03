@@ -45,14 +45,36 @@ Treat missing, short, long, or late result files as harness/model failures.
 Classify timeout, assertion, crash, fail finisher, dump error, result mismatch,
 and harness error separately. Two models failing the same way never pass.
 
-Before running QEMU, probe the selected `qemu-system-linx64` with the `virt`
-machine properties `cross-model-dump`, `cross-model-address`, and
-`cross-model-size`, and reject an explicit `Property ... not found` result.
-Do not rely only on `virt,help`: dynamically added instance properties may be
-absent from its class-property listing. A binary without the properties cannot
-publish the architectural result and is a harness/QEMU-head mismatch. Prefer
-an explicit `QEMU_BIN`; otherwise use the matching QEMU checkout's `build-linx`
-output.
+Every promotable case must include deterministic `provenance.json` with these
+top-level keys: `schema_version`, `repositories`, `artifacts`,
+`selected_models`, `pe_count`, `linxisa_encoding_version`, `pto_isa_version`,
+and `model_profile`. `repositories` records the resolved path, Git SHA, and
+dirty boolean for SuperScalarModel, LinxISA, and QEMU. `artifacts` records the
+resolved path and SHA-256 for every selected model binary, the exact compiler,
+the exact linker, the ELF, and the manifest. Pass those same compiler and linker
+paths to `build_elf.py` through its supported `--clangxx` and `--lld` options.
+Do not infer or omit fields for a clean run.
+Generate provenance before execution and use the runner's no-build mode so the
+hashed ELF is the ELF that ran. After the runner returns, verify the retained
+provenance against the current repository states and artifact hashes; a changed
+or missing input invalidates promotion.
+
+Retain bounded `summary.json`, `compare.json`, `report.md`, `provenance.json`,
+and the first-mismatch excerpt used for triage. Raw memory dumps, complete
+stdout/stderr, and full traces are disposable local or CI artifacts. Never
+commit those generated artifacts; publish them through bounded CI retention
+only when diagnosis needs them.
+
+Before running QEMU, query the live `/machine` instance through QMP `qom-list`
+and require `cross-model-dump`, `cross-model-address`, and `cross-model-size` in
+the returned property names. Do not infer recognition from QDict application
+order or from a later deliberately invalid machine property: QDict hash order
+can report that later property before an earlier missing requirement. Do not
+rely only on `virt,help`, because dynamically added instance properties may be
+absent from its class-property listing. A binary without all three properties
+cannot publish the architectural result and is a harness/QEMU-head mismatch.
+The selected binary must resolve exactly to
+`QEMU_ROOT/build-linx/qemu-system-linx64`, the target built by this workflow.
 
 ## Checkpoints and model state
 
@@ -78,3 +100,18 @@ Run generated PTO ISA v0.2 cross-model ELFs with the model's default canonical
 decoder. Use `--pto-v02 false` only for the repository's legacy v0.1 prebuilt
 pass lists. Those lists are model-regression evidence, not the
 QEMU-gfrun-gfsim result-comparison oracle.
+
+The current PTO ISA v0.2 gate consists specifically of
+`v5_tile_smoke.json`, `v5_shared_tma_smoke.json`, and
+`v5_group_mma_smoke.json`. The historical unversioned runner defaults cannot be
+used as current-v0.2 promotion evidence.
+
+## Model ownership boundary
+
+The LinxISA superproject owns its canonical model closure through the pinned
+`tools/LinxCoreModel` gitlink. Results from an external SuperScalarModel
+checkout are companion diagnostic evidence: useful for cross-checking QEMU and
+for functional or timing localization, but never a substitute for validating
+the pinned closure. Changing that ownership or allowing external results to
+satisfy the canonical gate requires a separate governance change and gitlink
+update; this workflow does neither.
