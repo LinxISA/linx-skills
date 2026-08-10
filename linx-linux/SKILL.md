@@ -120,10 +120,12 @@ standalone QEMU semantics is correct.
 - dynamic targets are legal block starts,
 - regression rerun includes strict AVS system/runtime checks,
 - timer IRQ behavior remains enabled in strict closure unless explicitly waived.
-- For PTO ISA 0.57.1 ELF loading, require `.note.pto.isa` on the main
+- For PTO ISA 0.58 ELF loading, require `.note.pto.isa` on the main
   `ET_EXEC`/`ET_DYN` object and its interpreter. The note uses owner `PTO\0`,
-  type 1, four-byte alignment, and compact JSON without a trailing NUL; reject
-  missing, old, or mismatched identities before userspace execution.
+  type 1, four-byte alignment, and compact JSON without a trailing NUL. Require
+  release `0.58.0`, encoding ABI `pto-isa-0.58.0-mode-function-v1`, and the
+  exact v0.58 encoding-projection identity; reject missing, old, mixed, or
+  mismatched identities before userspace execution.
 - treat `/chosen/bootargs` string corruption separately from later parser bugs:
   if the command line bytes are already wrong before `parse_args()`, fix the DT
   property read/import path first.

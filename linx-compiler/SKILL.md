@@ -18,7 +18,7 @@ Use this skill for all compiler-side work centered on `compiler/llvm` and AVS co
 ## Canonical checks
 
 ```bash
-python3 /Users/zhoubot/linx-isa/tools/isa/gen_c_codec.py --spec /Users/zhoubot/linx-isa/isa/v0.57/linxisa-v0.57.json --out-dir /tmp/linxisa-llvm-codec-check
+python3 /Users/zhoubot/linx-isa/tools/isa/gen_c_codec.py --spec /Users/zhoubot/linx-isa/isa/v0.58/linxisa-v0.58.json --out-dir /tmp/linxisa-llvm-codec-check
 diff -q /tmp/linxisa-llvm-codec-check/linxisa_opcodes.h /Users/zhoubot/linx-isa/compiler/llvm/llvm/lib/Target/LinxISA/MCTargetDesc/linxisa_opcodes.h
 diff -q /tmp/linxisa-llvm-codec-check/linxisa_opcodes.c /Users/zhoubot/linx-isa/compiler/llvm/llvm/lib/Target/LinxISA/MCTargetDesc/linxisa_opcodes.c
 cd /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests && CLANG=/Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang TARGET=linx64-linx-none-elf OUT_DIR=/Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/out-linx64 ./run.sh
@@ -28,20 +28,22 @@ python3 /Users/zhoubot/linx-isa/avs/compiler/linx-llvm/tests/analyze_coverage.py
 ```
 
 The codec parity check is the source-of-truth proof that LLVM MC tables are
-generated from the live v0.57 ISA catalog. The coverage denominator must be
-derived from `isa/v0.57/linxisa-v0.57.json`, not carried forward from retired profiles
-closure counts. Coverage must include all active v0.57 scalar CAS/DMA forms and
-the tile/PTO deltas (`TPREFETCH`, dense TMA `0..8`, unique named `CUBE` forms,
-and the exact 120-operation map: 98 TEPL + 9 TMA + 13 CUBE). Coverage
-conclusions require a fresh `run.sh` using Clang rebuilt from the current
+generated from the live v0.58 ISA catalog. The coverage denominator must be
+derived from `isa/v0.58/linxisa-v0.58.json`, not carried forward from retired
+profile closure counts. Coverage must include all active v0.58 scalar CAS/DMA
+forms and the PTO tile surface: `TPREFETCH`, the exact ten TLSU functions
+`0..8,13`, the twelve unique named CUBE forms, and the exact 109-operation map
+of 35 VEC + 52 SFU + 10 TLSU + 12 CUBE. TEPL is only the unchanged
+Mode/Function encoding carrier for the 87 VEC/SFU operations, not an execution
+engine. Coverage conclusions require a fresh `run.sh` using Clang rebuilt from the current
 `compiler/llvm` HEAD; if the binary's reported VCS revision is stale, classify
 existing analyzer output as provenance/audit evidence rather than a source
 defect.
 
-v0.57 is the sole active ISA release. Treat v0.57 as a regression
-comparison only; do not accept legacy v0.57 selectors, aliases, or block-template
-spellings in active MC coverage unless they are explicitly present in the v0.57
-golden catalog.
+v0.58 is the sole active stable ISA release. Treat v0.57 as an archived
+regression comparison only; do not accept v0.57 selectors, aliases, or
+block-template spellings in active MC coverage unless a historical-profile
+test explicitly selects the archived v0.57 catalog.
 
 Treat `plain_c_reachable_contract.json` as a demonstrated plain-C
 non-regression baseline, not an exhaustive denominator for everything C can
@@ -125,9 +127,11 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
 8. Keep `TPREFETCH` parser/MC encoding adjacent to `TLOAD`/`TSTORE`, but model
    it as destination-free: no tile destination operand and no result queue
    publication.
-9. Keep TMA selector coverage dense over `0..8`; reject holes, aliases, and
-   stale selector spellings. Keep named CUBE TableGen/block-template entries
-   one-to-one with v0.57 architectural identities.
+9. Keep TLSU function coverage exact over `0..8,13`; reject holes, aliases,
+   old TMA category names, and stale selector spellings. Keep named CUBE
+   TableGen/block-template entries one-to-one with v0.58 architectural
+   identities. Keep `BSTART.VEC` and `BSTART.SFU` as semantic aliases of the
+   unchanged TEPL encoding carrier.
 10. Emit `.note.pto.isa` with owner `PTO\0`, type 1, four-byte alignment, and
     compact JSON without a trailing NUL. LLD must require strict identity
     equality across every input, reject missing/old/mixed/mismatched inputs,
@@ -140,7 +144,7 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
 
 - At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
 - Update this skill only for material reusable findings:
-  - new backend contract/call-ret rule tied to v0.57 closure,
+  - new backend contract/call-ret rule tied to v0.58 closure,
   - new mandatory compile gate/repro command/env,
   - new recurring compiler triage pattern that changed debug order.
 - Skip updates for minor optimization, wording cleanup, or one-off local workaround.
