@@ -6,25 +6,27 @@
 2. run layout check
 3. verify clean status
 4. verify pin lane uses in-repo toolchain and in-repo QEMU/Linux paths
-5. for ISA closure, treat v0.57 as the sole active profile and its release
-   manifest as the immutable conformance record
+5. verify every gitlink against `docs/bringup/component-lock.v0.58.json`
+6. for ISA closure, treat v0.58 as the sole active profile and its release
+   manifest plus exact PTO lock as the conformance record
 
 ## Minimum gate pack
 
-- `python3 tools/isa/build_golden.py --profile v0.57 --check`
-- `python3 tools/isa/validate_spec.py --profile v0.57`
-- `python3 tools/isa/check_canonical_v057.py --root .`
-- `python3 tools/isa/check_pto_v057_manifest.py --root .`
-- `bash avs/compiler/linx-llvm/tests/run.sh`
-- `bash avs/qemu/check_system_strict.sh`
-- `bash avs/qemu/run_tests.sh --all --timeout 20`
-- `LINX_SEMIHOST=0 python3 avs/qemu/run_tests.py --suite system --require-test-id 0x110F --timeout 15`
+- `bash tools/ci/check_repo_layout.sh`
+- `python3 tools/ci/check_component_lock.py --root .`
+- `python3 tools/isa/build_golden.py --profile v0.58 --check`
+- `python3 tools/isa/validate_spec.py --profile v0.58`
+- `python3 tools/isa/check_canonical_v058.py --root .`
+- `python3 tools/isa/check_pto_v058_manifest.py --root .`
+- `make -C tools/Linx-TileOP-API check`
+- `python3 workloads/pto_kernels/scripts/check_supernpu_v058.py`
+- `python3 docs/check_documentation.py --root .`
 
-The v0.57 gate pack must include the release additions: scalar CAS/DMA,
-destination-free `TPREFETCH` adjacent to `TLOAD`/`TSTORE`, dense TMA selectors
-`0..8`, unique named `CUBE` forms, the 120-operation PTO map (98 TEPL + 9 TMA
-+ 13 CUBE), and rejection of
-legacy selector/template/PTO spellings.
+The v0.58 gate pack must preserve the four-engine `VEC`/`TLSU`/`CUBE`/`SFU`
+classification, treat TEPL only as the unchanged encoded carrier, accept
+active TFMA, reject permanently deleted spellings, and prove the common PTO
+subset against the exact locked release. Standalone SuperNPUBench and archived
+v0.57 AVS Tile/PTO parity sources are not active gate evidence.
 
 ## Reliability notes
 
