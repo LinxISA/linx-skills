@@ -89,12 +89,12 @@ bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
-python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.57/linxisa-v0.57.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
+python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.58/linxisa-v0.58.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
 ```
 
-Coverage and opcode-sync gates must target the live standalone v0.57 catalog.
-Treat any `isa/v0.3`, `isa/v0.4`, or other retired-profile coverage command as
-archive-only unless explicitly running a historical comparison.
+Coverage and opcode-sync gates must target the live standalone v0.58 catalog.
+Treat `isa/v0.57` and any earlier profile as archive-only unless explicitly
+running a historical comparison.
 
 ## Incremental build policy
 
@@ -162,7 +162,7 @@ First-divergence rules:
   a physical TILE id. Freeze each header's source and output bindings before
   executing its body, reserve outputs in distinct physical slots, then consume
   inputs and publish outputs in descriptor order at successful block commit.
-- Stage tile queue metadata locally across TMA, CUBE, and vector execution.
+- Stage tile queue metadata locally across TLSU, CUBE, VEC, and SFU execution.
   Backing-memory beats may follow their documented restart rules, but live,
   reserved, ordered, and ACR-pin metadata must become visible atomically. ACR
   source pins and nonempty queue state are migration state: serialize them or
@@ -181,27 +181,28 @@ First-divergence rules:
   ordinary fixed-slot MSEQ/MPAR code.
 - For faultable tile helpers, plan descriptor allocation and source consumption
   without mutating live state, then publish them only after the operation
-  succeeds. TMA Normal-memory beats may remain externally non-atomic when the
+  succeeds. TLSU Normal-memory beats may remain externally non-atomic when the
   ISA allows restartable partial completion, but stale backing is never a
   general substitute for a live source; any compiler-compatibility exception
   must be provenance-bound and operand-exact.
-- For v0.57 PTO/tile decode, keep `TPREFETCH` adjacent to the `TLOAD`/`TSTORE`
+- For v0.58 PTO/tile decode, keep `TPREFETCH` adjacent to the `TLOAD`/`TSTORE`
   encoding family but destination-free. Execute it as a TLOAD-like prefetch of
   addressing and attributes with no tile destination operand and no queue
   publication.
-- Decode TMA selectors as the dense v0.57 `0..8` PTO tile-memory family. Reject
-  holes, aliases, and legacy selector spellings unless the v0.57 golden manifest
-  explicitly reserves them.
+- Decode TLSU functions as the exact v0.58 set `0..8,13`. Reject holes,
+  aliases, the old TMA category name, and legacy selector spellings unless an
+  explicitly selected historical profile owns them.
 - Keep named `CUBE` opcode/template identities unique across QEMU metadata,
   golden decode names, and compiler block templates; never collapse distinct
   CUBE forms into one handler name without an explicit sub-op identity.
-- Add scalar CAS/DMA decode metadata and execution coverage as active v0.57
+- Add scalar CAS/DMA decode metadata and execution coverage as active v0.58
   forms, not compatibility fallbacks.
 - When PTOAS/QEMU bridge metadata is involved, validate against the PTO ISA
-  0.57.1 map of exactly 120 direct operations (98 TEPL + 9 TMA + 13 CUBE).
-  Reject the nine deleted D operations and legacy PTO spellings rather than
-  normalizing them silently. TEPL accepts exactly 98 `Mode + Function`
-  positions and rejects the other 30 without generic fallback.
+  0.58 map of exactly 109 direct operations: 35 VEC + 52 SFU + 10 TLSU +
+  12 CUBE. Reject deleted operations and legacy PTO spellings rather than
+  normalizing them silently. TEPL remains only the unchanged Mode/Function
+  carrier for the 87 VEC/SFU operations; `BSTART.VEC` and `BSTART.SFU` are
+  semantic aliases and do not allocate new encodings.
 
 For recovered historical lines, insert one extra step before implementation:
 

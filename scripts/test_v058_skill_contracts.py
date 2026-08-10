@@ -47,6 +47,53 @@ class V058SkillContractsTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, text)
 
+    def test_compiler_uses_v058_pto_engine_contract(self) -> None:
+        text = (ROOT / "linx-compiler" / "SKILL.md").read_text(encoding="utf-8")
+        for required in (
+            "isa/v0.58/linxisa-v0.58.json",
+            "35 VEC + 52 SFU + 10 TLSU + 12 CUBE",
+            "TEPL is only the unchanged",
+            "exact ten TLSU functions",
+            "v0.58 is the sole active stable ISA release",
+        ):
+            self.assertIn(required, text)
+        for forbidden in (
+            "--spec /Users/zhoubot/linx-isa/isa/v0.57/",
+            "generated from the live v0.57",
+            "exact 120-operation map",
+            "98 TEPL + 9 TMA + 13 CUBE",
+        ):
+            self.assertNotIn(forbidden, text)
+
+    def test_qemu_uses_v058_pto_engine_contract(self) -> None:
+        text = (ROOT / "linx-qemu" / "SKILL.md").read_text(encoding="utf-8")
+        for required in (
+            "isa/v0.58/linxisa-v0.58.json",
+            "35 VEC + 52 SFU + 10 TLSU +",
+            "12 CUBE",
+            "TEPL remains only the unchanged Mode/Function",
+            "exact v0.58 set `0..8,13`",
+        ):
+            self.assertIn(required, text)
+        for forbidden in (
+            "--spec /Users/zhoubot/linx-isa/isa/v0.57/",
+            "live standalone v0.57 catalog",
+            "0.57.1 map of exactly 120 direct operations",
+            "98 TEPL + 9 TMA + 13 CUBE",
+        ):
+            self.assertNotIn(forbidden, text)
+
+    def test_linux_requires_v058_pto_executable_identity(self) -> None:
+        text = (ROOT / "linx-linux" / "SKILL.md").read_text(encoding="utf-8")
+        for required in (
+            "For PTO ISA 0.58 ELF loading",
+            "release `0.58.0`",
+            "pto-isa-0.58.0-mode-function-v1",
+            "exact v0.58 encoding-projection identity",
+        ):
+            self.assertIn(required, text)
+        self.assertNotIn("For PTO ISA 0.57.1 ELF loading", text)
+
 
 if __name__ == "__main__":
     unittest.main()
