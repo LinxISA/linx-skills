@@ -1,4 +1,4 @@
 interface:
   display_name: "Linx ISA"
   short_description: "ISA architecture and specification guidance"
-  default_prompt: "Use $linx-isa to close LinxArch contract gates, keep architecture pages authoritative, and map each required gate to a documented ISA/µarch contract."
+  default_prompt: "Use $linx-isa to enforce the LinxISA v0.58 authority, four-engine VEC/TLSU/CUBE/SFU classification, PTO lock alignment, and exact-head architecture gates."
