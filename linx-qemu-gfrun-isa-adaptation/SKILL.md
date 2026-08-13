@@ -23,7 +23,11 @@ classification, or status/evidence generation.
 2. Require an explicit ISA ref and resolve it to an immutable commit before
    editing. The selected `pto-spec` tag/commit is the only semantic authority.
    Record the ref and commit in the run manifest and evidence. Do not silently
-   mix pages from another tag.
+   mix pages from another tag. Before every verifier, importer, or generator
+   invocation, require `git -C "$ISA_REPO" rev-parse "$ISA_REF"` to equal
+   `ISA_COMMIT`. A version tag can lag the selected branch even when both are
+   described informally as the same ISA release; a stale tag is not an alias
+   for the selected immutable commit.
 3. Read the instruction page and any referenced encoding/layout pages. Extract,
    without inference: opcode and block, mode/function selectors, operand order
    and count, dtype restrictions, PE-local shape/dimensions, Tile size and
@@ -196,6 +200,7 @@ Run the repository's existing workflow from `SuperScalarModel` (adjust paths to
 the selected checkout):
 
 ```bash
+test "$(git -C "$ISA_REPO" rev-parse "$ISA_REF")" = "$ISA_COMMIT"
 python3 build.py build --target gfrun -j8
 ninja -C "$QEMU_ROOT/build-linx" qemu-system-linx64
 python3 scripts/verify_tile_profiles.py \
@@ -205,11 +210,53 @@ python3 scripts/generate_tile_profile_matrix.py --check \
   --qemu-output "$QEMU_ROOT/docs/linxisa/qemu_tile_profile_support.xlsx"
 ```
 
+Treat the profile catalog, evidence, status snapshot, and workbooks as a
+directed data flow, not four equivalent files:
+
+```text
+pto-spec catalog + tile_profile_evidence.json overrides
+                         |
+                         v
+              tile_profile_status.json
+                         |
+                         v
+        gfrun workbook + QEMU workbook
+```
+
+`docs/tile_profile_status.json` and both XLSX files are generated projections.
+For a new implementation-specific exact profile, register the exact profile
+string in the owning opcode's `extended_profiles` in
+`docs/tile_profile_evidence.json`, then run `import_tile_profile_status.py`
+against the pinned `ISA_REF`/`ISA_COMMIT` to create an `UNVERIFIED` catalog cell.
+Do this before the read-only verification gate. Do not add a profile only to
+`tile_profile_status.json`: the next import correctly discards such an orphaned
+derived-only edit, even if a verification record for it already exists.
+
+Use this order for a new profile:
+
+1. Add the exact string to the persistent evidence override catalog without
+   claiming `PASS`.
+2. Assert `ISA_REF` resolves to `ISA_COMMIT`, import the status snapshot, and
+   confirm the new QEMU/gfrun cells are `UNVERIFIED`.
+3. Run the selected manifest without `--update`; inspect `summary.json` and
+   `compare.json`, not only the command return code.
+4. Run the same selected batch with `--update` only after the read-only gate is
+   fully `PASS`.
+5. Re-read JSON and assert the exact profile is present in
+   `extended_profiles`, has a current-commit verification record, and is `PASS`
+   for both models. Then regenerate/check both workbooks.
+
 Use `--update` only after the complete selected batch passes all independent
 golden and pairwise checks. The update must preserve profile-level records in
 `docs/tile_profile_evidence.json` and `docs/tile_profile_status.json`, then
 regenerate/check the QEMU and gfrun workbooks. Never bulk-promote all profiles
-because a shared carrier or opcode passed.
+because a shared carrier or opcode passed. Successful `--update` output is not
+itself proof that the intended matrix cell survived import: verify the
+postconditions above. Compare the before/after status maps and reject unrelated
+`PASS -> UNVERIFIED`, `PASS -> UNSUPPORTED`, profile removal, or ISA-source
+changes. These usually indicate a stale import ref, a missing persistent
+`extended_profiles` override, or unintended evidence pruning rather than a new
+model regression.
 
 Status meanings are strict:
 
@@ -274,10 +321,16 @@ uncertainty behind a broad `UNSUPPORTED` label.
 
 Before handoff or a commit in either leaf repository, run the focused unit tests,
 the selected cross-model manifests, `git diff --check`, workbook `--check`, and
-`unzip -t` on both workbooks. Verify no generated artifacts or runaway processes
-remain. Report branch and commit per repository, test commands/results, status
-changes, blockers, and whether anything was pushed. Keep QEMU and gfrun history
-separate; update a superproject gitlink only after the leaf change is reviewed.
+`unzip -t` on both workbooks. Also assert the exact promoted profile in the
+status JSON and evidence JSON, verify both model states are `PASS`, and inspect
+the status diff for unrelated downgrades or removals. A valid XLSX ZIP and a
+passing generator `--check` prove file integrity/reproducibility, not that the
+intended profile cell exists. Verify no generated artifacts or runaway
+processes remain. Report branch and commit per repository, test
+commands/results, status changes, blockers, and whether anything was pushed.
+Keep QEMU and gfrun history separate; the QEMU workbook belongs in the QEMU leaf
+history, while gfrun evidence/status/workbook belongs in SuperScalarModel.
+Update a superproject gitlink only after the leaf change is reviewed.
 
 ## Reference
 
