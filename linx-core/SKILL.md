@@ -218,6 +218,16 @@ multi-agent Chisel development. Each module packet must:
   least one unequal-capacity elaboration, such as 16 STQ rows with 8 ROB
   entries and a 40-bit LSID, and assert physical index/mask, ROB identity, and
   LSID widths independently;
+- for any deferred architectural trap, keep detection-time evidence separate
+  from the later retirement/export row. Capture the architectural cause,
+  architecturally defined `TRAPARG0` (the source PC when that fault class
+  requires it), and `BI` in dedicated first-fault state. Both independent
+  architectural exporters must consume every stored field without
+  reconstructing it from current input or retirement-row state. The required
+  two-cycle regression must use three distinct values for the original fault
+  PC, mutated live-fault PC, and mutated retirement-row PC, while still
+  expecting the original fault envelope and zero architectural effects,
+  including no writeback, memory, redirect/restart, or block-state mutation;
 - keep ROB/commit/flush/BROB/QEMU cross-check infrastructure as the first proof
   surface for replacement evidence;
 - For BROB non-flush promotion, publish an exact per-STID `(head BID,
