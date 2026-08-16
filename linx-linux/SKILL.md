@@ -118,14 +118,19 @@ standalone QEMU semantics is correct.
 
 - kernel call/ret path matches contract,
 - dynamic targets are legal block starts,
+- canonical `BSTART.ICALL` snapshots the retiring block's `BARG.BPCN`; Linux
+  indirect-call macros must therefore materialize the callee and execute
+  `SETC.TGT` before `BSTART.ICALL`, followed by the terminating `BSTOP`,
 - regression rerun includes strict AVS system/runtime checks,
 - timer IRQ behavior remains enabled in strict closure unless explicitly waived.
 - For PTO ISA 0.58 ELF loading, require `.note.pto.isa` on the main
   `ET_EXEC`/`ET_DYN` object and its interpreter. The note uses owner `PTO\0`,
   type 1, four-byte alignment, and compact JSON without a trailing NUL. Require
-  release `0.58.0`, encoding ABI `pto-isa-0.58.0-mode-function-v1`, and the
-  exact v0.58 encoding-projection identity; reject missing, old, mixed, or
-  mismatched identities before userspace execution.
+  release `0.58.1`, encoding ABI `pto-isa-0.58.1-mode-function-v1`, and
+  encoding-projection SHA-256
+  `89b872d6eaf0252200bc9349d49b9346e2a69d894cdcc2dcd0fd71911c1e0b8c`;
+  reject missing, old, mixed, or mismatched identities before userspace
+  execution.
 - treat `/chosen/bootargs` string corruption separately from later parser bugs:
   if the command line bytes are already wrong before `parse_args()`, fix the DT
   property read/import path first.
