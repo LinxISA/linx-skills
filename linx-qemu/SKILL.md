@@ -143,6 +143,13 @@ ninja qemu-system-linx64
 
 First-divergence rules:
 
+- When a shutdown notifier writes cross-model result or tile dumps, attempt
+  every configured dump before reporting the aggregate outcome. On failure,
+  set the active shutdown request's exit status exactly once; never queue a
+  second shutdown request from inside the notifier. Bound the regression with
+  a timeout and cover result-only, tile-only, and combined paths, including a
+  mixed-success case that preserves the successful output while returning a
+  nonzero host status.
 - For current `ET_REL` direct-boot relocation failures, first compare QEMU
   loader relocation types with LLVM `ELFRelocs/LinxISA.def`. Enter opcode
   dispatch only for an explicit whitelist of current relocation types; never
