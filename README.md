@@ -21,13 +21,13 @@ Linx ISA bring-up related Codex skills.
 
 ## Managed utility skills
 - linx-skills-submodule
-- linx-cross-model-validation
+- linx-qemu-gfrun-isa-adaptation
 
-`linx-cross-model-validation` owns the reusable QEMU-gfrun-gfsim
-architecture-visible result comparison workflow. It is a cross-repository
-validation utility, not the owner of any single superproject module. An
-external SuperScalarModel run is companion diagnostic evidence and does not
-replace the superproject's canonical pinned `tools/LinxCoreModel` closure.
+`linx-qemu-gfrun-isa-adaptation` owns the cross-repository PTO ISA adaptation
+workflow: freeze the selected ISA contract, implement QEMU and gfrun, build
+current-encoding carriers, validate exact profiles against independent golden
+data and architectural observations, run structured QEMU-gfrun and optional
+gfsim comparisons, and promote evidence to the support matrices.
 
 ## Module ownership map
 | Skill | Module scope |
