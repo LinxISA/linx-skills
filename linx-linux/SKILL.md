@@ -123,14 +123,22 @@ standalone QEMU semantics is correct.
   `SETC.TGT` before `BSTART.ICALL`, followed by the terminating `BSTOP`,
 - regression rerun includes strict AVS system/runtime checks,
 - timer IRQ behavior remains enabled in strict closure unless explicitly waived.
-- For PTO ISA 0.58 ELF loading, require `.note.pto.isa` on the main
+- For PTO ISA 0.58.3 ELF loading, require `.note.pto.isa` on the main
   `ET_EXEC`/`ET_DYN` object and its interpreter. The note uses owner `PTO\0`,
   type 1, four-byte alignment, and compact JSON without a trailing NUL. Require
-  release `0.58.1`, encoding ABI `pto-isa-0.58.1-mode-function-v1`, and
+  release `0.58.3`, encoding ABI `pto-isa-0.58.3-mode-function-v1`, and
   encoding-projection SHA-256
-  `89b872d6eaf0252200bc9349d49b9346e2a69d894cdcc2dcd0fd71911c1e0b8c`;
+  `8a48b80e04484c70870f155bf9efc79d2a805cf99e809f4e4e8a7e6a7eb34172`;
   reject missing, old, mixed, or mismatched identities before userspace
   execution.
+- Bind promoted Linux runtime evidence to the matching
+  `isa/v0.58/pto-spec.lock.json`: content SHA-256
+  `f299fe3d256c5d071e57bb4aaa2be2de2e4a386ae090048df1f73ae92d392678`,
+  PTO-SPEC commit `e599a3d36ebfad43362ff591ea5e128816c684c7`, tree
+  `abb6899d2e664e378ac9c1b77062670daa4d31b4`, and repository
+  `https://github.com/PTO-ISA/pto-spec.git`. Treat compiler, QEMU, kernel, or
+  userspace artifacts sourced from a different PTO identity as diagnostic,
+  even when an individual smoke marker passes.
 - treat `/chosen/bootargs` string corruption separately from later parser bugs:
   if the command line bytes are already wrong before `parse_args()`, fix the DT
   property read/import path first.
