@@ -114,8 +114,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   instruction-PC delta, patch the model PC-relative calculator rather than
   chasing store buffer or SCB merge paths.
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
-  before touching benchmark or compiler code: Linx LLVM and QEMU encode
-  `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+  before touching benchmark or compiler code. Arithmetic/logical forms with the
+  full modifier set encode `0=.sw`, `1=.uw`, `2=.neg/.not`, and `3=plain`.
+  Restricted compare forms and form-specific operations such as `CSEL` have
+  narrower mappings; use the canonical form contract rather than applying the
+  common arithmetic mapping blindly.
 - For scalar hash/probe divergence after QEMU pass, verify W-form logical
   right shifts before touching benchmark or compiler code. `SRLW`/`SRLIW` must
   read `SrcL[31:0]`, mask the shift amount to 5 bits, and sign-extend the
