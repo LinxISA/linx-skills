@@ -1168,8 +1168,9 @@ interface.
 - Phase 5/R110 CoreMark HL.LUI work extends the reduced live fetch RF/ALU
   envelope through that T-destination immediate row. Preserve the same local
   register split as R109: destination tag `31` is `DestinationKind.T`, not a
-  scalar GPR. `OP_HL_LUI` materializes the sign-extended 48-bit-format IMM32
-  payload directly into the destination; frontend operand decode packs
+  scalar GPR. The historical R110 sign-extension observation is superseded.
+  LinxISA v0.58.3 `OP_HL_LUI` places the decoded IMM32 in result bits 63:32
+  and clears bits 31:0; frontend operand decode packs
   `Cat(pfx16[15:4], main32[31:12])` before execute receives `imm`. The
   expected-row reducer may accept this T-destination only for the current
   reduced `HL.LUI` row and must continue rejecting unsupported T/U source
@@ -1713,11 +1714,11 @@ interface.
   return, or when the condition is absent and neither SETC nor active-marker
   target exists; otherwise a live target owns the redirect. The R136 evidence compares 1094 normalized rows with zero
   mismatches; a QEMU-only 1660-row probe reaches `OP_CSEL` at `pc=0x40005d32`.
-  R137 classifies that frontier as a model/QEMU source-order divergence, not a
-  reduced RTL implementation target: Sail and LinxCoreModel select `SrcL` when
-  `SrcP != 0`, while current QEMU selects `SrcR`. Do not add reduced Chisel
-  `OP_CSEL` support by copying QEMU until the architecture/model/QEMU contract
-  is resolved.
+  The historical R137 source-order divergence is resolved in LinxISA v0.58.3:
+  Sail, LLVM, QEMU, and the model select `SrcL` when `SrcP != 0`, otherwise
+  SrcR. Scalar CSEL encodes `.neg` as SrcRType `2`, canonical plain as `3`, and
+  treats `0/1` as plain. Reduced Chisel `OP_CSEL` support must implement this
+  resolved contract rather than the superseded QEMU observation.
 - Phase 5/R81 reduced scalar ALU completion work adds the first generated RTL
   comparison gate where a Chisel execute owner, not an external surrogate,
   marks a frontend-decoded ROB row complete with nonzero source, destination,

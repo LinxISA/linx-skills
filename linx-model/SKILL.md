@@ -114,8 +114,11 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   instruction-PC delta, patch the model PC-relative calculator rather than
   chasing store buffer or SCB merge paths.
 - For scalar loop divergence after QEMU pass, verify the SrcR modifier contract
-  before touching benchmark or compiler code: Linx LLVM and QEMU encode
-  `SrcRType` as `0=.sw`, `1=.uw`, `2=.neg/.not`, `3=no modifier`.
+  before touching benchmark or compiler code. Arithmetic/logical forms with the
+  full modifier set encode `0=.sw`, `1=.uw`, `2=.neg/.not`, and `3=plain`.
+  Restricted compare forms and form-specific operations such as `CSEL` have
+  narrower mappings; use the canonical form contract rather than applying the
+  common arithmetic mapping blindly.
 - For scalar hash/probe divergence after QEMU pass, verify W-form logical
   right shifts before touching benchmark or compiler code. `SRLW`/`SRLIW` must
   read `SrcL[31:0]`, mask the shift amount to 5 bits, and sign-extend the
@@ -124,16 +127,16 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/run_ai_workload_flow.py --profile 
   until the model stopped routing `SRLIW` through the generic 64-bit `SRL`.
 - For scalar loop divergence involving 48-bit immediate materialization, check
   `HL.LUI`/`HL.LIS`/`HL.LIU` before chasing rename, SCB, or benchmark logic.
-  Linx Sail and QEMU define `HL.LUI` and `HL.LIS` as sign-extending the decoded
-  32-bit immediate to 64 bits, while `HL.LIU` zero-extends it. PTO
-  `argmax_fp32` proved this through the `hl.lui -1; sll 32; srl 32` mask
-  sequence: QEMU passed, but a model high-half materialization made the loop
-  counter start at `-1` and never reach the pass finisher.
+  LinxISA v0.58.3 defines `HL.LUI` as placing the decoded 32-bit immediate in
+  result bits 63:32 and clearing bits 31:0. `HL.LIS` sign-extends the decoded
+  immediate, while `HL.LIU` zero-extends it. Linux `setup_vm` proved the hard
+  boundary: treating `HL.LUI 65536` as an ordinary low-word value corrupts
+  page-table geometry before PID1.
 - For scalar/vector select divergence after QEMU pass, verify the `csel`/`psel`
-  source order before changing compiler or workload code, and do not treat
-  QEMU as model truth until the contract is reconciled. Current R137 Chisel
-  evidence shows Sail and LinxCoreModel scalar `CSEL` select `SrcL` when
-  `SrcP != 0`, while Linx QEMU selects `SrcR`.
+  source order and selector encoding before changing compiler or workload code.
+  Scalar `CSEL` selects `SrcL` when `SrcP != 0`; otherwise it selects SrcR.
+  Its canonical plain SrcRType is `3`, `.neg` is `2`, and values `0/1` are
+  treated as plain. LinxISA v0.58.3 Sail, LLVM, and QEMU use this same contract.
 - For 48-bit load decode failures after QEMU pass, check the decode table
   before changing compiler output. `LWU_PCR` uses selector `110` in the
   BlockISA model, matching the Linx QEMU/LLVM contract.
