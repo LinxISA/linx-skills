@@ -14,6 +14,23 @@ For musl PR/runtime closure, the required static and shared summaries must be
 produced by `run_musl_smoke.py --sample all`; the no-sample default is only a
 lightweight local repro.
 
+## Hosted SMT4 reference gate
+
+The first gfrun-hosted group gate is the runtime-only static carrier in
+SuperNPUBench:
+
+```bash
+COMPILER_DIR=/path/to/linx-llvm/bin \
+MUSL_SYSROOT=/path/to/linx-musl/sysroot \
+GFRUN=/path/to/gfrun \
+benchmark/one-level-arch/verification/run_hosted_group_runtime_smoke.sh
+```
+
+Require all four PEs to start, publish completion, and terminate with PE0
+status zero. A hosted four-PE ELF without `__linx_group_worker_start` must be
+rejected; a `PT_INTERP` image must be rejected separately. Do not weaken
+`barg.target` or syscall diagnostics to obtain a pass.
+
 ## Allocator bisection policy
 
 Keep `MALLOC_IMPL=mallocng` as the default maintained phase-b musl allocator.
