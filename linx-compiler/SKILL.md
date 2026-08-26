@@ -68,6 +68,20 @@ Never use total ISA mnemonic breadth as the plain-C reachability denominator.
 - keep `FENTRY + FEXIT` tail-transfer path legal,
 - preserve relocation/template checks.
 
+## Hosted group runtime ownership
+
+- Linx-TileOP-API owns `common/linx_group_runtime.h`; do not duplicate the
+  public ABI in workloads.
+- compiler-rt owns `lib/builtins/linx/group_runtime.c`. Keep it C/freestanding,
+  single-shot, and free of libc, TLS, syscall, atomic-helper, and indirect
+  function-pointer dependencies.
+- The builtins archive must export `linx_group_run` and the retained
+  `__linx_group_worker_start`, with only
+  `__linx_group_worker_main` unresolved for the application to provide.
+- Inspect the object relocation table: worker dispatch must use direct
+  `R_LINX_HL_BSTART30_PCREL` calls and shared control accesses must use the
+  expected PCR load/store relocations.
+
 ## SIMT recurrence contract
 
 - Treat generic loop-carried recurrences as order-dependent. Only recurrence

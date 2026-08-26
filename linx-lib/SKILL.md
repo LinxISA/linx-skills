@@ -47,6 +47,21 @@ QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
   SPEC Stage-A and other hosted-userland lanes need the shared-musl runtime
   package (`libc.so` and loader path), so do not claim hosted closure from
   phase-b static/shared smoke results alone.
+- A gfrun-hosted SMT4 ELF must not enter libc startup on all four PEs. PE0
+  owns `_start`, libc/TLS, file descriptors, and process exit; PE1 through PE3
+  use an independent-stack lightweight entry and no libc/syscall ABI.
+- The first lightweight ABI is static-only and single-shot. The ELF exports
+  `__linx_group_worker_start` plus a directly called
+  `__linx_group_worker_main(pe_id, context)`. Missing worker symbols and
+  `PT_INTERP` images fail closed before guest execution. Static PIE with
+  `PT_DYNAMIC` but no `PT_INTERP` remains a static lane.
+- In this hosted group lane, PE0 `SYS_exit` and `SYS_exit_group` both terminate
+  the core; a non-leader `SYS_exit` remains per-PE. This accommodates current
+  Linx musl exit ordering without giving workers process ownership.
+- Keep ownership split: Linx-TileOP-API owns the public header and ABI docs;
+  compiler-rt owns `linx/group_runtime.c`; libc/toolchain packaging installs
+  it in `liblinx_builtin_rt.a`; workloads define only
+  `__linx_group_worker_main` and consume the archive.
 
 ## Alignment checks
 
