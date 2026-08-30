@@ -32,9 +32,9 @@ generated from the live v0.58 ISA catalog. The coverage denominator must be
 derived from `isa/v0.58/linxisa-v0.58.json`, not carried forward from retired
 profile closure counts. Coverage must include all active v0.58 scalar CAS/DMA
 forms and the PTO tile surface: `TPREFETCH`, the exact ten TLSU functions
-`0..8,13`, the twelve unique named CUBE forms, and the exact 109-operation map
-of 35 VEC + 52 SFU + 10 TLSU + 12 CUBE. TEPL is only the unchanged
-Mode/Function encoding carrier for the 87 VEC/SFU operations, not an execution
+`0..8,13`, the twelve unique named CUBE forms, and the exact 107-operation map
+of 31 VEC + 54 SFU + 10 TLSU + 12 CUBE. TEPL is only the unchanged
+Mode/Function encoding carrier for the 85 VEC/SFU operations, not an execution
 engine. Coverage conclusions require a fresh `run.sh` using Clang rebuilt from the current
 `compiler/llvm` HEAD; if the binary's reported VCS revision is stale, classify
 existing analyzer output as provenance/audit evidence rather than a source
@@ -119,6 +119,11 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
 /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang/bin/clang -target linx64-linx-none-elf -c /tmp/probe.s -o /tmp/probe-clang.o
 ```
 
+   Repeat the integrated-assembler and link probe for `linx32-linx-none-elf`
+   when the change affects shared encoding or ELF identity. Read the emitted
+   `.note.pto.isa` from both final ELFs; an `llvm-mc`-only result does not prove
+   Clang or LLD identity closure.
+
 5. For recurring kernel-forward-port crashes in
    `SelectionDAGISel::isOrEquivalentToAdd`, first use the emitted Clang crash
    repro script from `/var/folders/.../*.sh` and remove the quoted
@@ -150,7 +155,15 @@ ninja -C /Users/zhoubot/linx-isa/compiler/llvm/build-linxisa-clang clang -j10
     compact JSON without a trailing NUL. LLD must require strict identity
     equality across every input, reject missing/old/mixed/mismatched inputs,
     and preserve the agreed note in its output.
+    For PTO 0.58.5, also keep `B.FPATR`'s ten-field descriptor (including
+    `CScaleEn`), `B.ASSEMBLE`/`B.SUBVIEW` source-order round trips, and Shared
+    register acceptance exactly at `S0..S63` synchronized with the generated
+    codec.
 11. Run both linx64 and linx32 compile/coverage gates.
+    The canonical C-CodeGen evidence report must consume the in-superproject
+    `compiler/llvm/build-linxisa-clang` lane. An external build is useful
+    precursor evidence, but must not be promoted as canonical or used to
+    bypass the reviewed compiler gitlink.
 12. Confirm no cross-stack call/ret regressions.
 13. Handoff gate evidence to integration owner before repin.
 
