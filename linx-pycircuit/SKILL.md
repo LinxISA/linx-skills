@@ -27,12 +27,12 @@ python3 /Users/zhoubot/linx-isa/tools/bringup/check_pycircuit_interface_contract
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_trace_semver_compat.py --root /Users/zhoubot/linx-isa --strict
 ```
 
-Hard-break closure gates (for pyc4.0 closure phases) are also mandatory:
+pyCircuit 6 closure gates are also mandatory:
 
 ```bash
-python3 /Users/zhoubot/linx-isa/tools/pyCircuit/flows/tools/check_decision_status.py --status /Users/zhoubot/linx-isa/tools/pyCircuit/docs/gates/decision_status_v40.md --out /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/gates/<run-id>/decision_status_report.json --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
+python3 /Users/zhoubot/linx-isa/tools/pyCircuit/flows/tools/check_decision_status.py --status /Users/zhoubot/linx-isa/tools/pyCircuit/docs/gates/decision_status_v6.md --out /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/gates/<run-id>/decision_status_report.json --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
 mkdocs build
-bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_semantic_regressions_v40.sh
+bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_semantic_regressions_v6.sh
 ```
 
 Examples gate now enforces strict decision coverage by default (`PYC_DECISION_STATUS_STRICT=1`).
@@ -64,10 +64,11 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 - Breaking interface changes require `MAJOR` bump.
 - Additive backward-compatible changes require `MINOR` bump.
 - Unversioned breaking changes must fail the interface gate.
-- pyc4 hard-break mode disallows legacy compatibility APIs/flags.
+- pyc6 is the only current product surface; Cycle-Aware Signal is a first-class architecture, not a compatibility layer.
 - Decision 0013/0014 must remain enforced: runtime library packaging + STL-only default.
 - Decision-complete semantic closure requires:
-  - `.pyctrace` schema v3 (`PYC4TRC3`) with value/known/z payloads,
+  - `.pyctrace` schema v3 (`PYC6TRC3`) with value/known/z payloads,
+  - generated projects link `libpyc6_runtime`,
   - explicit invalidate/reset event stream with ordered pre-phase semantics,
   - full gate evidence without partial timeout acceptance.
 
@@ -138,7 +139,7 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
    - `PYC_SIM_RETRY_ON_TIMEOUT`
    - `PYC_SIM_RESUME_FROM_CASE`
    - Case logs are split by lane: `docs/gates/logs/<run-id>/cases/run_sims/<case>/` and `.../cases/run_sims_nightly/<case>/`.
-8. Prefer setting `PYC_GATE_RUN_ID` explicitly for every closure run so `run_examples.sh` and `run_semantic_regressions_v40.sh` land in the same evidence directory.
+8. Prefer setting `PYC_GATE_RUN_ID` explicitly for every closure run so `run_examples.sh` and `run_semantic_regressions_v6.sh` land in the same evidence directory.
 
 ## Tooling reliability (common)
 
