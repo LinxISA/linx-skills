@@ -33,11 +33,23 @@ Use this skill for `tools/pyCircuit` development, flow validation, and integrati
   `linx-superproject` workflow. This skill covers framework changes and the
   resulting consumer contract handoff, not consumer design implementation.
 
-pyCircuit 6 closure gates are also mandatory:
+pyCircuit PR checks are deliberately lightweight. Required automation covers
+repository/Python contracts; native, MLIR, runtime, or backend PRs add the
+narrowest focused local evidence for their change.
 
 ```bash
+pytest /Users/zhoubot/linx-isa/tools/pyCircuit/tests/unit -m unit
+python3 /Users/zhoubot/linx-isa/tools/pyCircuit/tools/agentic-circuit/check-contracts.py
+mkdocs build --strict
+```
+
+Full pyCircuit 6 closure is release-only and must complete before packages are
+published:
+
+```bash
+PYC_GATE_RUN_ID=<run-id> bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_agentic_circuit.sh
 python3 /Users/zhoubot/linx-isa/tools/pyCircuit/flows/tools/check_decision_status.py --status /Users/zhoubot/linx-isa/tools/pyCircuit/docs/gates/decision_status_v6.md --out /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/gates/<run-id>/decision_status_report.json --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
-mkdocs build
+mkdocs build --strict
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_semantic_regressions_v6.sh
 ```
 
@@ -48,7 +60,7 @@ Use a single run-id across example + semantic lanes for coherent evidence bundle
 PYC_GATE_RUN_ID=<run-id> PYC_DECISION_STATUS_STRICT=1 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_examples.sh
 ```
 
-## Nightly mandatory gates
+## Release and nightly gates
 
 ```bash
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_examples.sh
@@ -98,11 +110,13 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
 
 1. Implement dialect/pass/frontend/backend change.
 2. Rebuild generated artifacts and confirm producer scripts still conform.
-3. Run PR mandatory pyCircuit framework gates.
+3. Run the two lightweight PR checks and the focused test that proves the
+   changed contract.
 4. If behavior changes a published consumer contract, report the exact
    revision and required consumer-side follow-up; do not implement consumer
    design or comparison flows in pyCircuit.
-5. For nightly promotion, run nightly mandatory gates and publish evidence paths.
+5. For release promotion, run full AC/PYC closure; use nightly/manual lanes as
+   diagnostic subsets only.
 6. Archive closure evidence under `docs/gates/logs/<run-id>/` (commands, stdout/stderr, summary, decision mapping).
 7. For long simulation lanes, use case-level controls:
    - `PYC_SIM_CASE_TIMEOUT_SEC`
