@@ -18,14 +18,20 @@ Use this skill for `tools/pyCircuit` development, flow validation, and integrati
 - Treat generated logs/traces as disposable debugging artifacts. Remove large outputs from `/tmp`, `/private/tmp`, and repo-local output trees once the needed evidence has been extracted.
 - If a run is still producing logs after the needed evidence is captured, stop it before rerunning or widening the reproducer.
 
-## PR mandatory gates
+## Repository boundary (strict)
 
-```bash
-bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_cpu_pyc_cpp.sh
-bash /Users/zhoubot/linx-isa/tools/pyCircuit/contrib/linx/flows/tools/run_linx_qemu_vs_pyc.sh
-python3 /Users/zhoubot/linx-isa/tools/bringup/check_pycircuit_interface_contract.py --root /Users/zhoubot/linx-isa --strict
-python3 /Users/zhoubot/linx-isa/tools/bringup/check_trace_semver_compat.py --root /Users/zhoubot/linx-isa --strict
-```
+- `PTO-ISA/pyCircuit` owns reusable frontends, MLIR dialects/passes, runtimes,
+  simulators, backends, generic examples, and framework gates.
+- LinxCPU/LinxCore designs, ISA decoders, QEMU comparison, board files,
+  product testbenches, and consumer trace adapters are owned by the Linx
+  superproject or another consumer repository. Do not add them under the
+  pyCircuit `integrations/`, `platforms/`, examples, tests, or runtime headers.
+- Consumer compatibility gates run from the consumer checkout against an exact
+  pyCircuit revision. The pyCircuit repository must not reach into a sibling
+  Linx checkout or carry path-based exceptions for Linx sources.
+- Route Linx consumer validation and cross-repository pin work through the
+  `linx-superproject` workflow. This skill covers framework changes and the
+  resulting consumer contract handoff, not consumer design implementation.
 
 pyCircuit 6 closure gates are also mandatory:
 
@@ -42,14 +48,6 @@ Use a single run-id across example + semantic lanes for coherent evidence bundle
 PYC_GATE_RUN_ID=<run-id> PYC_DECISION_STATUS_STRICT=1 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_examples.sh
 ```
 
-## Optional (deep) gates
-
-Model diff suite (pyCircuit vs QEMU correlation; use when touching trace/commit semantics):
-
-```bash
-python3 /Users/zhoubot/linx-isa/tools/bringup/run_model_diff_suite.py --root /Users/zhoubot/linx-isa
-```
-
 ## Nightly mandatory gates
 
 ```bash
@@ -58,12 +56,13 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims.sh
 bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
 ```
 
-## Interface rules (strict)
+## Consumer interface rules (strict)
 
-- Contract file: `docs/bringup/contracts/pyc_linxcore_interface_contract.json`
-- Breaking interface changes require `MAJOR` bump.
-- Additive backward-compatible changes require `MINOR` bump.
-- Unversioned breaking changes must fail the interface gate.
+- Consumer repositories own their compatibility contract files and enforce
+  version changes against pinned pyCircuit releases or commits.
+- Breaking framework interfaces require the appropriate public package/ABI
+  version change and migration notes in pyCircuit; consumer-specific schema
+  identifiers do not become pyCircuit framework APIs.
 - pyc6 is the only current product surface; Cycle-Aware Signal is a first-class architecture, not a compatibility layer.
 - Decision 0013/0014 must remain enforced: runtime library packaging + STL-only default.
 - Decision-complete semantic closure requires:
@@ -71,37 +70,6 @@ bash /Users/zhoubot/linx-isa/tools/pyCircuit/flows/scripts/run_sims_nightly.sh
   - generated projects link `libpyc6_runtime`,
   - explicit invalidate/reset event stream with ordered pre-phase semantics,
   - full gate evidence without partial timeout acceptance.
-
-## LinxTrace v1 runtime writer (strict)
-
-- Runtime LinxTrace output is a single uncompressed `*.linxtrace` (JSONL) with in-band META first record.
-- Legacy split outputs are forbidden: `*.linxtrace.jsonl`, `*.linxtrace.meta.json`, `*.gz`.
-- `PYC_LINXTRACE_GZ` is removed (no gzip writer/reader path).
-- Do not leave runtime raw-trace or commit-trace capture unbounded by default.
-  Prefer bounded commit windows, explicit timeout/terminal conditions, or post-processed focused captures over whole-run logging from cycle 0.
-- DFX occupancy for canonical pipeline stages must be emitted from the real owner module/stage boundary.
-  Do not rebuild `W1/W2` or other residency from commit-edge sidecars in top-level glue.
-- `debug_occ` / probe authoring must stay probe-only.
-  Do not add architectural state, pipeline flops, commit-edge counters, or redirect/block sidecar logic in pyc modules just to satisfy trace.
-  If trace needs edge/sequence/block lifecycle reconstruction, prefer TB/raw-trace post-processing over synthesizing trace-only hardware.
-- Frontend/backend must stamp and preserve `pyc.probe_only = true` for probe-only trace modules.
-  Use it for modules whose visible contract is only `dbg__*` probe exports, and for zero-output probe containers whose children are all probe-only.
-  Probe-only modules must be retained through dead-instance pruning, but they are exempt from hierarchy/emitted-cost hardware closure gates; do not mix functional outputs into them.
-- Keep probe-only child instances alive with compiler metadata instead of debug-port fanout.
-  pyc modules that exist only to emit `dbg__*` outputs should be retained through the `pyc.debug_keep` / dead-instance-pruning path; do not forward their probe leaves into parent modules just to make ProbeRegistry see them.
-- For probe-only modules, optimize the instance boundary for compile cost rather than hardware realism.
-  It is valid to pack many per-lane/per-stage probe fields into wide buses and unpack inside the child probe module if that reduces parent `eval` fanout and keeps emitted-cost gates green.
-
-Common env (when a TB enables runtime LinxTrace):
-
-```bash
-PYC_LINXTRACE=/abs/path/to/out.linxtrace
-```
-
-- Keep trace schema SemVer separate from commit schema identifiers:
-  - `LINX_TRACE_SCHEMA_VERSION` is the architectural trace compatibility version (`MAJOR.MINOR`, currently `1.0`).
-  - `LINX_COMMIT_SCHEMA_ID` is the producer/consumer commit-bundle identifier (for example `LC-COMMIT-BUNDLE-V1`).
-  - Do not alias one to the other in producer scripts; `check_trace_semver_compat.py` and `check_pycircuit_interface_contract.py` both enforce this split.
 
 ## Hierarchy discipline + emitted-cost gates (strict)
 
@@ -130,8 +98,10 @@ bash /Users/zhoubot/linx-isa/rtl/LinxCore/tools/generate/update_generated_linxco
 
 1. Implement dialect/pass/frontend/backend change.
 2. Rebuild generated artifacts and confirm producer scripts still conform.
-3. Run PR mandatory pyCircuit gates.
-4. If touched behavior affects LinxCore/trace, coordinate with `linx-core` + `linx-qemu`.
+3. Run PR mandatory pyCircuit framework gates.
+4. If behavior changes a published consumer contract, report the exact
+   revision and required consumer-side follow-up; do not implement consumer
+   design or comparison flows in pyCircuit.
 5. For nightly promotion, run nightly mandatory gates and publish evidence paths.
 6. Archive closure evidence under `docs/gates/logs/<run-id>/` (commands, stdout/stderr, summary, decision mapping).
 7. For long simulation lanes, use case-level controls:
