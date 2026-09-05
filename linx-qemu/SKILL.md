@@ -87,6 +87,12 @@ normal forward-port.
 ```bash
 bash /Users/zhoubot/linx-isa/avs/qemu/check_system_strict.sh
 bash /Users/zhoubot/linx-isa/avs/qemu/run_tests.sh --all --timeout 10
+python3 /Users/zhoubot/linx-isa/avs/qemu/run_tests.py \
+  --qemu /Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+  --suite tile_v0583_tlsu --suite tile_v0583_vec \
+  --suite tile_v0583_sfu --suite tile_v0583_cube \
+  --suite tile_v0586_gm_atom_red --suite tile_v0586_timg2col \
+  --timeout 10
 python3 /Users/zhoubot/linx-isa/avs/qemu/run_callret_contract.py
 python3 /Users/zhoubot/linx-isa/tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root /Users/zhoubot/linx-isa/emulator/qemu --allowlist /Users/zhoubot/linx-isa/docs/bringup/qemu_opcode_sync_allowlist.json --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_opcode_sync_latest.md
 python3 /Users/zhoubot/linx-isa/tools/bringup/report_qemu_isa_coverage.py --spec /Users/zhoubot/linx-isa/isa/v0.58/linxisa-v0.58.json --qemu-meta /Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h --report-out /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.json --out-md /Users/zhoubot/linx-isa/docs/bringup/gates/qemu_isa_coverage_latest.md
@@ -196,20 +202,25 @@ First-divergence rules:
   encoding family but destination-free. Execute it as a TLOAD-like prefetch of
   addressing and attributes with no tile destination operand and no queue
   publication.
-- Decode TLSU functions as the exact v0.58 set `0..8,13`. Reject holes,
-  aliases, the old TMA category name, and legacy selector spellings unless an
-  explicitly selected historical profile owns them.
+- For the PTO 0.58.6 profile, decode TLSU named block starts at functions
+  `0..28`: functions `0..27` are the 28 entries in `pto_ops.json`, while
+  function `28` is the separate `BSTART.TIMG2COL` command form in
+  `pto_command_forms.json`. Reject `29..31`, retired same-code aliases, the old
+  TMA category name, and legacy selector spellings unless an explicitly
+  selected historical profile owns them.
 - Keep named `CUBE` opcode/template identities unique across QEMU metadata,
   golden decode names, and compiler block templates; never collapse distinct
   CUBE forms into one handler name without an explicit sub-op identity.
 - Add scalar CAS/DMA decode metadata and execution coverage as active v0.58
   forms, not compatibility fallbacks.
-- When PTOAS/QEMU bridge metadata is involved, validate against the PTO ISA
-  0.58 map of exactly 109 direct operations: 35 VEC + 52 SFU + 10 TLSU +
-  12 CUBE. Reject deleted operations and legacy PTO spellings rather than
-  normalizing them silently. TEPL remains only the unchanged Mode/Function
-  carrier for the 87 VEC/SFU operations; `BSTART.VEC` and `BSTART.SFU` are
-  semantic aliases and do not allocate new encodings.
+- When PTOAS/QEMU bridge metadata is involved, validate the PTO 0.58.6 map
+  against `pto_ops.json`: exactly 117 direct operations, comprising 31 VEC,
+  46 SFU, 28 TLSU, and 12 CUBE operations. `BSTART.TIMG2COL` is represented
+  separately in `pto_command_forms.json` and therefore does not increment that
+  operation count. Reject deleted operations and legacy PTO spellings rather
+  than normalizing them silently. TEPL remains only the unchanged
+  Mode/Function carrier for the 77 VEC/SFU operations; `BSTART.VEC` and
+  `BSTART.SFU` are semantic aliases and do not allocate new encodings.
 
 For recovered historical lines, insert one extra step before implementation:
 
