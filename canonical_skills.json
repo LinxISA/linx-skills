@@ -14,11 +14,11 @@
   ],
   "managed_utility_skills": [
     "linx-skills-submodule",
-    "linx-cross-model-validation"
+    "linx-qemu-gfrun-isa-adaptation"
   ],
   "protected_non_module_skills": [
     "linx-skills-submodule",
-    "linx-cross-model-validation"
+    "linx-qemu-gfrun-isa-adaptation"
   ],
   "deprecated_skills": [
     "linxcore",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linx PTO ISA Model Adaptation"
+  short_description: "Adapt and validate PTO ISA profiles across Linx models"
+  default_prompt: "Use $linx-qemu-gfrun-isa-adaptation to adapt and validate a PTO ISA profile across QEMU and gfrun with independent golden evidence and support-matrix updates."

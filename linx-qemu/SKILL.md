@@ -515,6 +515,35 @@ For recovered historical lines, insert one extra step before implementation:
   rather than emulator semantics, mark or skip that case explicitly in the AVS
   harness instead of counting it as a QEMU execution failure.
 
+## Reusable QEMU pitfalls
+
+- Do not trust an incremental build that runs only the generated
+  `qemu-version.h` rule. In the affected build tree that rule could be dirty
+  and return success before compiling changed Linx objects. Check that the
+  changed object and final `qemu-system-linx64` were rebuilt; if not, clean only
+  reproducible files from the QEMU build directory with the build tool and
+  rebuild. Never clean the source checkout or use a broad recursive deletion.
+- Keep the QEMU executable, tile-state encoder, and gfrun snapshot writer on
+  the same resolved ISA release identity. A snapshot `ISA commit mismatch` is
+  a harness/provenance failure even when both programs exit with code zero;
+  update the two encoders together and rerun tile-state cases.
+- Run source-level QEMU tests from the QEMU checkout. When `pytest` is absent,
+  use the repository's `unittest` entry points directly; an import failure from
+  a wrong working directory is not a QEMU semantic failure.
+- A current-ASL-invalid carrier that hangs in a cooperative rendezvous is not
+  a useful positive regression. First classify it as retired or negative
+  coverage. For a retained negative test, prove fail-closed behavior and
+  termination separately; do not weaken the legality gate or extend the
+  timeout until it appears to pass.
+- Keep compatibility exceptions narrow and named. When a release intentionally
+  keeps an old carrier warning-only, preserve the explicit legacy predicate and
+  its source-level regression assertion while keeping the current contract path
+  separate. Do not replace it with a broad shape or capacity relaxation.
+- Source contract tests may check a semantic invariant through a branch name or
+  marker. Before deleting such a branch during a refactor, inspect the test and
+  the old implementation; preserve the invariant or update the test to the
+  actual architecture rule in the same reviewable change.
+
 ## Skill evolve loop (mandatory closeout)
 
 - At closeout, decide `skill-evolve: update` or `skill-evolve: no-update`.
